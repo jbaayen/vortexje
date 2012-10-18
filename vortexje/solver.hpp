@@ -60,7 +60,7 @@ public:
     
     // Aerodynamic force and moment computation:
     Eigen::Vector3d aerodynamic_force(Collection &collection);
-    Eigen::Vector3d aerodynamic_moment(Collection &collection);
+    Eigen::Vector3d aerodynamic_moment(Collection &collection, Eigen::Vector3d x);
     
     // Logging:
     void log_coefficients(int step_number);

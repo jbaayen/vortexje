@@ -772,7 +772,7 @@ Solver::aerodynamic_force(Collection &collection)
 
 // Compute total aerodynamic moment on given collection:
 Vector3d
-Solver::aerodynamic_moment(Collection &collection)
+Solver::aerodynamic_moment(Collection &collection, Vector3d x)
 {
     double v_ref = (collection.velocity - wind_velocity).norm();
         
@@ -786,7 +786,7 @@ Solver::aerodynamic_moment(Collection &collection)
             Vector3d normal = mesh->panel_normal(k);            
             double surface_area = mesh->panel_surface_area(k);
             Vector3d F = 0.5 * air_density * pow(v_ref, 2) * surface_area * pressure_coefficients(offset + k) * normal;
-            Vector3d r = mesh->panel_collocation_point(k, false) - collection.position;
+            Vector3d r = mesh->panel_collocation_point(k, false) - x;
             M += r.cross(F);
         }
         
