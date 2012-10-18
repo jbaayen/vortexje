@@ -19,7 +19,7 @@ double Parameters::linear_solver_tolerance            = 1e-10;
 
 bool   Parameters::unsteady_bernoulli                 = true;
 
-bool   Parameters::convect_wake                       = true;
+bool   Parameters::convect_wake                       = false;
 
 double Parameters::static_wake_length                 = 100.0;
 
@@ -27,7 +27,7 @@ double Parameters::min_pressure_coefficient           = -12;
 
 double Parameters::fluid_kinematic_viscosity          = 15.68e-6;
 
-bool   Parameters::use_ramasamy_leishman_vortex_sheet = true;
+bool   Parameters::use_ramasamy_leishman_vortex_sheet = false;
 
 double Parameters::initial_vortex_core_radius         = 0.07;
 
