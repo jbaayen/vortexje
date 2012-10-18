@@ -50,6 +50,8 @@ public:
     
             Wing *blade = new Wing(blade_mesh, location, chord_direction, top_direction, span_direction);
             
+            blade->rotate(Vector3d::UnitZ(), -M_PI / 2.0);
+            
             blade->translate(Vector3d(rotor_radius, 0, 0));
             
             double theta_blade = theta_0 + 2 * M_PI / n_blades * i;
