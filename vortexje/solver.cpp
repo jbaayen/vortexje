@@ -728,14 +728,9 @@ Solver::update_wakes(double dt)
             std::vector<Vector3d> &local_wake_velocities = wake_velocities[idx];
             idx++;
             
-            // Convect wake nodes that coincide with the trailing edge nodes with the local kinematic velocity:
-            for (int k = wake->n_nodes() - wing->trailing_edge_nodes.size(); k < wake->n_nodes(); k++) {
-                Vector3d kinematic_velocity = wake->node_deformation_velocities[k]
-                                              + collection->node_kinematic_velocity(*wake, k)
-                                              - wind_velocity;
-                                                          
-                wake->nodes[k] -= kinematic_velocity * dt;
-            }
+            // Convect wake nodes that coincide with the trailing edge nodes with the freestream velocity:
+            for (int k = wake->n_nodes() - wing->trailing_edge_nodes.size(); k < wake->n_nodes(); k++)
+                wake->nodes[k] += wind_velocity * dt;
             
             // Convect all other wake nodes according to the local wake velocity:
             for (int k = 0; k < wake->n_nodes() - wing->trailing_edge_nodes.size(); k++)         
