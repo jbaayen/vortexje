@@ -1,6 +1,6 @@
 include ../config.mk
 
-CPPDEPS = mesh.cpp solver.cpp wing.cpp wake.cpp collection.cpp wing-builder.cpp
+CPPDEPS = mesh.cpp solver.cpp parameters.cpp wing.cpp wake.cpp collection.cpp wing-builder.cpp
 
 HPPDEPS = mesh.hpp solver.hpp parameters.hpp wing.hpp wake.hpp collection.hpp wing-builder.hpp
 

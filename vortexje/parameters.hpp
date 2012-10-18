@@ -12,62 +12,63 @@
 namespace Vortexje
 {
 
-namespace Parameters
-{   
+class Parameters
+{
+public:
     // BiCGSTAB linear solver parameters.
-    static int    linear_solver_max_iterations       = 20000;
+    static int    linear_solver_max_iterations;
     
-    static double linear_solver_tolerance            = 1e-10;
+    static double linear_solver_tolerance;
     
     // Unsteady Bernoulli equation.
-    static bool   unsteady_bernoulli                 = true;
+    static bool   unsteady_bernoulli;
     
     // Wake convection.
-    static bool   convect_wake                       = true;
+    static bool   convect_wake;
     
-    static double static_wake_length                 = 100.0;
+    static double static_wake_length;
     
     // Separation detection.
-    static double min_pressure_coefficient           = -12;
+    static double min_pressure_coefficient;
     
     // Kinematic viscosity of fluid.
-    static double fluid_kinematic_viscosity          = 15.68e-6;
+    static double fluid_kinematic_viscosity;
     
     // Whether or not to use the Ramasamy-Leishman vortex sheet model, see
     //    M. Ramasamy and J. G. Leishman, Reynolds Number Based Blade Tip Vortex Model, University of Maryland, 2005.
-    static bool   use_ramasamy_leishman_vortex_sheet = true;
+    static bool   use_ramasamy_leishman_vortex_sheet;
     
     // Ramasamy-Leishman vortex sheet model parameters:
-    static double initial_vortex_core_radius         = 0.07;
+    static double initial_vortex_core_radius;
     
-    static double min_vortex_core_radius             = 0.07;
+    static double min_vortex_core_radius;
 
-    static double lambs_constant                     = 1.25643;
+    static double lambs_constant;
     
-    static double a_prime                            = 6.5e-5;
+    static double a_prime;
     
     // Whether or not to use Markov's formula, see
     //    L. Dragoş, Mathematical Methods in Aerodynamics, Springer, 2003.
-    static bool   use_markov_surface_velocity        = false;
+    static bool   use_markov_surface_velocity;
     
     // Close-to-body interpolation layer parameters, see
     //    K. Dixon, C. S. Ferreira, C. Hofemann, G. van Brussel, G. van Kuik,
     //    A 3D Unsteady Panel Method for Vertical Axis Wind Turbines, DUWIND, 2008.
-    static double interpolation_layer_thickness      = 0.075;
+    static double interpolation_layer_thickness;
     
-    static double interpolation_layer_notch_angle    = 2 * M_PI / 3;
+    static double interpolation_layer_notch_angle;
     
     // Inversion threshold.  Values below this threshold will not be inverted.
-    static double inversion_tolerance                = 1e-6;
+    static double inversion_tolerance;
     
     // If the inner product of normals of neighbouring panels is more than sharp_edge_tolerance in absolute value,
     // then the edge shared by the two panels is considered "sharp" and treated accordingly.
     // (e.g., for trailing edge detection.)
-    static double sharp_edge_threshold               = 0.1;
+    static double sharp_edge_threshold;
     
     // Factor applied to the smallest panel edge, to obtain the normal distance for below-surface collocation points:
     //    collocation_point_delta = collocation_point_delta_factor * min_edge.
-    static double collocation_point_delta_factor     = 1e-2;
+    static double collocation_point_delta_factor;
 };
 
 };
