@@ -32,7 +32,7 @@ main (int argc, char **argv)
     
     // Prescribe angle of attack:
     double alpha = 5.0 / 180.0 * M_PI;
-    wing_mesh.rotate(Vector3d::UnitZ(), -alpha);
+    wing_mesh.rotate(span_direction, -alpha);
     
     // Create mesh collection:
     Collection collection(string("test-wing"),
