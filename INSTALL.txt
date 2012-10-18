@@ -1,0 +1,14 @@
+Dependencies:
+-------------
+
+ * Eigen3, a C++ template library for linear algebra:
+
+   http://eigen.tuxfamily.org/
+   
+
+Installation:
+-------------
+
+ * Edit 'config.mk' to match your system;
+
+ * Run 'make'.

@@ -1,0 +1,11 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: Vortexje
+Description: Vortexje CFD for VAWT
+Version: 1.0.0
+Requires: eigen3
+Libs: -L${libdir} -lm -lvortexje
+Cflags: -I${includedir}/vortexje
