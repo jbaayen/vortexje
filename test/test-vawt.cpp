@@ -94,6 +94,14 @@ public:
 int
 main (int argc, char **argv)
 {
+    // Set simulation parameters for dynamic wake convection with Ramasamy-Leishman vortex model:
+    Parameters::convect_wake                       = true;
+    Parameters::use_ramasamy_leishman_vortex_sheet = true;
+    Parameters::unsteady_bernoulli                 = true;
+        
+    // Shut up separation warnings:
+    Parameters::min_pressure_coefficient = -1e10;
+    
     // Set up mill:
     Mesh tower_mesh;
     Mesh blade_mesh(string("naca0012.msh"));
@@ -123,8 +131,7 @@ main (int argc, char **argv)
         solver.update_coefficients(dt);
         solver.log_coefficients(step_number);
         
-        vawt.rotate(dt);
-        
+        vawt.rotate(dt);       
         solver.update_wakes(dt);
         
         t += dt;
