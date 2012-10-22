@@ -81,23 +81,16 @@ public:
     rotate(double dt)
     { 
         // Compute new kinematic state:
-        Quaterniond q_rotational_velocity(0.0, 0.0, 0.0, 0.5 * rotational_velocity(2) * dt);
-        Quaterniond dattitude = q_rotational_velocity * this->attitude;
-        Quaterniond attitude = Quaterniond(this->attitude.w() + dattitude.w(), 
-                                           this->attitude.x() + dattitude.x(),
-                                           this->attitude.y() + dattitude.y(),
-                                           this->attitude.z() + dattitude.z());
-        set_attitude(attitude);
+        set_attitude(AngleAxis<double>(rotational_velocity(2) * dt, Vector3d::UnitZ()) * attitude);
     }
 };
 
 int
 main (int argc, char **argv)
-{
+{    
     // Set simulation parameters for dynamic wake convection with Ramasamy-Leishman vortex model:
     Parameters::convect_wake                       = true;
     Parameters::use_ramasamy_leishman_vortex_sheet = true;
-    Parameters::unsteady_bernoulli                 = true;
         
     // Shut up separation warnings:
     Parameters::min_pressure_coefficient = -1e10;
@@ -130,9 +123,10 @@ main (int argc, char **argv)
     while (t < 60) {
         solver.update_coefficients(dt);
         solver.log_coefficients(step_number);
-        
-        vawt.rotate(dt);       
+
         solver.update_wakes(dt);
+        
+        vawt.rotate(dt);
         
         t += dt;
         step_number++;
