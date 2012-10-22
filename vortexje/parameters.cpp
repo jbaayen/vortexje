@@ -37,7 +37,7 @@ double Parameters::lambs_constant                     = 1.25643;
 
 double Parameters::a_prime                            = 6.5e-5;
 
-bool   Parameters::use_markov_surface_velocity        = false;
+bool   Parameters::use_markov_surface_velocity        = true;
 
 double Parameters::interpolation_layer_thickness      = 0.075;
 
