@@ -847,6 +847,12 @@ doublet_edge_influence(Vector3d &x, Vector3d &node_a, Vector3d &node_b)
     double r1 = (x - node_a).norm();
     double r2 = (x - node_b).norm();
     
+    if (fabs(node_b(0) - node_a(0)) < Parameters::inversion_tolerance ||
+        fabs(x(2))                  < Parameters::inversion_tolerance ||
+        r1                          < Parameters::inversion_tolerance ||
+        r2                          < Parameters::inversion_tolerance)
+        return 0.0;
+    
     double m = (node_b(1) - node_a(1)) / (node_b(0) - node_a(0));
     
     double e1 = pow(x(0) - node_a(0), 2) + pow(x(2), 2);
@@ -909,6 +915,14 @@ source_edge_influence(Vector3d &x, Vector3d &node_a, Vector3d &node_b)
     double r1 = (x - node_a).norm();
     double r2 = (x - node_b).norm();
     
+    if (fabs(node_b(0) - node_a(0)) < Parameters::inversion_tolerance ||
+        fabs(x(2))                  < Parameters::inversion_tolerance ||
+        r1                          < Parameters::inversion_tolerance ||
+        r2                          < Parameters::inversion_tolerance ||
+        d                           < Parameters::inversion_tolerance ||
+        fabs(r1 + r2 - d)           < Parameters::inversion_tolerance)
+        return 0.0;
+    
     double m = (node_b(1) - node_a(1)) / (node_b(0) - node_a(0));
     
     double e1 = pow(x(0) - node_a(0), 2) + pow(x(2), 2);
@@ -966,11 +980,17 @@ source_edge_unit_velocity(Vector3d &x, Vector3d &node_a, Vector3d &node_b)
     Vector3d edge = node_b - node_a;
     
     double d = edge.norm();
-    if (d < Parameters::inversion_tolerance)
-        return Vector3d(0, 0, 0); // Edge with zero-length.
     
     double r1 = (x - node_a).norm();
     double r2 = (x - node_b).norm();
+    
+    if (fabs(node_b(0) - node_a(0)) < Parameters::inversion_tolerance ||
+        fabs(x(2))                  < Parameters::inversion_tolerance ||
+        r1                          < Parameters::inversion_tolerance ||
+        r2                          < Parameters::inversion_tolerance ||
+        d                           < Parameters::inversion_tolerance ||
+        fabs(r1 + r2 + d)           < Parameters::inversion_tolerance)
+        return Vector3d(0, 0, 0);
     
     double m = (node_b(1) - node_a(1)) / (node_b(0) - node_a(0));
     
@@ -981,9 +1001,6 @@ source_edge_unit_velocity(Vector3d &x, Vector3d &node_a, Vector3d &node_b)
     double h2 = (x(0) - node_b(0)) * (x(1) - node_b(1));
     
     double delta_theta = atan((m * e1 - h1) / (x(2) * r1)) - atan((m * e2 - h2) / (x(2) * r2));
-    
-    if ((r1 + r2 - d) < Parameters::inversion_tolerance)
-        return Vector3d(0, 0, 0);
     
     double u = (node_b(1) - node_a(1)) / d * log((r1 + r2 - d) / (r1 + r2 + d));
     double v = (node_a(0) - node_b(0)) / d * log((r1 + r2 - d) / (r1 + r2 + d));
