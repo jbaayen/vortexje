@@ -439,13 +439,18 @@ WingBuilder::connect_nodes(vector<int> &first_nodes, vector<int> &second_nodes, 
             vertex_deformation_velocities[3] = second_mid_deformation_velocity + 0.5 * (second_line.dot(second_line_deformation_velocity) / second_line.norm() * line_direction + second_line.norm() * line_direction_deformation_velocity);
             
             for (int j = 0; j < 4; j++) {
-                new_nodes[j] = wing.nodes.size();
-                
-                wing.nodes.push_back(vertices[j]);
-                
-                wing.node_deformation_velocities.push_back(vertex_deformation_velocities[j]);
-                
-                wing.node_panel_neighbors.push_back(wing.node_panel_neighbors[original_nodes[j]]);
+                // If the new points don't match the original ones, create new nodes:
+                if ((vertices[j] - wing.nodes[original_nodes[j]]).norm() < Parameters::inversion_tolerance) {
+                    new_nodes[j] = original_nodes[j];
+                } else {         
+                    new_nodes[j] = wing.nodes.size();
+                    
+                    wing.nodes.push_back(vertices[j]);
+                    
+                    wing.node_deformation_velocities.push_back(vertex_deformation_velocities[j]);
+                    
+                    wing.node_panel_neighbors.push_back(wing.node_panel_neighbors[original_nodes[j]]);
+                }
             }
             
             panel_id = wing.add_quadrangle(new_nodes[0], new_nodes[2], new_nodes[3], new_nodes[1]);
