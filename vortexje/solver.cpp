@@ -448,14 +448,14 @@ Solver::initialize_wakes(double dt)
             
             wake->add_layer(meshes_without_wakes);
             for (int k = 0; k < wake->n_nodes(); k++) {
-                if (Parameters::convect_wake) {
-                    Vector3d kinematic_velocity = wake->node_deformation_velocities[k]
-                                                  + collection->node_kinematic_velocity(*wake, k)
-                                                  - wind_velocity;
-                                   
+                Vector3d kinematic_velocity = wake->node_deformation_velocities[k]
+                                              + collection->node_kinematic_velocity(*wake, k)
+                                              - wind_velocity;
+                                                  
+                if (Parameters::convect_wake)    
                     wake->nodes[k] -= kinematic_velocity * dt;
-                } else
-                    wake->nodes[k] += Parameters::static_wake_length * wing->chord_direction;
+                else
+                    wake->nodes[k] -= Parameters::static_wake_length * kinematic_velocity / kinematic_velocity.norm();
             }
             
             wake->add_layer(meshes_without_wakes);
