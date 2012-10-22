@@ -30,7 +30,12 @@ Wing::Wing(Mesh &mesh, Vector3d location, Vector3d chord_direction, Vector3d top
 {   
     // Load wing data from existing mesh:
     nodes                       = mesh.nodes;
-    node_panel_neighbors        = mesh.node_panel_neighbors;
+    for (int i = 0; i < mesh.node_panel_neighbors.size(); i++) {
+        vector<int> *single_node_panel_neighbors = new vector<int>;
+        for (int j = 0; j < mesh.node_panel_neighbors[i]->size(); j++)
+            single_node_panel_neighbors->push_back((*mesh.node_panel_neighbors[i])[j]);
+        node_panel_neighbors.push_back(single_node_panel_neighbors);
+    }
     node_deformation_velocities = mesh.node_deformation_velocities;
     panel_nodes                 = mesh.panel_nodes;
     panel_neighbors             = mesh.panel_neighbors;

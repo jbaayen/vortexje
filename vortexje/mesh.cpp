@@ -44,7 +44,7 @@ Mesh::Mesh(string file)
 void
 Mesh::clear_node_panel_neighbors()
 {
-    std::vector<std::vector<int> *> unique;
+    vector<vector<int> *> unique;
     
     for (int i = 0; i < node_panel_neighbors.size(); i++) {
         bool found = false;
