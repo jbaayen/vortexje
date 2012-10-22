@@ -55,7 +55,7 @@ static double
 compute_y_t(double x, double max_camber, double max_camber_dist, double max_thickness, double chord)
 {
     return max_thickness / 0.2 * chord * (0.2969 * sqrt(x / chord) - 0.1260 * (x / chord) 
-                                          - 0.3516 * pow(x / chord, 2) + 0.2843 * pow(x / chord, 3) - 0.1015 * pow(x / chord, 4));
+                                          - 0.3516 * pow(x / chord, 2) + 0.2843 * pow(x / chord, 3) - 0.1036 * pow(x / chord, 4));
 }
 
 vector<Vector3d>
