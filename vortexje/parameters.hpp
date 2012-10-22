@@ -47,10 +47,6 @@ public:
     
     static double a_prime;
     
-    // Whether or not to use Markov's formula, see
-    //    L. Dragoş, Mathematical Methods in Aerodynamics, Springer, 2003.
-    static bool   use_markov_surface_velocity;
-    
     // Close-to-body interpolation layer parameters, see
     //    K. Dixon, C. S. Ferreira, C. Hofemann, G. van Brussel, G. van Kuik,
     //    A 3D Unsteady Panel Method for Vertical Axis Wind Turbines, DUWIND, 2008.

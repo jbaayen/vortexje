@@ -209,17 +209,9 @@ Solver::surface_velocity(Mesh &mesh, int panel, VectorXd &doublet_coefficient_fi
 {
     Vector3d x = mesh.panel_collocation_point(panel, false);
     
-    // Differentiate doublet distribution along surface:
-    Vector3d tangential_velocity;
-    if (Parameters::use_markov_surface_velocity) {
-        // Use Markov's formula, see L. Dragoş, Mathematical Methods in Aerodynamics, Springer, 2003.
-        tangential_velocity = potential_gradient(x);
-        tangential_velocity -= 0.5 * mesh.scalar_field_gradient(doublet_coefficient_field, panel);
-        
-    } else {
-        // Use pure differentation as in XFLR5 and J. Katz and A. Plotkin, Low-Speed Aerodynamics, McGraw-Hill, 1991.
-        tangential_velocity = -mesh.scalar_field_gradient(doublet_coefficient_field, panel);
-    }
+    // Use N. Marcov's formula for surface velocity, see L. Dragoş, Mathematical Methods in Aerodynamics, Springer, 2003.
+    Vector3d tangential_velocity = potential_gradient(x);
+    tangential_velocity -= 0.5 * mesh.scalar_field_gradient(doublet_coefficient_field, panel);
 
     // Add airflow due to kinematic velocity:
     tangential_velocity -= kinematic_velocity;
