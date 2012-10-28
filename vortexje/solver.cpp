@@ -442,20 +442,18 @@ Solver::initialize_wakes(double dt)
     for (int i = 0; i < collections.size(); i++) {
         Collection *collection = collections[i];
         
+        Vector3d collection_kinematic_velocity = collection->velocity - wind_velocity;
+        
         for (int j = 0; j < collection->wings.size(); j++) {
             Wing *wing = collection->wings[j];
             Wake *wake = collection->wakes[j];
             
             wake->add_layer(meshes_without_wakes);
-            for (int k = 0; k < wake->n_nodes(); k++) {
-                Vector3d kinematic_velocity = wake->node_deformation_velocities[k]
-                                              + collection->node_kinematic_velocity(*wake, k)
-                                              - wind_velocity;
-                                                  
+            for (int k = 0; k < wake->n_nodes(); k++) {                                  
                 if (Parameters::convect_wake)    
-                    wake->nodes[k] -= kinematic_velocity * dt;
+                    wake->nodes[k] -= collection_kinematic_velocity * dt;
                 else
-                    wake->nodes[k] -= Parameters::static_wake_length * kinematic_velocity / kinematic_velocity.norm();
+                    wake->nodes[k] -= Parameters::static_wake_length * collection_kinematic_velocity / collection_kinematic_velocity.norm();
             }
             
             wake->add_layer(meshes_without_wakes);
@@ -677,68 +675,92 @@ void
 Solver::update_wakes(double dt)
 {
     // Do we convect wake panels?
-    if (!Parameters::convect_wake)
-        return;
+    if (Parameters::convect_wake) {
+        // Compute velocity values at wake nodes;
+        std::vector<std::vector<Vector3d> > wake_velocities;
         
-    // Compute velocity values at wake nodes;
-    std::vector<std::vector<Vector3d> > wake_velocities;
-    
-    for (int i = 0; i < collections.size(); i++) {
-        Collection *collection = collections[i];
-             
-        for (int j = 0; j < collection->wings.size(); j++) {
-            Wing *wing = collection->wings[j];
-            Wake *wake = collection->wakes[j];
-            
-            std::vector<Vector3d> local_wake_velocities;
-            
-            for (int k = 0; k < wake->n_nodes(); k++) {  
-                Vector3d kinematic_velocity = - wind_velocity;
+        for (int i = 0; i < collections.size(); i++) {
+            Collection *collection = collections[i];
+                 
+            for (int j = 0; j < collection->wings.size(); j++) {
+                Wing *wing = collection->wings[j];
+                Wake *wake = collection->wakes[j];
                 
-                Vector3d x = wake->nodes[k];
+                std::vector<Vector3d> local_wake_velocities;
+                
+                for (int k = 0; k < wake->n_nodes(); k++) {  
+                    Vector3d kinematic_velocity = - wind_velocity;
+                    
+                    Vector3d x = wake->nodes[k];
 
-                Vector3d velocity = stream_velocity(x, kinematic_velocity);
+                    Vector3d velocity = stream_velocity(x, kinematic_velocity);
+                    
+                    local_wake_velocities.push_back(velocity);
+                }
                 
-                local_wake_velocities.push_back(velocity);
+                wake_velocities.push_back(local_wake_velocities);
             }
-            
-            wake_velocities.push_back(local_wake_velocities);
         }
-    }
-    
-    // Add new wake panels at trailing edges, and convect all vertices:
-    int idx = 0;
-    
-    for (int i = 0; i < collections.size(); i++) {
-        Collection *collection = collections[i];
         
-        for (int j = 0; j < collection->wings.size(); j++) {
-            Wing *wing = collection->wings[j];
-            Wake *wake = collection->wakes[j];
+        // Add new wake panels at trailing edges, and convect all vertices:
+        int idx = 0;
+        
+        for (int i = 0; i < collections.size(); i++) {
+            Collection *collection = collections[i];
             
-            // Retrieve local wing velocities:
-            std::vector<Vector3d> &local_wake_velocities = wake_velocities[idx];
-            idx++;
-            
-            // Convect wake nodes that coincide with the trailing edge nodes with the freestream velocity,
-            for (int k = wake->n_nodes() - wing->trailing_edge_nodes.size(); k < wake->n_nodes(); k++) {
-                 Vector3d kinematic_velocity = wake->node_deformation_velocities[k]
-                                               + collection->node_kinematic_velocity(*wake, k)
-                                               - wind_velocity;
-                                                           
-                 wake->nodes[k] -= kinematic_velocity * dt;
-            }                
-            
-            // Convect all other wake nodes according to the local wake velocity:
-            for (int k = 0; k < wake->n_nodes() - wing->trailing_edge_nodes.size(); k++)         
-                wake->nodes[k] += local_wake_velocities[k] * dt;
+            for (int j = 0; j < collection->wings.size(); j++) {
+                Wing *wing = collection->wings[j];
+                Wake *wake = collection->wakes[j];
                 
-            // Update vortex core radii:
-            for (int k = 0; k < wake->n_panels(); k++)
-                wake->update_ramasamy_leishman_vortex_core_radii(k, dt);
+                // Retrieve local wing velocities:
+                std::vector<Vector3d> &local_wake_velocities = wake_velocities[idx];
+                idx++;
+                
+                // Convect wake nodes that coincide with the trailing edge nodes with the freestream velocity,
+                for (int k = wake->n_nodes() - wing->trailing_edge_nodes.size(); k < wake->n_nodes(); k++) {
+                     Vector3d kinematic_velocity = wake->node_deformation_velocities[k]
+                                                   + collection->node_kinematic_velocity(*wake, k)
+                                                   - wind_velocity;
+                                                               
+                     wake->nodes[k] -= kinematic_velocity * dt;
+                }                
+                
+                // Convect all other wake nodes according to the local wake velocity:
+                for (int k = 0; k < wake->n_nodes() - wing->trailing_edge_nodes.size(); k++)         
+                    wake->nodes[k] += local_wake_velocities[k] * dt;
+                    
+                // Update vortex core radii:
+                for (int k = 0; k < wake->n_panels(); k++)
+                    wake->update_ramasamy_leishman_vortex_core_radii(k, dt);
 
-            // Add new vertices:
-            wake->add_layer(meshes_without_wakes);
+                // Add new vertices:
+                wake->add_layer(meshes_without_wakes);
+            }
+        }
+        
+    } else {
+        // No wake convection.  Re-position wake:
+        for (int i = 0; i < collections.size(); i++) {
+            Collection *collection = collections[i];
+            
+            Vector3d collection_kinematic_velocity = collection->velocity - wind_velocity;
+            
+            for (int j = 0; j < collection->wings.size(); j++) {
+                Wing *wing = collection->wings[j];
+                Wake *wake = collection->wakes[j];
+                
+                for (int k = 0; k < wing->trailing_edge_nodes.size(); k++) {
+                    // Connect wake to trailing edge nodes:                             
+                    wake->nodes[wing->trailing_edge_nodes.size() + k] = wing->nodes[wing->trailing_edge_nodes[k]];
+                    
+                    // Point wake in direction of collection kinematic velocity:
+                    wake->nodes[k] = wing->nodes[wing->trailing_edge_nodes[k]]
+                                     - Parameters::static_wake_length * collection_kinematic_velocity / collection_kinematic_velocity.norm();
+                }
+                
+                // Need to update influence coefficients:
+                wake->invalidate_cache();
+            }
         }
     }
 }
