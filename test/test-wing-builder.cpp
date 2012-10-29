@@ -48,8 +48,16 @@ main (int argc, char **argv)
             
         vector<int> airfoil_nodes = wing_builder.add_points(airfoil_points, trailing_edge_point_id);
         
-        if (i > 0)
-            wing_builder.connect_nodes(prev_airfoil_nodes, airfoil_nodes, trailing_edge_point_id, true, WingBuilder::QUADRANGLES);
+        if (i > 0) {
+            int trailing_edge_top_panel_id, trailing_edge_bottom_panel_id;
+            
+            wing_builder.connect_nodes(airfoil_nodes, prev_airfoil_nodes,
+                                       trailing_edge_point_id, trailing_edge_top_panel_id, trailing_edge_bottom_panel_id,
+                                       true, WingBuilder::QUADRANGLES);
+                                       
+            wing.trailing_edge_top_panels.push_back(trailing_edge_top_panel_id);
+            wing.trailing_edge_bottom_panels.push_back(trailing_edge_bottom_panel_id);
+        }
             
         prev_airfoil_nodes = airfoil_nodes;
     }

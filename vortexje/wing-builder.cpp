@@ -318,7 +318,9 @@ WingBuilder::add_points(vector<Vector3d> &points, int trailing_edge_point_id)
 
 // Connect two lists of nodes with panels.  If trianges = true, then triangles are used instead of quadrangles.
 void
-WingBuilder::connect_nodes(vector<int> &first_nodes, vector<int> &second_nodes, int trailing_edge_point_id, bool cyclic, ConnectNodesMode mode)
+WingBuilder::connect_nodes(vector<int> &first_nodes, vector<int> &second_nodes,
+                           int trailing_edge_point_id, int &trailing_edge_top_panel_id, int &trailing_edge_bottom_panel_id,
+                           bool cyclic, ConnectNodesMode mode)
 {
     for (int i = 0; i < first_nodes.size(); i++) {
         int next_i;
@@ -347,13 +349,13 @@ WingBuilder::connect_nodes(vector<int> &first_nodes, vector<int> &second_nodes, 
             
             // Mark as trailing edge panel if bordering trailing edge node.
             if (i == trailing_edge_point_id)
-                wing.trailing_edge_bottom_panels.push_back(panel_id);
+                trailing_edge_bottom_panel_id = panel_id;
                 
             panel_id = wing.add_triangle(first_nodes[i], second_nodes[next_i], first_nodes[next_i]);
             
             // Mark as trailing edge panel if bordering trailing edge node.
             if (i == trailing_edge_point_id - 1)
-                wing.trailing_edge_top_panels.push_back(panel_id);    
+                trailing_edge_top_panel_id = panel_id;
 
             break;
             
@@ -362,13 +364,13 @@ WingBuilder::connect_nodes(vector<int> &first_nodes, vector<int> &second_nodes, 
             
             // Mark as trailing edge panel if bordering trailing edge node.
             if (i == trailing_edge_point_id)
-                wing.trailing_edge_bottom_panels.push_back(panel_id);
+                trailing_edge_bottom_panel_id = panel_id;
                 
             panel_id = wing.add_triangle(second_nodes[i], second_nodes[next_i], first_nodes[next_i]);
             
             // Mark as trailing edge panel if bordering trailing edge node.
             if (i == trailing_edge_point_id - 1)
-                wing.trailing_edge_top_panels.push_back(panel_id);   
+                trailing_edge_top_panel_id = panel_id;   
         
             break;
             
@@ -390,13 +392,13 @@ WingBuilder::connect_nodes(vector<int> &first_nodes, vector<int> &second_nodes, 
             
             // Mark as trailing edge panel if bordering trailing edge node.
             if (i == trailing_edge_point_id)
-                wing.trailing_edge_bottom_panels.push_back(panel_id);
+                trailing_edge_bottom_panel_id = panel_id;
                 
             panel_id = wing.add_triangle(second_nodes[next_i], first_nodes[next_i], middle_node_id);
             
             // Mark as trailing edge panel if bordering trailing edge node.
             if (i == trailing_edge_point_id - 1)
-                wing.trailing_edge_top_panels.push_back(panel_id);
+                trailing_edge_top_panel_id = panel_id;
                 
             panel_id = wing.add_triangle(first_nodes[i], middle_node_id, first_nodes[next_i]);
             panel_id = wing.add_triangle(second_nodes[i], second_nodes[next_i], middle_node_id);
@@ -457,9 +459,9 @@ WingBuilder::connect_nodes(vector<int> &first_nodes, vector<int> &second_nodes, 
             
             // Mark as trailing edge panel if bordering trailing edge node.
             if (i == trailing_edge_point_id - 1)
-                wing.trailing_edge_top_panels.push_back(panel_id);
+                trailing_edge_top_panel_id = panel_id;
             else if (i == trailing_edge_point_id)
-                wing.trailing_edge_bottom_panels.push_back(panel_id);
+                trailing_edge_bottom_panel_id = panel_id;
                 
             break;
         }
@@ -502,12 +504,13 @@ WingBuilder::fill_airfoil(vector<int> airfoil_nodes, int trailing_edge_point_id,
     }
     
     // Close middle part with panels:
+    int empty;
     if (z_sign == 1) {
-        connect_nodes(middle_nodes, top_nodes, -1, false, QUADRANGLES);
-        connect_nodes(bottom_nodes, middle_nodes, -1, false, QUADRANGLES);
+        connect_nodes(middle_nodes, top_nodes, -1, empty, empty, false, QUADRANGLES);
+        connect_nodes(bottom_nodes, middle_nodes, -1, empty, empty, false, QUADRANGLES);
     } else { 
-        connect_nodes(top_nodes, middle_nodes, -1, false, QUADRANGLES);
-        connect_nodes(middle_nodes, bottom_nodes, -1, false, QUADRANGLES);
+        connect_nodes(top_nodes, middle_nodes, -1, empty, empty, false, QUADRANGLES);
+        connect_nodes(middle_nodes, bottom_nodes, -1, empty, empty, false, QUADRANGLES);
     }
     
     // Create triangle for leading and trailing edges:

@@ -39,7 +39,8 @@ public:
     } ConnectNodesMode;
     
     void connect_nodes(std::vector<int> &first_nodes, std::vector<int> &second_nodes,
-                       int trailing_edge_point_id, bool cyclic, ConnectNodesMode mode);
+                       int trailing_edge_point_id, int &trailing_edge_top_panel_id, int &trailing_edge_bottom_panel_id,
+                       bool cyclic, ConnectNodesMode mode);
     
     std::vector<int> fill_airfoil(std::vector<int> airfoil_nodes, int trailing_edge_point_id, int z_sign);
     
