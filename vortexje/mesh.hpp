@@ -20,12 +20,21 @@
 namespace Vortexje
 {
 
+/**
+   Mesh representation using node-panel, panel-node, and panel-panel data structures,
+   and implements geometrical and singularity panel influence operations.
+   
+   @brief Mesh representation.
+*/
 class Mesh
 {
 public:
-    // Constructor:
+    /**
+       Automatically generated mesh identification number.
+    */
     int id;
     
+    // Constructors:
     Mesh();
     Mesh(std::string file);
     
@@ -52,10 +61,29 @@ public:
     int n_nodes();
     int n_panels();
     
+    /**
+       Node number to point map.
+    */
     std::vector<Eigen::Vector3d> nodes;
+    
+    /**
+       Node number to node deformation velocity map.
+    */
     std::vector<Eigen::Vector3d> node_deformation_velocities;
+    
+    /**
+       Node number to neigboring panel numbers map.
+    */
     std::vector<std::vector<int> *> node_panel_neighbors;
+    
+    /**
+       Panel number to comprising vertex numbers map.
+    */
     std::vector<std::vector<int> > panel_nodes;
+    
+    /**
+       Panel number to neighboring panel numbers map.
+    */
     std::vector<std::vector<int> > panel_neighbors;
     
     void rotate(Eigen::Vector3d axis, double angle);
@@ -102,14 +130,49 @@ public:
     // Caches:
     void invalidate_cache();
     
+    /**
+       Panel collocation point caches.
+    */
     std::vector<Eigen::Vector3d> panel_collocation_point_cache[2];
+    
+    /**
+       Panel normal vector cache.
+    */
     std::vector<Eigen::Vector3d> panel_normal_cache;
+    
+    /**
+       Panel surface area cache.
+    */
     std::vector<double> panel_surface_area_cache;
+    
+    /**
+       Panel diameter cache.
+    */
     std::vector<double> panel_diameter_cache;
+    
+    /**
+       Doublet influence coefficient cache.
+    */
     std::map<int, std::vector<std::vector<double> > > doublet_influence_cache;
+    
+    /**
+       Source influence coefficient cache.
+    */
     std::map<int, std::vector<std::vector<double> > > source_influence_cache;
+    
+    /**
+       Unit source panel induced velocity cache.
+    */
     std::map<int, std::vector<std::vector<Eigen::Vector3d> > > source_unit_velocity_cache;
+    
+    /**
+       Unit vortex ring induced velocity cache.
+    */
     std::map<int, std::vector<std::vector<Eigen::Vector3d> > > vortex_ring_unit_velocity_cache;
+    
+    /**
+       Ramasamy-Leishman vortex ring induced velocity cache.
+    */
     std::map<int, std::vector<std::vector<Eigen::Vector3d> > > vortex_ring_ramasamy_leishman_velocity_cache;
 };
 

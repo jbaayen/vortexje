@@ -17,7 +17,11 @@ using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
 
-// Constructor:
+/**
+   Constructs a new WingBuilder object for the given Wing.
+   
+   @param[in]   wing    Wing object to construct.
+*/
 WingBuilder::WingBuilder(Wing &wing) : wing(wing)
 {
 }
@@ -58,6 +62,18 @@ compute_y_t(double x, double max_camber, double max_camber_dist, double max_thic
                                           - 0.3516 * pow(x / chord, 2) + 0.2843 * pow(x / chord, 3) - 0.1036 * pow(x / chord, 4));
 }
 
+/**
+   Generates points tracing a 4-digit series NACA airfoil.
+   
+   @param[in]   max_camber              Maximum camber as a percentage of the chord (the first digit, divided by 100).
+   @param[in]   max_camber_dist         Distance of maximum camber from the leading edge (the second digit, dividid by 10).
+   @param[in]   max_thickness           Maximum thickness of the airfoil (the last two digits, divided by 100).
+   @param[in]   chord                   Chord length.
+   @param[in]   n_points                Number of points to return.
+   @param[out]  trailing_edge_point_id Index of the trailing edge node in the returned list.
+   
+   @returns List of points.
+*/
 vector<Vector3d>
 WingBuilder::generate_naca_airfoil(double max_camber, double max_camber_dist, double max_thickness, double chord, int n_points, int &trailing_edge_point_id)
 {
@@ -235,6 +251,15 @@ static struct {
     {1.0000000, -.0005993}
 };
 
+/**
+   Generates points tracing a Clark-Y airfoil.
+   
+   @param[in]   chord                   Chord length.
+   @param[in]   n_points                Number of points to return.
+   @param[out]  trailing_edge_point_id Index of the trailing edge node in the returned list.
+   
+   @returns List of points.
+*/
 vector<Vector3d>
 WingBuilder::generate_clarky_airfoil(double chord, int n_points, int &trailing_edge_point_id)
 {
@@ -291,7 +316,14 @@ WingBuilder::generate_clarky_airfoil(double chord, int n_points, int &trailing_e
     return airfoil_points;
 }
 
-// Add points to wing:
+/**
+   Adds a list of points, adding the designated one to the trailing edge.
+   
+   @param[in]   points                  List of points to be added.
+   @param[in]   trailing_edge_point_id  Index of trailing edge point in the above list.
+   
+   @returns A list of new node numbers.
+*/
 vector<int>
 WingBuilder::add_points(vector<Vector3d> &points, int trailing_edge_point_id)
 {
@@ -316,7 +348,17 @@ WingBuilder::add_points(vector<Vector3d> &points, int trailing_edge_point_id)
     return added_nodes;
 }
 
-// Connect two lists of nodes with panels.  If trianges = true, then triangles are used instead of quadrangles.
+/**
+   Connects two lists of nodes with new panels.
+  
+   @param[in]   first_nodes                    First list of node numbers.
+   @param[in]   second_nodes                   Second list of node numbers.
+   @param[in]   trailing_edge_point_id         Index of trailing edge node in lists of node numbers.
+   @param[out]  trailing_edge_top_panel_id     Number of newly created panel above and adjacent to trailing edge.
+   @param[out]  trailing_edge_bottom_panel_id  Number of newly created panel below and adjacent to trailing edge.
+   @param[in]   cyclic                         True if the last nodes in the lists are adjacent to the first nodes in the lists.
+   @param[in]   mode                           The kind of panels to create.
+*/
 void
 WingBuilder::connect_nodes(vector<int> &first_nodes, vector<int> &second_nodes,
                            int trailing_edge_point_id, int &trailing_edge_top_panel_id, int &trailing_edge_bottom_panel_id,
@@ -468,7 +510,15 @@ WingBuilder::connect_nodes(vector<int> &first_nodes, vector<int> &second_nodes,
     }
 }
 
-// Fill airfoil with panels.
+/**
+   Fills an airfoil with panels.
+  
+   @param[in]   airfoil_nodes           Node numbers tracing an airfoil.
+   @param[in]   trailing_edge_point_id  Index of trailing edge node in list of airfoil nodes.
+   @param[in]   z_sign                  Handedness of the created panels.
+   
+   @returns List of new panels numbers.
+*/
 vector<int>
 WingBuilder::fill_airfoil(vector<int> airfoil_nodes, int trailing_edge_point_id, int z_sign)
 {

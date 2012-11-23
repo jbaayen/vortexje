@@ -5,6 +5,10 @@ Dependencies:
 
    http://eigen.tuxfamily.org/
    
+ * Doxygen, a documentation generator:
+ 
+   http://www.stack.nl/~dimitri/doxygen/
+   
 
 Installation:
 -------------

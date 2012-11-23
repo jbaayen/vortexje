@@ -18,11 +18,21 @@
 namespace Vortexje
 {
 
+/**
+   Class for constructions of wings.
+   
+   @brief Wing construction tools.
+*/
 class WingBuilder
 {
 public:
     // Constructor:
     WingBuilder(Wing &wing);
+    
+    /**
+       Associated Wing.
+    */
+    Wing &wing;
 
     // Wing construction:
     std::vector<Eigen::Vector3d> generate_naca_airfoil(double max_camber, double max_camber_dist, double max_thickness, double chord, int n_points, int &trailing_edge_point_id);
@@ -31,11 +41,14 @@ public:
     
     std::vector<int> add_points(std::vector<Eigen::Vector3d> &points, int trailing_edge_point_id);
     
+    /**
+       Node connection mode. 
+    */
     typedef enum {
-        TRIANGLES_A,
-        TRIANGLES_B,
-        TRIANGLES_X,
-        QUADRANGLES
+        TRIANGLES_A,  /**< Two triangles per quadrangle, diagonal direction A. */
+        TRIANGLES_B,  /**< Two triangles per quadrangle, diagonal direction B. */
+        TRIANGLES_X,  /**< Four triangles per quadrangle. */
+        QUADRANGLES   /**< Quadrangles only. */
     } ConnectNodesMode;
     
     void connect_nodes(std::vector<int> &first_nodes, std::vector<int> &second_nodes,
@@ -43,9 +56,6 @@ public:
                        bool cyclic, ConnectNodesMode mode);
     
     std::vector<int> fill_airfoil(std::vector<int> airfoil_nodes, int trailing_edge_point_id, int z_sign);
-    
-    // Properties:
-    Wing &wing;
 };
 
 };

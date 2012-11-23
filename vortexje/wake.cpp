@@ -17,12 +17,20 @@ using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
 
-// Constructor:
+/**
+   Constructs an empty wake.
+   
+   @param[in]   wing    Associated wing.
+*/
 Wake::Wake(Wing &wing): wing(wing)
 {
 }
 
-// Add new layer of wake panels:
+/**
+   Adds new layer of wake panels.
+  
+   @param[in]   meshes_without_wakes    Meshes that mutually influence this mesh.
+*/
 void
 Wake::add_layer(vector<Mesh*> &meshes_without_wakes)
 {
@@ -110,7 +118,11 @@ Wake::add_layer(vector<Mesh*> &meshes_without_wakes)
     }
 }
 
-// Geometry of trailing edge nodes:
+/**
+   Translates the nodes of the trailing edge.
+   
+   @param[in]   translation     Translation vector.
+*/
 void
 Wake::translate_trailing_edge(Eigen::Vector3d translation)
 {
@@ -129,6 +141,11 @@ Wake::translate_trailing_edge(Eigen::Vector3d translation)
     invalidate_cache();
 }
 
+/**
+   Transforms the nodes of the trailing edge.
+   
+   @param[in]   transformation  Transformation matrix.
+*/
 void
 Wake::transform_trailing_edge(Eigen::Matrix3d transformation)
 {
@@ -147,8 +164,14 @@ Wake::transform_trailing_edge(Eigen::Matrix3d transformation)
     invalidate_cache();
 }
 
-// Update Ramasamy-Leishman vortex core radii according to 
-//    M. Ramasamy and J. G. Leishman, Reynolds Number Based Blade Tip Vortex Model, University of Maryland, 2005.
+/**
+   Updates the Ramasamy-Leishman vortex ring core radii.
+  
+   @param[in]   panel   Panel number.
+   @param[in]   dt      Time step size.
+   
+   @note See M. Ramasamy and J. G. Leishman, Reynolds Number Based Blade Tip Vortex Model, University of Maryland, 2005.
+*/
 void
 Wake::update_ramasamy_leishman_vortex_core_radii(int panel, double dt)
 {

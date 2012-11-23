@@ -24,14 +24,21 @@ using namespace Vortexje;
 // Static counter to give every mesh a unique ID.
 static int id_counter = 0;
 
-// Constructors.
+/**
+   Constructs an empty mesh.
+*/
 Mesh::Mesh()
 {
     // Set ID:
     id = ++id_counter;
 }
 
-Mesh::Mesh(string file)
+/**
+   Constructs a mesh from the given gmsh MSH file.
+   
+   @param[in]   file    Filename pointing to a gmsh MSH file.
+*/
+Mesh::Mesh(std::string file)
 {
     // Set ID:
     id = ++id_counter;
@@ -40,7 +47,9 @@ Mesh::Mesh(string file)
     load(file);
 }
 
-// Destructor
+/**
+   Clears the node-panel neighbor data structure, and frees up its memory.
+*/
 void
 Mesh::clear_node_panel_neighbors()
 {
@@ -65,12 +74,26 @@ Mesh::clear_node_panel_neighbors()
     node_panel_neighbors.clear();
 }
 
+/**
+   Destructor.
+*/
 Mesh::~Mesh()
 {
     clear_node_panel_neighbors();
 }
 
-// Add a triangle panel.  Does NOT update panel neighbors, must call compute_panel_neighbors() afterward.
+/**
+   Adds a triangle to this mesh, following the gmsh orientation convention.
+    
+   @param[in]  node_a  Node number to form vertex A.
+   @param[in]  node_b  Node number to form vertex B.
+   @param[in]  node_c  Node number to form vertex C.
+    
+   @returns New panel number.
+    
+   @note This method does not update the panel-panel neighbor data structure.  One must call
+   compute_panel_neighbors() when done adding panels.
+*/
 int
 Mesh::add_triangle(int node_a, int node_b, int node_c)
 {
@@ -89,7 +112,19 @@ Mesh::add_triangle(int node_a, int node_b, int node_c)
     return panel_id;
 }
 
-// Add a quadrangle panel.  Does NOT update panel neighbors, must call compute_panel_neighbors() afterward.
+/**
+   Adds a quadrangle to this mesh, following the gmsh orientation convention.
+    
+   @param[in]  node_a  Node number to form vertex A.
+   @param[in]  node_b  Node number to form vertex B.
+   @param[in]  node_c  Node number to form vertex C.
+   @param[in]  node_d  Node number to form vertex D.
+    
+   @returns New panel number.
+    
+   @note This method does not update the panel-panel neighbor data structure.  One must call
+   compute_panel_neighbors() when done adding panels.
+*/
 int
 Mesh::add_quadrangle(int node_a, int node_b, int node_c, int node_d)
 {
@@ -110,7 +145,13 @@ Mesh::add_quadrangle(int node_a, int node_b, int node_c, int node_d)
     return panel_id;
 }
 
-// Load mesh from gmsh MSH file.
+/**
+   Reconstructs a mesh from a gmsh MSH file.
+   
+   @param[in]   file   gmsh MSH file filename.
+   
+   @returns true on success.
+*/
 bool
 Mesh::load(string file)
 {
@@ -226,7 +267,9 @@ Mesh::load(string file)
     return true;
 }
 
-// Compute panel neighbors of panels:
+/**
+   Computes neighboring panels of panels, based on existing node-panel data structures.
+*/
 void
 Mesh::compute_panel_neighbors()
 {   
@@ -261,9 +304,18 @@ Mesh::compute_panel_neighbors()
     }
 }
 
-// Save mesh to gmsh MSH file, including views (coefficient data sets).
+/**
+   Saves this mesh to a gmsh MSH file, including data vectors associating numerical values to each panel -- views,
+   in gmsh terminology.
+  
+   @param[in]   file            Destination filename.
+   @param[in]   view_names      List of names of data vectors to be stored.
+   @param[in]   view_data       List of data vectors to be stored.
+   @param[in]   node_offset     Node numbering offset in output file.
+   @param[in]   panel_offset    Panel numbering offset in output file.
+*/
 void
-Mesh::save(string file, vector<string> &view_names, vector<VectorXd> &view_data, int node_offset, int panel_offset)
+Mesh::save(std::string file, std::vector<std::string> &view_names, std::vector<Eigen::VectorXd> &view_data, int node_offset, int panel_offset)
 {
     cout << "Mesh " << id << ": Saving to " << file << "." << endl;
     
@@ -354,9 +406,15 @@ Mesh::save(string file, vector<string> &view_names, vector<VectorXd> &view_data,
     f.close();
 }
 
-// Save mesh to gmsh MSH file.
+/**
+   Saves this mesh to a gmsh MSH file.
+  
+   @param[in]   file            Destination filename.
+   @param[in]   node_offset     Node numbering offset in output file.
+   @param[in]   panel_offset    Panel numbering offset in output file.
+*/
 void
-Mesh::save(string file, int node_offset, int panel_offset)
+Mesh::save(std::string file, int node_offset, int panel_offset)
 {
     vector<string> empty_names;
     vector<VectorXd> empty_data;
@@ -364,53 +422,87 @@ Mesh::save(string file, int node_offset, int panel_offset)
     save(file, empty_names, empty_data, node_offset, panel_offset);
 }
 
-// Number of nodes in mesh.
+/**
+   Returns the number of nodes contained in this mesh.
+   
+   @returns Number of nodes.
+*/
 int
 Mesh::n_nodes()
 {
     return nodes.size();
 }
 
-// Number of panels in mesh.
+/**
+   Returns the number of panels contained in this mesh.
+   
+   @returns Number of panels.
+*/
 int
 Mesh::n_panels()
 {
     return panel_nodes.size();
 }
 
-// Rotate mesh.
+/**
+   Rotates this mesh.
+   
+   @param[in]   axis                    Axis of rotation.
+   @param[in]   angle                   Angle of rotation.
+*/
 void
-Mesh::rotate(Vector3d axis, double angle)
+Mesh::rotate(Eigen::Vector3d axis, double angle)
 {
     transform(AngleAxis<double>(angle, axis).toRotationMatrix());
 }
 
-// Transform mesh.
+/**
+   Transforms this mesh.
+   
+   @param[in]   transformation             Transformation matrix.
+*/
 void
-Mesh::transform(Matrix3d transformation)
+Mesh::transform(Eigen::Matrix3d transformation)
 {
     vector<Mesh*> empty;
     transform(transformation, empty);
 }
 
-// Translate mesh.
+/**
+   Translates this mesh.
+   
+   @param[in]   translation             Translation vector.
+*/
 void
-Mesh::translate(Vector3d translation)
+Mesh::translate(Eigen::Vector3d translation)
 {
     vector<Mesh*> empty;
     translate(translation, empty);
 }
 
-// Rotate mesh, under the assumption that the list of corotating meshes experiences the same rotation.
+/**
+   Rotates this mesh, under the assumption that the list of co-rotating meshes experiences
+   the same rotation.  The caches of the co-rotating meshes are updated accordingly.
+   
+   @param[in]   axis                    Axis of rotation.
+   @param[in]   angle                   Angle of rotation.
+   @param[in]   corotating_meshes       List of co-rotating meshes.
+*/
 void
-Mesh::rotate(Vector3d axis, double angle, vector<Mesh*> &corotating_meshes)
+Mesh::rotate(Eigen::Vector3d axis, double angle, std::vector<Mesh*> &corotating_meshes)
 {
     transform(AngleAxis<double>(angle, axis).toRotationMatrix(), corotating_meshes);
 }
 
-// Transform mesh, under the assumption that the list of cotranslating meshes experiences the same transformation.
+/**
+   Transforms this mesh, under the assumption that the list of co-transforming meshes experiences
+   the same transformation.  The caches of the co-transforming meshes are updated accordingly.
+   
+   @param[in]   transformation          Transformation matrix.
+   @param[in]   cotransforming_meshes   List of co-transforming meshes.
+*/
 void
-Mesh::transform(Matrix3d transformation, vector<Mesh*> &cotransforming_meshes)
+Mesh::transform(Eigen::Matrix3d transformation, std::vector<Mesh*> &cotransforming_meshes)
 {
     for (int i = 0; i < n_nodes(); i++)
         nodes[i] = transformation * nodes[i];
@@ -466,9 +558,15 @@ Mesh::transform(Matrix3d transformation, vector<Mesh*> &cotransforming_meshes)
     delete[] source_unit_velocity_backup;
 }
 
-// Translate mesh, under the assumption that the list of cotranslating meshes experiences the same translation.
+/**
+   Translates this mesh, under the assumption that the list of co-translating meshes experiences
+   the same translation.  The caches of the co-translating meshes are updated accordingly.
+   
+   @param[in]   translation             Translation vector.
+   @param[in]   cotranslating_meshes    List of co-translating meshes.
+*/
 void
-Mesh::translate(Vector3d translation, vector<Mesh*> &cotranslating_meshes)
+Mesh::translate(Eigen::Vector3d translation, std::vector<Mesh*> &cotranslating_meshes)
 {
     for (int i = 0; i < n_nodes(); i++)
         nodes[i] = nodes[i] + translation;
@@ -519,9 +617,16 @@ Mesh::translate(Vector3d translation, vector<Mesh*> &cotranslating_meshes)
     delete[] source_unit_velocity_backup;
 }
 
-// Compute distance between given point and panel.
+/**
+   Computes the distance between a point and a given panel.
+   
+   @param[in]   x       Reference point.
+   @param[in]   panel   Panel to measure distance to.
+   
+   @returns Distance between reference point and panel.
+*/
 double
-Mesh::distance_to_panel(Vector3d x, int panel)
+Mesh::distance_to_panel(Eigen::Vector3d x, int panel)
 {
     double distance = numeric_limits<double>::max();
     
@@ -603,9 +708,17 @@ Mesh::distance_to_panel(Vector3d x, int panel)
     return distance;
 }
 
-// Find panel closent to given point.
+/**
+   Finds the panel closest to the given point, and reports the distance.
+   
+   @param[in]   x           Reference point.
+   @param[out]  panel       Closest panel number.
+   @param[out]  distance    Distance to closest panel.
+   
+   @returns true if the closest panel borders a trailing edge.
+*/
 bool
-Mesh::closest_panel(Vector3d x, int &panel, double &distance)
+Mesh::closest_panel(Eigen::Vector3d x, int &panel, double &distance)
 {
     distance = numeric_limits<double>::max();
     panel = -1;
@@ -621,8 +734,16 @@ Mesh::closest_panel(Vector3d x, int &panel, double &distance)
     return false;
 }
 
-// Compute collocation point for given panel, either on or below body surface (cached).
-Vector3d
+/**
+   Computes the collocation point of a given panel.  If the point has been computed before,
+   the cached collocation point is returned.  If not, the collocation point is computed and cached.
+   
+   @param[in]   panel           Panel of which the collocation point is evaluated.
+   @param[in]   below_surface   true to request the collocation point lying underneath the surface.
+   
+   @returns Collocation point.
+*/
+Eigen::Vector3d
 Mesh::panel_collocation_point(int panel, bool below_surface)
 {
     if (panel_collocation_point_cache[below_surface].empty()) {
@@ -665,8 +786,15 @@ Mesh::panel_collocation_point(int panel, bool below_surface)
     return panel_collocation_point_cache[below_surface][panel];
 }
 
-// Compute inward normal of given panel (cached).
-Vector3d
+/**
+   Computes the inward-pointing normal of a given panel.  If the normal has been computed before,
+   the cached normal is returned.  If not, the normal is computed and cached.
+   
+   @param[in]   panel   Panel of which the inward-pointing normal is evaluated.
+   
+   @returns Inward-pointing normal.
+*/
+Eigen::Vector3d
 Mesh::panel_normal(int panel)
 {
     if (panel_normal_cache.empty()) {
@@ -700,7 +828,14 @@ Mesh::panel_normal(int panel)
     return panel_normal_cache[panel];
 }
 
-// Compute surface area of given panel (cached).
+/**
+   Computes the surface area of a given panel.  If the surface area has been computed before,
+   the cached surface area is returned.  If not, the surface area is computed and cached.
+   
+   @param[in]   panel   Panel of which the surface area is evaluated.
+   
+   @returns Panel surface area.
+*/
 double
 Mesh::panel_surface_area(int panel)
 {
@@ -733,7 +868,14 @@ Mesh::panel_surface_area(int panel)
     return panel_surface_area_cache[panel];
 }
 
-// Compute diameter of given panel (cached).
+/**
+   Computes the diameter of a given panel.  If the diameter has been computed before,
+   the cached diameter is returned.  If not, the diameter is computed and cached.
+   
+   @param[in]   panel   Panel of which the diameter is evaluated.
+   
+   @returns Panel diameter.
+*/
 double
 Mesh::panel_diameter(int panel)
 {
@@ -764,8 +906,14 @@ Mesh::panel_diameter(int panel)
     return panel_diameter_cache[panel];
 }
 
-// Compute deformation velocity of a singe panel, based on node deformation velocities:
-Vector3d
+/**
+   Computes the deformation velocity of the given panel.
+   
+   @param[in]   panel   Panel number.
+   
+   @returns Deformation velocity.
+*/
+Eigen::Vector3d
 Mesh::panel_deformation_velocity(int panel)
 {
     Vector3d deformation_velocity(0, 0, 0);
@@ -774,8 +922,17 @@ Mesh::panel_deformation_velocity(int panel)
     return deformation_velocity / (double) panel_nodes[panel].size();
 }
 
-// Compute out-of-body point close to given node.
-Vector3d
+/**
+   Computes a point, located outside of the body, that lies close to a given node.
+   
+   This method is used by the wake-wake and wake-body interaction code to evaluate velocities and
+   influence coefficients close to the body, where the solutions would otherwise become numerically singular.
+   
+   @param[in]   node    Node number.
+   
+   @returns Point, located outside of the body, close to the given node.
+*/
+Eigen::Vector3d
 Mesh::close_to_body_point(int node)
 {
     Vector3d layer_direction(0, 0, 0);
@@ -786,8 +943,15 @@ Mesh::close_to_body_point(int node)
     return nodes[node] - Parameters::interpolation_layer_thickness * layer_direction;
 }
 
-// Compute gradient of scalar field on the body.
-Vector3d
+/**
+   Computes the on-body gradient of a scalar field.
+   
+   @param[in]   scalar_field    Scalar field, ordered by panel number.
+   @param[in]   panel           Panel on which the on-body gradient is evaluated.
+   
+   @returns On-body gradient.
+*/
+Eigen::Vector3d
 Mesh::scalar_field_gradient(Eigen::VectorXd &scalar_field, int panel)
 {
     Vector3d x = panel_collocation_point(panel, false);
@@ -866,9 +1030,16 @@ doublet_edge_influence(Vector3d &x, Vector3d &node_a, Vector3d &node_b)
     return delta_theta;
 }
 
-// Compute doublet panel influence on given point.
+/**
+   Computes the potential influence induced by a doublet panel of unit strength.  
+   
+   @param[in]   x           Point at which the influence coefficient is evaluated.
+   @param[in]   this_panel  Panel on which the doublet panel is located.
+   
+   @returns Influence coefficient.
+*/
 double
-Mesh::doublet_influence(Vector3d x, int this_panel)
+Mesh::doublet_influence(Eigen::Vector3d x, int this_panel)
 {
     // Transform such that panel normal becomes unit Z vector:
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
@@ -936,9 +1107,16 @@ source_edge_influence(Vector3d &x, Vector3d &node_a, Vector3d &node_b)
     return (x - node_a).dot(-Jedge) / d * log((r1 + r2 + d) / (r1 + r2 - d)) + fabs(x(2)) * delta_theta;
 }
 
-// Compute influence of source panel on given point.
+/**
+   Computes the potential influence induced by a source panel of unit strength.  
+   
+   @param[in]   x           Point at which the influence coefficient is evaluated.
+   @param[in]   this_panel  Panel on which the source panel is located.
+   
+   @returns Influence coefficient.
+*/
 double
-Mesh::source_influence(Vector3d x, int this_panel)
+Mesh::source_influence(Eigen::Vector3d x, int this_panel)
 {
     // Transform such that panel normal becomes unit Z vector:
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
@@ -1009,9 +1187,16 @@ source_edge_unit_velocity(Vector3d &x, Vector3d &node_a, Vector3d &node_b)
     return Vector3d(u, v, w);
 }
 
-// Compute velocity induced by source panel.
-Vector3d
-Mesh::source_unit_velocity(Vector3d x, int this_panel)
+/**
+   Computes the velocity induced by a source panel of unit strength.  
+   
+   @param[in]   x           Point at which the velocity is evaluated.
+   @param[in]   this_panel  The panel on which the vortex ring is located.
+   
+   @returns Velocity induced by the source panel.
+*/
+Eigen::Vector3d
+Mesh::source_unit_velocity(Eigen::Vector3d x, int this_panel)
 {   
     // Transform such that panel normal becomes unit Z vector:
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
@@ -1050,9 +1235,16 @@ Mesh::source_unit_velocity(Vector3d x, int this_panel)
     return velocity / (4 * M_PI);
 }
 
-// Compute velocity induced by unit vortex ring.
-Vector3d
-Mesh::vortex_ring_unit_velocity(Vector3d x, int this_panel)
+/**
+   Computes the velocity induced by a vortex ring of unit strength.
+   
+   @param[in]   x           Point at which the velocity is evaluated.
+   @param[in]   this_panel  Panel on which the vortex ring is located.
+   
+   @returns Velocity induced by the vortex ring.
+*/
+Eigen::Vector3d
+Mesh::vortex_ring_unit_velocity(Eigen::Vector3d x, int this_panel)
 {    
     Vector3d velocity(0, 0, 0);
     
@@ -1087,10 +1279,20 @@ Mesh::vortex_ring_unit_velocity(Vector3d x, int this_panel)
     return velocity / (4 * M_PI);
 }
 
-// Compute velocity induced by Ramasamy-Leishman vortex ring, according to
-//     M. Ramasamy and J. G. Leishman, Reynolds Number Based Blade Tip Vortex Model, University of Maryland, 2005.
+/**
+   Computes the velocity induced by a Ramasamy-Leishman vortex ring.
+   
+   @param[in]   x           Point at which the velocity is evaluated.
+   @param[in]   this_panel  Panel on which the vortex ring is located.
+   @param[in]   core_radii  Radii of the filaments forming the vortex ring.
+   @param[in]   vorticity   Strength of vortex ring.
+   
+   @returns Velocity induced by the Ramasamy-Leishman vortex ring.
+   
+   @note See M. Ramasamy and J. G. Leishman, Reynolds Number Based Blade Tip Vortex Model, University of Maryland, 2005.
+*/
 Eigen::Vector3d
-Mesh::vortex_ring_ramasamy_leishman_velocity(Eigen::Vector3d x, int this_panel, vector<double> core_radii, double vorticity)
+Mesh::vortex_ring_ramasamy_leishman_velocity(Eigen::Vector3d x, int this_panel, std::vector<double> core_radii, double vorticity)
 {
     // Ramasamy-Leishman series data:
     typedef struct {
@@ -1210,7 +1412,17 @@ Mesh::vortex_ring_ramasamy_leishman_velocity(Eigen::Vector3d x, int this_panel, 
     return vorticity * velocity / (4 * M_PI);    
 }
 
-// Compute doublet panel influence (cached).
+/**
+   Computes the potential influence induced by a doublet panel of unit strength.  If the influence
+   has been computed before, the cached influence coefficient is returned.  If not, the coefficient
+   is computed and cached.
+   
+   @param[in]   other       Mesh on which the influence coefficient is evaluated.
+   @param[in]   other_panel Panel on which the influence coefficient is evaluated.
+   @param[in]   this_panel  Panel on which the doublet panel is located.
+   
+   @returns Influence coefficient.
+*/
 double
 Mesh::doublet_influence(Mesh &other, int other_panel, int this_panel)
 {
@@ -1241,7 +1453,17 @@ Mesh::doublet_influence(Mesh &other, int other_panel, int this_panel)
     }
 }
 
-// Compute source panel influence (cached).
+/**
+   Computes the potential influence induced by a source panel of unit strength.  If the influence
+   has been computed before, the cached influence coefficient is returned.  If not, the coefficient
+   is computed and cached.
+   
+   @param[in]   other       Mesh on which the influence coefficient is evaluated.
+   @param[in]   other_panel Panel on which the influence coefficient is evaluated.
+   @param[in]   this_panel  Panel on which the source panel is located.
+   
+   @returns Influence coefficient.
+*/
 double
 Mesh::source_influence(Mesh &other, int other_panel, int this_panel)
 {
@@ -1272,8 +1494,18 @@ Mesh::source_influence(Mesh &other, int other_panel, int this_panel)
     }
 }
 
-// Compute velocity induced by source panel (cached).
-Vector3d
+/**
+   Computes the velocity induced by a source panel of unit strength.  If the velocity
+   has been computed before, the cached velocity is returned.  If not, the quantity
+   is computed and cached.
+   
+   @param[in]   other       Mesh on which the velocity is evaluated.
+   @param[in]   other_panel Panel on which the velocity is evaluated.
+   @param[in]   this_panel  Panel on which the vortex ring is located.
+   
+   @returns Velocity induced by the source panel.
+*/
+Eigen::Vector3d
 Mesh::source_unit_velocity(Mesh &other, int other_panel, int this_panel)
 {
     // Retrieve inner matrix:
@@ -1303,7 +1535,17 @@ Mesh::source_unit_velocity(Mesh &other, int other_panel, int this_panel)
     }
 }
 
-// Compute velocity induced by vortex ring (cached).
+/**
+   Computes the velocity induced by a vortex ring of unit strength.  If the velocity
+   has been computed before, the cached velocity is returned.  If not, the quantity
+   is computed and cached.
+   
+   @param[in]   other       Mesh on which the velocity is evaluated.
+   @param[in]   other_panel Panel on which the velocity is evaluated.
+   @param[in]   this_panel  Panel on which the vortex ring is located.
+   
+   @returns Velocity induced by the vortex ring.
+*/
 Vector3d
 Mesh::vortex_ring_unit_velocity(Mesh &other, int other_panel, int this_panel)
 {
@@ -1334,9 +1576,23 @@ Mesh::vortex_ring_unit_velocity(Mesh &other, int other_panel, int this_panel)
     }
 }
 
-// Compute velocity induced by Ramasamy-Leishman vortex ring (cached).
-Vector3d
-Mesh::vortex_ring_ramasamy_leishman_velocity(Mesh &other, int other_panel, int this_panel, vector<double> core_radii, double vorticity)
+/**
+   Computes the velocity induced by a Ramasamy-Leishman vortex ring.  If the velocity
+   has been computed before, the cached velocity is returned.  If not, the quantity
+   is computed and cached.
+   
+   @param[in]   other       Mesh on which the velocity is evaluated.
+   @param[in]   other_panel Panel on which the velocity is evaluated.
+   @param[in]   this_panel  Panel on which the vortex ring is located.
+   @param[in]   core_radii  Radii of the filaments forming the vortex ring.
+   @param[in]   vorticity   Strength of vortex ring.
+   
+   @returns Velocity induced by the Ramasamy-Leishman vortex ring.
+   
+   @note See M. Ramasamy and J. G. Leishman, Reynolds Number Based Blade Tip Vortex Model, University of Maryland, 2005.
+*/
+Eigen::Vector3d
+Mesh::vortex_ring_ramasamy_leishman_velocity(Mesh &other, int other_panel, int this_panel, std::vector<double> core_radii, double vorticity)
 {
     // Retrieve inner matrix:
     map<int, std::vector<std::vector<Vector3d> > >::iterator it = vortex_ring_ramasamy_leishman_velocity_cache.find(other.id);
@@ -1365,7 +1621,10 @@ Mesh::vortex_ring_ramasamy_leishman_velocity(Mesh &other, int other_panel, int t
     }
 }
 
-// Invalidate all caches.
+/**
+   Invalidates all caches of mesh data including collocation points, normals,
+   surface areas, diameters, influence coefficients, and unit velocities.
+*/
 void
 Mesh::invalidate_cache()
 {

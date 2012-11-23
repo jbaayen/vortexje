@@ -20,40 +20,48 @@
 namespace Vortexje
 {
 
+/**
+   Class for solution of the panel method equations, and their propagation in time.
+   
+   @brief Panel method solver.
+*/
 class Solver
 {
 public:
-    // Constructor:
-    std::string log_folder;
-    std::vector<Mesh*> meshes_without_wakes;
-    int total_n_panels_without_wakes;
-    
+    // Constructor:    
     Solver(std::string log_folder);
     
     // Destructor:
     ~Solver();
 
     // Collection management:
+    
+    /**
+       List of mesh collections.
+    */
     std::vector<Collection*> collections;
     
     void add_collection(Collection &collection);
     
     // Wind management:
+    
+    /**
+       Freestream velocity.
+    */
     Eigen::Vector3d wind_velocity;
     
     void set_wind_velocity(Eigen::Vector3d value);
     
     // Air density:
+    
+    /**
+       Density of the fluid.
+    */
     double air_density;
     
     void set_air_density(double value);
     
-    // Solver stepping:
-    Eigen::VectorXd source_coefficients;
-    Eigen::VectorXd doublet_coefficients;
-    Eigen::VectorXd pressure_coefficients;
-    Eigen::VectorXd potentials;
-    
+    // Solver stepping:   
     void initialize_wakes(double dt);
     void update_coefficients(double dt);
     void update_wakes(double dt);
@@ -66,6 +74,15 @@ public:
     void log_coefficients(int step_number);
     
 private:
+    std::string log_folder;
+    std::vector<Mesh*> meshes_without_wakes;
+    int total_n_panels_without_wakes;
+    
+    Eigen::VectorXd source_coefficients;   
+    Eigen::VectorXd doublet_coefficients;
+    Eigen::VectorXd pressure_coefficients;
+    Eigen::VectorXd potentials;
+    
     void doublet_coefficient_matrix_block(Eigen::MatrixXd &A, Eigen::VectorXd &b,
                                           Mesh &mesh_one, int offset_one, Mesh &mesh_two, int offset_two);
                                           

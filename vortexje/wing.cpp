@@ -19,13 +19,24 @@ using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
 
-// Constructors:
+/**
+   Constructs an empty wing.
+*/
 Wing::Wing() : Mesh()
 {
     // Do nothing.  Let subclass construct wing.
 }
 
-Wing::Wing(Mesh &mesh, Vector3d location, Vector3d chord_direction, Vector3d top_direction, Vector3d span_direction)
+/**
+   Constructs a wing from a given mesh and aerodynamic interpretation.
+  
+   @param[in]   mesh                Source mesh containing the wing geometry.
+   @param[in]   location            Reference location for new wing 
+   @param[in]   chord_direction     Unit vector pointing along the wing chord.
+   @param[in]   top_direction       Unit vector pointing upwards, out of, and perpendicular to the wing.
+   @param[in]   span_direction      Unit vector pointing along the wing span.
+*/
+Wing::Wing(Mesh &mesh, Eigen::Vector3d location, Eigen::Vector3d chord_direction, Eigen::Vector3d top_direction, Eigen::Vector3d span_direction)
     : Mesh(), location(location), chord_direction(chord_direction), top_direction(top_direction), span_direction(span_direction)
 {   
     // Load wing data from existing mesh:
@@ -101,8 +112,11 @@ Wing::Wing(Mesh &mesh, Vector3d location, Vector3d chord_direction, Vector3d top
     sort_trailing_edge();
 }
 
-// Sort trailing edge nodes and panels:
-//   (Required for wake emission.)
+/**
+   Sorts the trailing edge node and panel lists.
+   
+   @note Sorted trailing edge node and panel lists are a prerequisite for wake emission.
+*/
 void
 Wing::sort_trailing_edge()
 {

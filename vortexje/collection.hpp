@@ -22,29 +22,62 @@
 namespace Vortexje
 {
 
+/**
+   Container for wake-emitting Wing meshes, as well as for a drag-only mesh.
+   
+   This class is designed for the application of kinematic operations to a collection of meshes at once.
+   A typical application would be an airplane consisting of a drag-only fuselage and wake-emitting wings.
+   
+   @brief Mesh container.
+*/
 class Collection
 {
 public:
-    // Constructor:
+    /**
+       Collection name.
+    */
     std::string        id;
+    
+    /**
+       Drag-only mesh.
+    */
     Mesh              &nolift_mesh;
+    
+    /**
+       List of wings.
+    */
     std::vector<Wing*> wings;
+    
+    /**
+       List of wakes associated with the wings, in the same order.
+    */
     std::vector<Wake*> wakes;
     
     Collection(std::string id,
                Mesh        &nolift_mesh);
          
-    // Destructor:
     ~Collection();
          
-    // Wing management:
     virtual void add_wing(Wing *wing);
     
-    // Kinematics:
+    /**
+       Linear position of the entire collection.
+    */
     Eigen::Vector3d position;
+    
+    /**
+       Linear velocity of the entire collection.
+    */
     Eigen::Vector3d velocity;
     
+    /**
+       Attitude (orientation) of the entire collection.
+    */
     Eigen::Quaterniond attitude;
+    
+    /**
+       Rotational velocity of the entire collection.
+    */
     Eigen::Vector3d rotational_velocity;
 
     void set_position(Eigen::Vector3d position);
@@ -53,14 +86,14 @@ public:
     void set_velocity(Eigen::Vector3d velocity);
     void set_rotational_velocity(Eigen::Vector3d rotational_velocity);
     
-    // Panel velocity:
     Eigen::Vector3d panel_kinematic_velocity(Mesh &mesh, int panel);
     
-    // Node velocity:
     Eigen::Vector3d node_kinematic_velocity(Mesh &mesh, int node);
     
 protected:
-    // All meshes without wakes:
+    /**
+       List of all non-wake meshes.  For internal use.
+    */
     std::vector<Mesh*> meshes_without_wakes;
 };
 

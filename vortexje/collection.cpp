@@ -14,7 +14,12 @@ using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
     
-// Constructor:
+/**
+   Constructs a new Collection.
+   
+   @param[in]   id              Name for this collection.
+   @param[in]   nolift_mesh     Drag-only mesh.
+*/
 Collection::Collection(string id, Mesh &nolift_mesh) : id(id), nolift_mesh(nolift_mesh)
 {
     // Initialize mesh list:
@@ -28,12 +33,18 @@ Collection::Collection(string id, Mesh &nolift_mesh) : id(id), nolift_mesh(nolif
     rotational_velocity = Vector3d(0, 0, 0);
 }
 
-// Destructor:
+/**
+   Collection destructor.
+*/
 Collection::~Collection()
 {
 }
 
-// Wing management:
+/**
+   Adds a Wing to this collection.
+   
+   @param[in]   wing    Wing.
+*/
 void
 Collection::add_wing(Wing *wing)
 {
@@ -44,7 +55,11 @@ Collection::add_wing(Wing *wing)
     wakes.push_back(wake);
 }
 
-// Kinematics:
+/**
+   Sets the linear position of this collection.
+   
+   @param[in]   position    Linear position.
+*/
 void
 Collection::set_position(Vector3d position)
 {
@@ -71,6 +86,11 @@ Collection::set_position(Vector3d position)
     this->position = position;
 }
 
+/**
+   Sets the attitude (orientation) of this collection.
+   
+   @param[in]   attitude    Attitude (orientation) of this collection, as normalized quaternion.
+*/
 void
 Collection::set_attitude(Quaterniond attitude)
 {   
@@ -112,19 +132,36 @@ Collection::set_attitude(Quaterniond attitude)
     this->attitude = attitude;
 }
 
+/**
+   Sets the linear velocity of this collection.
+   
+   @param[in]   velocity    Linear velocity.
+*/
 void 
 Collection::set_velocity(Vector3d velocity)
 {
     this->velocity = velocity;
 }
 
+/**
+   Sets the rotational velocity of this collection.
+   
+   @param[in]   rotational_velocity     Rotational velocity.
+*/
 void
 Collection::set_rotational_velocity(Vector3d rotational_velocity)
 {
     this->rotational_velocity = rotational_velocity;
 }
 
-// Panel kinematic velocity:
+/**
+   Computes the kinematic velocity of the given panel.
+   
+   @param[in]   mesh   Mesh, belonging to this collection. 
+   @param[in]   panel  Panel, belonging to this mesh.
+   
+   @return The kinematic velocity.
+*/
 Vector3d
 Collection::panel_kinematic_velocity(Mesh &mesh, int panel)
 {
@@ -133,7 +170,14 @@ Collection::panel_kinematic_velocity(Mesh &mesh, int panel)
     return velocity + rotational_velocity.cross(r);
 }
 
-// Node kinematic velocity:
+/**
+   Computes the kinematic velocity of the given node.
+   
+   @param[in]   mesh   Mesh, belonging to this collection. 
+   @param[in]   node   Node, belonging to this mesh.
+   
+   @return The kinematic velocity.
+*/
 Vector3d
 Collection::node_kinematic_velocity(Mesh &mesh, int node)
 {

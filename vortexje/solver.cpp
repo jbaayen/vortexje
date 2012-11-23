@@ -31,7 +31,11 @@ mkdir_helper(string folder)
             cerr << "Could not create log folder " << folder << ": " << strerror(errno) << endl;
 }
 
-// Constructor:
+/**
+   Construct a solver, logging its output into the given folder.
+   
+   @param[in]   log_folder  Logging output folder.
+*/
 Solver::Solver(string log_folder) : log_folder(log_folder)
 { 
     // Initialize wind:
@@ -59,12 +63,18 @@ Solver::Solver(string log_folder) : log_folder(log_folder)
     mkdir_helper(log_folder);
 }
 
-// Destructor:
+/**
+   Destructor.
+*/
 Solver::~Solver()
 {
 }
 
-// Collection management:
+/**
+   Adds a mesh collection to this solver.
+   
+   @param[in]   collection  Collection to be added.
+*/
 void
 Solver::add_collection(Collection &collection)
 {
@@ -108,14 +118,22 @@ Solver::add_collection(Collection &collection)
     }
 }
 
-// Wind management:
+/**
+   Sets the freestream velocity.
+   
+   @param[in]   value   Freestream velocity.
+*/
 void
 Solver::set_wind_velocity(Vector3d value)
 {
     wind_velocity = value;
 }
 
-// Air density:
+/**
+   Sets the fluid density.
+   
+   @param[in]   value   Fluid density.
+*/
 void
 Solver::set_air_density(double value)
 {
@@ -203,9 +221,18 @@ Solver::source_coefficient(Mesh &mesh, int panel, Vector3d &kinematic_velocity, 
     return velocity.dot(normal);
 }
 
-// Compute surface velocity for given mesh and panel:
-Vector3d
-Solver::surface_velocity(Mesh &mesh, int panel, VectorXd &doublet_coefficient_field, Vector3d &kinematic_velocity)
+/**
+   Computes the surface velocity for the given panel.
+   
+   @param[in]   mesh                        Reference mesh.
+   @param[in]   panel                       Reference panel.
+   @param[in]   doublet_coefficient_field   Doublet coefficient distribution on given mesh.
+   @param[in]   kinematic_velocity          Reference kinematic velocity.
+   
+   @returns Surface velocity.
+*/
+Eigen::Vector3d
+Solver::surface_velocity(Mesh &mesh, int panel, Eigen::VectorXd &doublet_coefficient_field, Eigen::Vector3d &kinematic_velocity)
 {
     Vector3d x = mesh.panel_collocation_point(panel, false);
     
@@ -224,10 +251,21 @@ Solver::surface_velocity(Mesh &mesh, int panel, VectorXd &doublet_coefficient_fi
     return tangential_velocity;
 }
 
-// Compute pressure coefficient for given mesh and panel:
+/**
+   Computes the pressure coefficient for the given panel.
+   
+   @param[in]   mesh                        Reference Mesh.
+   @param[in]   panel                       Reference panel.
+   @param[in]   kinematic_velocity          Reference kinematic velocity.
+   @param[in]   doublet_coefficient_field   Doublet coefficient distribution on given mesh.
+   @param[in]   dpotentialdt                Time-derivative of the disturbance potential of the reference panel.
+   @param[in]   v_ref                       Reference velocity for unit removal.
+   
+   @returns Pressure coefficient.
+*/
 double
-Solver::pressure_coefficient(Mesh &mesh, int panel, Vector3d &kinematic_velocity,
-                             VectorXd &doublet_coefficient_field, double dpotentialdt, double v_ref)
+Solver::pressure_coefficient(Mesh &mesh, int panel, Eigen::Vector3d &kinematic_velocity,
+                             Eigen::VectorXd &doublet_coefficient_field, double dpotentialdt, double v_ref)
 {
     double C_p = 1 - (surface_velocity(mesh, panel, doublet_coefficient_field, kinematic_velocity).squaredNorm() + 2 * dpotentialdt) / pow(v_ref, 2);
     if (C_p < Parameters::min_pressure_coefficient)
@@ -236,7 +274,13 @@ Solver::pressure_coefficient(Mesh &mesh, int panel, Vector3d &kinematic_velocity
     return C_p;
 }
 
-// Compute disturbance potential at given point:
+/**
+   Computes disturbance potential at the given point.
+   
+   @param[in]   x   Reference point.
+   
+   @returns Disturbance potential.
+*/
 double
 Solver::potential(Vector3d &x)
 {
@@ -270,8 +314,12 @@ Solver::potential(Vector3d &x)
     return potential;
 }
 
-// Compute potential values on body surface:
-VectorXd
+/**
+   Computes disturbance potential values on the body surface.
+   
+   @returns Vector of potential values, ordered by panel number.
+*/
+Eigen::VectorXd
 Solver::surface_potentials()
 {
     cout << "Solver: Computing surface potential values." << endl;
@@ -301,9 +349,15 @@ Solver::surface_potentials()
     return surface_potentials;
 }
 
-// Compute disturbance potential gradient at given point:
-Vector3d
-Solver::potential_gradient(Vector3d &x)
+/**
+   Computes disturbance potential gradient at the given point.
+   
+   @param[in]  x    Reference point.
+   
+   @returns Disturbance potential gradient.
+*/ 
+Eigen::Vector3d
+Solver::potential_gradient(Eigen::Vector3d &x)
 {
     Vector3d gradient(0, 0, 0);
     
@@ -345,9 +399,16 @@ Solver::potential_gradient(Vector3d &x)
     return gradient;
 }
 
-// Compute stream velocity at a given point:
-Vector3d
-Solver::stream_velocity(Vector3d &x, Vector3d &kinematic_velocity)
+/**
+   Compute stream velocity at a given point.
+   
+   @param[in]   x                   Reference point.
+   @param[in]   kinematic_velocity  Reference kinematic velocity.
+   
+   @returns Stream velocity.
+*/
+Eigen::Vector3d
+Solver::stream_velocity(Eigen::Vector3d &x, Eigen::Vector3d &kinematic_velocity)
 {
     // Find closest mesh and panel:
     double distance = numeric_limits<double>::max();
@@ -434,7 +495,11 @@ Solver::stream_velocity(Vector3d &x, Vector3d &kinematic_velocity)
     return velocity;
 }
 
-// Add initial layer of wake panels:
+/**
+   Initializes the wakes by adding a first layer of vortex ring panels.
+   
+   @param[in]   dt  Time step size.
+*/
 void
 Solver::initialize_wakes(double dt)
 {
@@ -461,7 +526,11 @@ Solver::initialize_wakes(double dt)
     }
 }
 
-// Compute new source, doublet, and pressure coefficients:
+/**
+   Computes new source, doublet, and pressure distributions.
+   
+   @param[in]   dt  Time step size.
+*/
 void
 Solver::update_coefficients(double dt)
 {
@@ -670,7 +739,11 @@ Solver::update_coefficients(double dt)
     }
 }
 
-// Convect existing wake nodes, and emit a new layer of wake panels:
+/**
+   Convects existing wake nodes, and emits a new layer of wake panels.
+   
+   @param[in]   dt  Time step size.
+*/
 void
 Solver::update_wakes(double dt)
 {
@@ -765,8 +838,14 @@ Solver::update_wakes(double dt)
     }
 }
 
-// Compute total aerodynamic force on given collection:
-Vector3d
+/**
+   Computes the aerodynamic force on a given collection.
+   
+   @param[in]   collection  Reference collection.
+  
+   @returns Aerodynamic force.
+*/
+Eigen::Vector3d
 Solver::aerodynamic_force(Collection &collection)
 {
     double v_ref = (collection.velocity - wind_velocity).norm();
@@ -789,9 +868,16 @@ Solver::aerodynamic_force(Collection &collection)
     return F;      
 }
 
-// Compute total aerodynamic moment on given collection:
-Vector3d
-Solver::aerodynamic_moment(Collection &collection, Vector3d x)
+/**
+   Computes the aerodynamic moment on a given point.
+   
+   @param[in]   collection  Reference collection.
+   @param[in]   x           Reference point.
+  
+   @returns Aerodynamic moment.
+*/
+Eigen::Vector3d
+Solver::aerodynamic_moment(Collection &collection, Eigen::Vector3d x)
 {
     double v_ref = (collection.velocity - wind_velocity).norm();
         
@@ -815,7 +901,11 @@ Solver::aerodynamic_moment(Collection &collection, Vector3d x)
     return M;
 }
 
-// Log source, doublet, and pressure coefficients:
+/**
+   Logs source, doublet, and pressure coefficients into files into the logging folder.
+   
+   @param[in]   step_number     Step number used to name the output files.
+*/
 void
 Solver::log_coefficients(int step_number)
 {   

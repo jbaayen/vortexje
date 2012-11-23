@@ -3,6 +3,7 @@ include config.mk
 all:
 	cd vortexje; $(MAKE)
 	cd test; $(MAKE)
+	cd doc; $(MAKE)
 	
 install:
 	cd vortexje; $(MAKE) install

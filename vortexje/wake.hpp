@@ -17,12 +17,21 @@
 namespace Vortexje
 {
 
+/**
+   Representation of a wake, i.e., a vortex sheet.
+   
+   @brief Wake representation.
+*/
 class Wake : public Mesh
 {
 public:
     // Constructor:
-    Wing &wing;
     Wake(Wing &wing);
+    
+    /**
+       Associated Wing.
+    */
+    Wing &wing;
     
     // Add layer of wake panels:
     void add_layer(std::vector<Mesh*> &meshes_without_wakes);
@@ -35,8 +44,20 @@ public:
     void update_ramasamy_leishman_vortex_core_radii(int panel, double dt);
     
     // Wake panel states:
-    std::vector<double> doublet_coefficients;    
+    
+    /**
+       Strengths of the doublet, or vortex ring, panels.
+    */
+    std::vector<double> doublet_coefficients; 
+    
+    /**
+       Radii of the vortex filaments forming the vortex rings.
+    */ 
     std::vector<std::vector<double> > vortex_core_radii;
+    
+    /**
+       Initial lengths of the vortex filaments forming the vortex rings.
+    */
     std::vector<std::vector<double> > base_edge_lengths;
 };
 

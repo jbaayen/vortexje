@@ -18,6 +18,13 @@
 namespace Vortexje
 {
 
+/**
+   Representation of a wake-emitting, or source-doublet, mesh.
+   
+   This class would typically be used for representing a blade or a wing, whence the name.
+   
+   @brief Wing representation.
+*/
 class Wing : public Mesh
 {
 public:
@@ -29,15 +36,42 @@ public:
     void sort_trailing_edge();
     
     // Wing-fixed frame:
+    
+    /**
+       Reference location.
+    */
     Eigen::Vector3d location;
     
+    /**
+       Unit vector pointing along the wing chord.
+    */
     Eigen::Vector3d chord_direction;
+    
+    /**
+       Unit vector pointing upwards, out of, and perpendicular to the wing.
+    */
     Eigen::Vector3d top_direction;
+    
+    /**
+       Unit vector pointing along the wing span.
+    */
     Eigen::Vector3d span_direction;
     
     // Trailing edge:
+    
+    /**
+       List of node numbers that form the trailing edge.
+    */
     std::vector<int> trailing_edge_nodes;
+    
+    /**
+       List of panel numbers that are located above and adjecent to the trailing edge.
+    */
     std::vector<int> trailing_edge_top_panels;
+    
+    /**
+       List of panel numbers that are located below and adjecent to the trailing edge.
+    */
     std::vector<int> trailing_edge_bottom_panels;
     
     // Re-implemented virtual methods:
