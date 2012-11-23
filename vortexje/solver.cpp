@@ -39,10 +39,10 @@ mkdir_helper(string folder)
 Solver::Solver(string log_folder) : log_folder(log_folder)
 { 
     // Initialize wind:
-    wind_velocity = Vector3d(0, 0, 0);
+    freestream_velocity = Vector3d(0, 0, 0);
     
     // Initialize air density:
-    air_density = 0.0;
+    fluid_density = 0.0;
     
     // Total number of panels:
     total_n_panels_without_wakes = 0;
@@ -124,9 +124,9 @@ Solver::add_collection(Collection &collection)
    @param[in]   value   Freestream velocity.
 */
 void
-Solver::set_wind_velocity(Vector3d value)
+Solver::set_freestream_velocity(Vector3d value)
 {
-    wind_velocity = value;
+    freestream_velocity = value;
 }
 
 /**
@@ -135,9 +135,9 @@ Solver::set_wind_velocity(Vector3d value)
    @param[in]   value   Fluid density.
 */
 void
-Solver::set_air_density(double value)
+Solver::set_fluid_density(double value)
 {
-    air_density = value;
+    fluid_density = value;
 }
 
 // Solver stepping:
@@ -507,7 +507,7 @@ Solver::initialize_wakes(double dt)
     for (int i = 0; i < collections.size(); i++) {
         Collection *collection = collections[i];
         
-        Vector3d collection_kinematic_velocity = collection->velocity - wind_velocity;
+        Vector3d collection_kinematic_velocity = collection->velocity - freestream_velocity;
         
         for (int j = 0; j < collection->wings.size(); j++) {
             Wing *wing = collection->wings[j];
@@ -545,7 +545,7 @@ Solver::update_coefficients(double dt)
         for (int j = 0; j < collection->nolift_mesh.n_panels(); j++) {
             Vector3d kinematic_velocity = collection->nolift_mesh.panel_deformation_velocity(j)
                                           + collection->panel_kinematic_velocity(collection->nolift_mesh, j)
-                                          - wind_velocity;
+                                          - freestream_velocity;
             
             source_coefficients(source_coefficients_idx) = source_coefficient(collection->nolift_mesh, j, kinematic_velocity, true);
             source_coefficients_idx++;
@@ -557,7 +557,7 @@ Solver::update_coefficients(double dt)
             for (int k = 0; k < wing->n_panels(); k++) {
                 Vector3d kinematic_velocity = wing->panel_deformation_velocity(k)
                                               + collection->panel_kinematic_velocity(*wing, k) 
-                                              - wind_velocity;
+                                              - freestream_velocity;
             
                 source_coefficients(source_coefficients_idx) = source_coefficient(*wing, k, kinematic_velocity, true);
                 source_coefficients_idx++;
@@ -641,7 +641,7 @@ Solver::update_coefficients(double dt)
             for (int j = 0; j < collection->nolift_mesh.n_panels(); j++) {
                 Vector3d kinematic_velocity = collection->nolift_mesh.panel_deformation_velocity(j)
                                               + collection->panel_kinematic_velocity(collection->nolift_mesh, j) 
-                                              - wind_velocity;
+                                              - freestream_velocity;
                 
                 source_coefficients(source_coefficients_idx) = source_coefficient(collection->nolift_mesh, j, kinematic_velocity, false);
                 source_coefficients_idx++;
@@ -653,7 +653,7 @@ Solver::update_coefficients(double dt)
                 for (int k = 0; k < wing->n_panels(); k++) {
                     Vector3d kinematic_velocity = wing->panel_deformation_velocity(k)
                                                   + collection->panel_kinematic_velocity(*wing, k) 
-                                                  - wind_velocity;
+                                                  - freestream_velocity;
                 
                     source_coefficients(source_coefficients_idx) = source_coefficient(*wing, k, kinematic_velocity, false);
                     source_coefficients_idx++;
@@ -677,7 +677,7 @@ Solver::update_coefficients(double dt)
     for (int i = 0; i < collections.size(); i++) {
         Collection *collection = collections[i];
         
-        double v_ref = (collection->velocity - wind_velocity).norm();
+        double v_ref = (collection->velocity - freestream_velocity).norm();
         
         VectorXd doublet_coefficient_field(collection->nolift_mesh.n_panels());
         for (int j = 0; j < collection->nolift_mesh.n_panels(); j++)
@@ -686,7 +686,7 @@ Solver::update_coefficients(double dt)
         for (int j = 0; j < collection->nolift_mesh.n_panels(); j++) {
             Vector3d kinematic_velocity = collection->nolift_mesh.panel_deformation_velocity(j)
                                           + collection->panel_kinematic_velocity(collection->nolift_mesh, j) 
-                                          - wind_velocity;
+                                          - freestream_velocity;
 
             double dpotentialdt;
             if (Parameters::unsteady_bernoulli && dt > 0.0)
@@ -718,7 +718,7 @@ Solver::update_coefficients(double dt)
             for (int k = 0; k < wing->n_panels(); k++) {
                 Vector3d kinematic_velocity = wing->panel_deformation_velocity(k) 
                                               + collection->panel_kinematic_velocity(*wing, k) 
-                                              - wind_velocity;
+                                              - freestream_velocity;
                
                 double dpotentialdt;
                 if (Parameters::unsteady_bernoulli && dt > 0.0)
@@ -762,7 +762,7 @@ Solver::update_wakes(double dt)
                 std::vector<Vector3d> local_wake_velocities;
                 
                 for (int k = 0; k < wake->n_nodes(); k++) {  
-                    Vector3d kinematic_velocity = - wind_velocity;
+                    Vector3d kinematic_velocity = - freestream_velocity;
                     
                     Vector3d x = wake->nodes[k];
 
@@ -793,7 +793,7 @@ Solver::update_wakes(double dt)
                 for (int k = wake->n_nodes() - wing->trailing_edge_nodes.size(); k < wake->n_nodes(); k++) {
                      Vector3d kinematic_velocity = wake->node_deformation_velocities[k]
                                                    + collection->node_kinematic_velocity(*wake, k)
-                                                   - wind_velocity;
+                                                   - freestream_velocity;
                                                                
                      wake->nodes[k] -= kinematic_velocity * dt;
                 }                
@@ -816,7 +816,7 @@ Solver::update_wakes(double dt)
         for (int i = 0; i < collections.size(); i++) {
             Collection *collection = collections[i];
             
-            Vector3d collection_kinematic_velocity = collection->velocity - wind_velocity;
+            Vector3d collection_kinematic_velocity = collection->velocity - freestream_velocity;
             
             for (int j = 0; j < collection->wings.size(); j++) {
                 Wing *wing = collection->wings[j];
@@ -848,7 +848,7 @@ Solver::update_wakes(double dt)
 Eigen::Vector3d
 Solver::aerodynamic_force(Collection &collection)
 {
-    double v_ref = (collection.velocity - wind_velocity).norm();
+    double v_ref = (collection.velocity - freestream_velocity).norm();
         
     Vector3d F(0, 0, 0);
     int offset = 0;
@@ -859,7 +859,7 @@ Solver::aerodynamic_force(Collection &collection)
         for (int k = 0; k < mesh->n_panels(); k++) {                                    
             Vector3d normal = mesh->panel_normal(k);            
             double surface_area = mesh->panel_surface_area(k);
-            F += 0.5 * air_density * pow(v_ref, 2) * surface_area * pressure_coefficients(offset + k) * normal;
+            F += 0.5 * fluid_density * pow(v_ref, 2) * surface_area * pressure_coefficients(offset + k) * normal;
         }
         
         offset += mesh->n_panels();
@@ -879,7 +879,7 @@ Solver::aerodynamic_force(Collection &collection)
 Eigen::Vector3d
 Solver::aerodynamic_moment(Collection &collection, Eigen::Vector3d x)
 {
-    double v_ref = (collection.velocity - wind_velocity).norm();
+    double v_ref = (collection.velocity - freestream_velocity).norm();
         
     Vector3d M(0, 0, 0);
     int offset = 0;
@@ -890,7 +890,7 @@ Solver::aerodynamic_moment(Collection &collection, Eigen::Vector3d x)
         for (int k = 0; k < mesh->n_panels(); k++) {                                    
             Vector3d normal = mesh->panel_normal(k);            
             double surface_area = mesh->panel_surface_area(k);
-            Vector3d F = 0.5 * air_density * pow(v_ref, 2) * surface_area * pressure_coefficients(offset + k) * normal;
+            Vector3d F = 0.5 * fluid_density * pow(v_ref, 2) * surface_area * pressure_coefficients(offset + k) * normal;
             Vector3d r = mesh->panel_collocation_point(k, false) - x;
             M += r.cross(F);
         }
@@ -1001,7 +1001,7 @@ Solver::log_coefficients(int step_number)
                 snapshot_p << ' ';
             }
             
-            Vector3d kinematic_velocity = - wind_velocity;
+            Vector3d kinematic_velocity = - freestream_velocity;
                 
             Vector3d x = Vector3d(x_min + (x_max - x_min) / 20.0 * i, y_min + (y_max - y_min) / 20.0 * j, z);
             

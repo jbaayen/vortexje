@@ -48,18 +48,18 @@ public:
     /**
        Freestream velocity.
     */
-    Eigen::Vector3d wind_velocity;
+    Eigen::Vector3d freestream_velocity;
     
-    void set_wind_velocity(Eigen::Vector3d value);
+    void set_freestream_velocity(Eigen::Vector3d value);
     
     // Air density:
     
     /**
        Density of the fluid.
     */
-    double air_density;
+    double fluid_density;
     
-    void set_air_density(double value);
+    void set_fluid_density(double value);
     
     // Solver stepping:   
     void initialize_wakes(double dt);

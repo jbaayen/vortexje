@@ -42,8 +42,8 @@ main (int argc, char **argv)
     // Set up solver:
     Solver solver("test-wing-log");
     solver.add_collection(collection);
-    solver.set_wind_velocity(Vector3d(30, 0, 0));
-    solver.set_air_density(1.2);
+    solver.set_freestream_velocity(Vector3d(30, 0, 0));
+    solver.set_fluid_density(1.2);
     
     // Run simulation:
     double t = 0.0;
