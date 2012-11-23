@@ -29,10 +29,10 @@ Wake::Wake(Wing &wing): wing(wing)
 /**
    Adds new layer of wake panels.
   
-   @param[in]   meshes_without_wakes    Meshes that mutually influence this mesh.
+   @param[in]   other_meshes    Meshes that mutually influence this mesh.
 */
 void
-Wake::add_layer(vector<Mesh*> &meshes_without_wakes)
+Wake::add_layer(vector<Mesh*> &other_meshes)
 {
     // Add layer of nodes at trailing edge, and add panels if necessary:
     int trailing_edge_n_nodes = wing.trailing_edge_nodes.size();
@@ -109,12 +109,15 @@ Wake::add_layer(vector<Mesh*> &meshes_without_wakes)
     // Invalidate caches:
     invalidate_cache();
     
-    for (int k = 0; k < meshes_without_wakes.size(); k++) {
-        meshes_without_wakes[k]->doublet_influence_cache.erase(id);
-        meshes_without_wakes[k]->source_influence_cache.erase(id);
-        meshes_without_wakes[k]->source_unit_velocity_cache.erase(id);
-        meshes_without_wakes[k]->vortex_ring_unit_velocity_cache.erase(id);
-        meshes_without_wakes[k]->vortex_ring_ramasamy_leishman_velocity_cache.erase(id);
+    for (int k = 0; k < other_meshes.size(); k++) {
+        if (other_meshes[k] == this)
+            continue;
+            
+        other_meshes[k]->doublet_influence_cache.erase(id);
+        other_meshes[k]->source_influence_cache.erase(id);
+        other_meshes[k]->source_unit_velocity_cache.erase(id);
+        other_meshes[k]->vortex_ring_unit_velocity_cache.erase(id);
+        other_meshes[k]->vortex_ring_ramasamy_leishman_velocity_cache.erase(id);
     }
 }
 

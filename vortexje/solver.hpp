@@ -75,6 +75,7 @@ public:
     
 private:
     std::string log_folder;
+    std::vector<Mesh*> meshes;
     std::vector<Mesh*> meshes_without_wakes;
     int total_n_panels_without_wakes;
     

@@ -80,10 +80,13 @@ Solver::add_collection(Collection &collection)
 {
     collections.push_back(&collection);
     
+    meshes.push_back(&collection.nolift_mesh);
     meshes_without_wakes.push_back(&collection.nolift_mesh);
     total_n_panels_without_wakes = total_n_panels_without_wakes + collection.nolift_mesh.n_panels();
     
     for (int i = 0; i < collection.wings.size(); i++) {
+        meshes.push_back(collection.wings[i]);
+        meshes.push_back(collection.wakes[i]);
         meshes_without_wakes.push_back(collection.wings[i]);      
         total_n_panels_without_wakes = total_n_panels_without_wakes + collection.wings[i]->n_panels();
     }
@@ -513,7 +516,7 @@ Solver::initialize_wakes(double dt)
             Wing *wing = collection->wings[j];
             Wake *wake = collection->wakes[j];
             
-            wake->add_layer(meshes_without_wakes);
+            wake->add_layer(meshes);
             for (int k = 0; k < wake->n_nodes(); k++) {                                  
                 if (Parameters::convect_wake)    
                     wake->nodes[k] -= collection_kinematic_velocity * dt;
@@ -521,7 +524,7 @@ Solver::initialize_wakes(double dt)
                     wake->nodes[k] -= Parameters::static_wake_length * collection_kinematic_velocity / collection_kinematic_velocity.norm();
             }
             
-            wake->add_layer(meshes_without_wakes);
+            wake->add_layer(meshes);
         }
     }
 }
@@ -807,7 +810,7 @@ Solver::update_wakes(double dt)
                     wake->update_ramasamy_leishman_vortex_core_radii(k, dt);
 
                 // Add new vertices:
-                wake->add_layer(meshes_without_wakes);
+                wake->add_layer(meshes);
             }
         }
         

@@ -34,7 +34,7 @@ public:
     Wing &wing;
     
     // Add layer of wake panels:
-    void add_layer(std::vector<Mesh*> &meshes_without_wakes);
+    void add_layer(std::vector<Mesh*> &other_meshes);
     
     // Geometry of trailing edge nodes:
     void translate_trailing_edge(Eigen::Vector3d translation);
