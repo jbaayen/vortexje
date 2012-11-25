@@ -34,8 +34,6 @@ public:
     // Destructor:
     ~Solver();
 
-    // Collection management:
-    
     /**
        List of mesh collections.
     */
@@ -43,16 +41,12 @@ public:
     
     void add_collection(Collection &collection);
     
-    // Wind management:
-    
     /**
        Freestream velocity.
     */
     Eigen::Vector3d freestream_velocity;
     
     void set_freestream_velocity(Eigen::Vector3d value);
-    
-    // Air density:
     
     /**
        Density of the fluid.

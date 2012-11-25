@@ -43,8 +43,6 @@ public:
     // Update Ramasamy-Leishman vortex core radii:
     void update_ramasamy_leishman_vortex_core_radii(int panel, double dt);
     
-    // Wake panel states:
-    
     /**
        Strengths of the doublet, or vortex ring, panels.
     */

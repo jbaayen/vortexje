@@ -35,8 +35,6 @@ public:
     // Wing construction:
     void sort_trailing_edge();
     
-    // Wing-fixed frame:
-    
     /**
        Reference location.
     */
@@ -56,8 +54,6 @@ public:
        Unit vector pointing along the wing span.
     */
     Eigen::Vector3d span_direction;
-    
-    // Trailing edge:
     
     /**
        List of node numbers that form the trailing edge.
