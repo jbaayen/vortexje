@@ -28,11 +28,9 @@ namespace Vortexje
 class Wing : public Mesh
 {
 public:
-    // Constructor:
     Wing();
     Wing(Mesh &mesh, Eigen::Vector3d location, Eigen::Vector3d chord_direction, Eigen::Vector3d top_direction, Eigen::Vector3d span_direction);
 
-    // Wing construction:
     void sort_trailing_edge();
     
     /**
@@ -70,7 +68,6 @@ public:
     */
     std::vector<int> trailing_edge_bottom_panels;
     
-    // Re-implemented virtual methods:
     void translate(Eigen::Vector3d translation);
     void translate(Eigen::Vector3d translation, std::vector<Mesh*> &corotating_meshes);
     

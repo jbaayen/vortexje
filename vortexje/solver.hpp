@@ -28,10 +28,8 @@ namespace Vortexje
 class Solver
 {
 public:
-    // Constructor:    
     Solver(std::string log_folder);
     
-    // Destructor:
     ~Solver();
 
     /**
@@ -55,16 +53,13 @@ public:
     
     void set_fluid_density(double value);
     
-    // Solver stepping:   
     void initialize_wakes(double dt);
     void update_coefficients(double dt);
     void update_wakes(double dt);
     
-    // Aerodynamic force and moment computation:
     Eigen::Vector3d aerodynamic_force(Collection &collection);
     Eigen::Vector3d aerodynamic_moment(Collection &collection, Eigen::Vector3d x);
     
-    // Logging:
     void log_coefficients(int step_number);
     
 private:

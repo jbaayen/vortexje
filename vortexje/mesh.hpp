@@ -34,16 +34,13 @@ public:
     */
     int id;
     
-    // Constructors:
     Mesh();
     Mesh(std::string file);
     
-    // Destructor:
     void clear_node_panel_neighbors();
     
     ~Mesh();
     
-    // Loading and saving of gmsh MSH files:
     bool load(std::string file);
     void save(std::string file,
               int node_offset = 0, int panel_offset = 0);
@@ -51,13 +48,11 @@ public:
               std::vector<std::string> &view_names, std::vector<Eigen::VectorXd> &view_data,
               int node_offset = 0, int panel_offset = 0);
               
-    // Mesh construction:
     int add_triangle(int node_a, int node_b, int node_c);
     int add_quadrangle(int node_a, int node_b, int node_c, int node_d);
     
     void compute_panel_neighbors();
     
-    // Geometry:
     int n_nodes();
     int n_panels();
     
@@ -111,7 +106,6 @@ public:
     
     Eigen::Vector3d scalar_field_gradient(Eigen::VectorXd &scalar_field, int panel);
     
-    // Panel influence expressions:
     double doublet_influence(Eigen::Vector3d x, int this_panel);
     double source_influence(Eigen::Vector3d x, int this_panel);
     
@@ -119,7 +113,6 @@ public:
     Eigen::Vector3d vortex_ring_unit_velocity(Eigen::Vector3d x, int this_panel);
     Eigen::Vector3d vortex_ring_ramasamy_leishman_velocity(Eigen::Vector3d x, int this_panel, std::vector<double> core_radii, double vorticity);
     
-    // Panel influence expressions (cached):
     double doublet_influence(Mesh &other, int other_panel, int this_panel);
     double source_influence(Mesh &other, int other_panel, int this_panel);
     
@@ -127,7 +120,6 @@ public:
     Eigen::Vector3d vortex_ring_unit_velocity(Mesh &other, int other_panel, int this_panel);
     Eigen::Vector3d vortex_ring_ramasamy_leishman_velocity(Mesh &other, int other_panel, int this_panel, std::vector<double> core_radii, double vorticity);
     
-    // Caches:
     void invalidate_cache();
     
     /**

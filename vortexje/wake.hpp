@@ -25,7 +25,6 @@ namespace Vortexje
 class Wake : public Mesh
 {
 public:
-    // Constructor:
     Wake(Wing &wing);
     
     /**
@@ -33,14 +32,11 @@ public:
     */
     Wing &wing;
     
-    // Add layer of wake panels:
     void add_layer(std::vector<Mesh*> &other_meshes);
     
-    // Geometry of trailing edge nodes:
     void translate_trailing_edge(Eigen::Vector3d translation);
     void transform_trailing_edge(Eigen::Matrix3d transformation);
     
-    // Update Ramasamy-Leishman vortex core radii:
     void update_ramasamy_leishman_vortex_core_radii(int panel, double dt);
     
     /**
