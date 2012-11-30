@@ -23,10 +23,10 @@ namespace Vortexje
 {
 
 /**
-   Container for wake-emitting Wing meshes, as well as for a drag-only mesh.
+   Container for wake-emitting Wing meshes, as well as for an obstacle-only mesh.
    
    This class is designed for the application of kinematic operations to a collection of meshes at once.
-   A typical application would be an airplane consisting of a drag-only fuselage and wake-emitting wings.
+   A typical application would be an airplane consisting of a fuselage and wake-emitting wings.
    
    @brief Mesh container.
 */

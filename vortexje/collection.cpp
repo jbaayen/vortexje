@@ -18,7 +18,7 @@ using namespace Vortexje;
    Constructs a new Collection.
    
    @param[in]   id              Name for this collection.
-   @param[in]   nolift_mesh     Drag-only mesh.
+   @param[in]   nolift_mesh     Obstacle-only mesh.
 */
 Collection::Collection(string id, Mesh &nolift_mesh) : id(id), nolift_mesh(nolift_mesh)
 {
