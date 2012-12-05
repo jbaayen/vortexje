@@ -35,11 +35,11 @@ main (int argc, char **argv)
     int trailing_edge_point_id;
     vector<int> prev_airfoil_nodes;
     
-    int n_points_per_airfoil = 20;
-    int n_airfoils = 10;
+    const int n_points_per_airfoil = 32;
+    const int n_airfoils = 21;
     
-    int chord = 1.0;
-    int span = 5.0;
+    const double chord = 1.0;
+    const double span = 5.0;
     
     for (int i = 0; i < n_airfoils; i++) {
         vector<Vector3d> airfoil_points = wing_builder.generate_clarky_airfoil(chord, n_points_per_airfoil, trailing_edge_point_id);
@@ -64,6 +64,8 @@ main (int argc, char **argv)
     
     wing.sort_trailing_edge();
     wing.compute_panel_neighbors();
+    
+    wing.translate(Vector3d(-chord / 3.0, 0.0, -span / 2.0));
     
     // Prescribe angle of attack:
     double alpha = 5.0 / 180.0 * M_PI;
