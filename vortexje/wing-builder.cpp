@@ -396,9 +396,7 @@ WingBuilder::connect_nodes(vector<int> &first_nodes, vector<int> &second_nodes,
         Vector3d vertex_deformation_velocities[4];
         int new_nodes[4];
         switch (mode) {
-        case TRIANGLES_A:
-            panel_id;
-            
+        case TRIANGLES_A:            
             panel_id = wing.add_triangle(first_nodes[i], second_nodes[i], second_nodes[next_i]);
             
             // Mark as trailing edge panel if bordering trailing edge node.
