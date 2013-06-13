@@ -70,7 +70,7 @@ public:
     // Destructor:
     ~VAWT()
     {
-        for (int i = 0; i < wings.size(); i++) {
+        for (int i = 0; i < (int) wings.size(); i++) {
             delete wings[i];
             delete wakes[i];
         }

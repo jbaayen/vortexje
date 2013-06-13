@@ -39,7 +39,7 @@ public:
     
     void clear_node_panel_neighbors();
     
-    ~Mesh();
+    virtual ~Mesh();
     
     bool load(std::string file);
     void save(std::string file,

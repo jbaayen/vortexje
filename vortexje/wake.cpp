@@ -45,7 +45,7 @@ Wake::add_layer(vector<Mesh*> &other_meshes)
         
         node_deformation_velocities.push_back(Vector3d(0, 0, 0));
         
-        if (k > 0 && nodes.size() > trailing_edge_n_nodes + 1) {
+        if (k > 0 && (int) nodes.size() > trailing_edge_n_nodes + 1) {
             vector<int> vertices;
             vertices.push_back(node - 1);
             vertices.push_back(node - 1 - trailing_edge_n_nodes);
@@ -109,7 +109,7 @@ Wake::add_layer(vector<Mesh*> &other_meshes)
     // Invalidate caches:
     invalidate_cache();
     
-    for (int k = 0; k < other_meshes.size(); k++) {
+    for (int k = 0; k < (int) other_meshes.size(); k++) {
         if (other_meshes[k] == this)
             continue;
             
@@ -129,12 +129,12 @@ Wake::add_layer(vector<Mesh*> &other_meshes)
 void
 Wake::translate_trailing_edge(Eigen::Vector3d translation)
 {
-    if (n_nodes() < wing.trailing_edge_nodes.size())
+    if (n_nodes() < (int) wing.trailing_edge_nodes.size())
         return;
         
     int k0;
     if (Parameters::convect_wake)
-        k0 = n_nodes() - wing.trailing_edge_nodes.size();
+        k0 = n_nodes() - (int) wing.trailing_edge_nodes.size();
     else
         k0 = 0;
         
@@ -152,12 +152,12 @@ Wake::translate_trailing_edge(Eigen::Vector3d translation)
 void
 Wake::transform_trailing_edge(Eigen::Matrix3d transformation)
 {
-    if (n_nodes() < wing.trailing_edge_nodes.size())
+    if (n_nodes() < (int) wing.trailing_edge_nodes.size())
         return;
         
     int k0;
     if (Parameters::convect_wake)
-        k0 = n_nodes() - wing.trailing_edge_nodes.size();
+        k0 = n_nodes() - (int) wing.trailing_edge_nodes.size();
     else
         k0 = 0;
         

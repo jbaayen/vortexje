@@ -67,7 +67,7 @@ Collection::set_position(Vector3d position)
     Vector3d dposition = position - this->position;
        
     // Apply for all non-wake meshes:
-    for (int i = 0; i < meshes_without_wakes.size(); i++) {
+    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
         Mesh *mesh = meshes_without_wakes[i];
         
         // Translate:
@@ -75,7 +75,7 @@ Collection::set_position(Vector3d position)
     }
     
     // Apply for trailing edge wake nodes:
-    for (int i = 0; i < wakes.size(); i++) {
+    for (int i = 0; i < (int) wakes.size(); i++) {
         Wake *wake = wakes[i];
         
         // Translate:
@@ -95,7 +95,7 @@ void
 Collection::set_attitude(Quaterniond attitude)
 {   
     // Apply for all non-wake meshes:
-    for (int i = 0; i < meshes_without_wakes.size(); i++) {
+    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
         Mesh *mesh = meshes_without_wakes[i];
         
         // Translate to origin:
@@ -112,7 +112,7 @@ Collection::set_attitude(Quaterniond attitude)
     }
     
     // Apply for trailing edge wake nodes:
-    for (int i = 0; i < wakes.size(); i++) {
+    for (int i = 0; i < (int) wakes.size(); i++) {
         Wake *wake = wakes[i];
         
         // Translate:

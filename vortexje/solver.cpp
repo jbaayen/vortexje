@@ -84,7 +84,7 @@ Solver::add_collection(Collection &collection)
     meshes_without_wakes.push_back(&collection.nolift_mesh);
     total_n_panels_without_wakes = total_n_panels_without_wakes + collection.nolift_mesh.n_panels();
     
-    for (int i = 0; i < collection.wings.size(); i++) {
+    for (int i = 0; i < (int) collection.wings.size(); i++) {
         meshes.push_back(collection.wings[i]);
         meshes.push_back(collection.wakes[i]);
         meshes_without_wakes.push_back(collection.wings[i]);      
@@ -106,7 +106,7 @@ Solver::add_collection(Collection &collection)
     string collection_log_folder = log_folder + "/" + collection.id;
     
     mkdir_helper(collection_log_folder);
-    for (int i = 0; i < collection.wings.size(); i++) {
+    for (int i = 0; i < (int) collection.wings.size(); i++) {
         stringstream ss;
         ss << collection_log_folder << "/wake_" << i;
         
@@ -164,17 +164,17 @@ Solver::wakes_influence(MatrixXd &A, VectorXd &b, Mesh &mesh, int offset)
     for (int j = 0; j < mesh.n_panels(); j++) {
         int wing_offset = 0;
         
-        for (int k = 0; k < collections.size(); k++) {
+        for (int k = 0; k < (int) collections.size(); k++) {
             Collection *collection = collections[k];
             
             wing_offset += collection->nolift_mesh.n_panels();
             
-            for (int l = 0; l < collection->wakes.size(); l++) {
+            for (int l = 0; l < (int) collection->wakes.size(); l++) {
                 Wing *wing = collection->wings[l];
                 Wake *wake = collection->wakes[l];
                     
                 int idx = 0;
-                for (int m = wake->n_panels() - wing->trailing_edge_top_panels.size(); m < wake->n_panels(); m++) {
+                for (int m = wake->n_panels() - (int) wing->trailing_edge_top_panels.size(); m < (int) wake->n_panels(); m++) {
                     int pa = wing->trailing_edge_top_panels[idx];
                     int pb = wing->trailing_edge_bottom_panels[idx];
                     
@@ -199,10 +199,10 @@ Solver::source_coefficient(Mesh &mesh, int panel, Vector3d &kinematic_velocity, 
     
     // Wake contribution:
     if (Parameters::convect_wake && include_wake_influence) {
-        for (int i = 0; i < collections.size(); i++) {
+        for (int i = 0; i < (int) collections.size(); i++) {
             Collection *collection = collections[i];
             
-            for (int j = 0; j < collection->wakes.size(); j++) {
+            for (int j = 0; j < (int) collection->wakes.size(); j++) {
                 Wake *wake = collection->wakes[j];
                 
                 for (int k = 0; k < wake->n_panels(); k++) {
@@ -289,7 +289,7 @@ Solver::potential(Vector3d &x)
     
     // Iterate all non-wake meshes:
     int offset = 0;
-    for (int i = 0; i < meshes_without_wakes.size(); i++) {
+    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
         Mesh *other_mesh = meshes_without_wakes[i];
 
         for (int j = 0; j < other_mesh->n_panels(); j++) {
@@ -301,10 +301,10 @@ Solver::potential(Vector3d &x)
     }
     
     // Iterate wakes:
-    for (int i = 0; i < collections.size(); i++) {
+    for (int i = 0; i < (int) collections.size(); i++) {
         Collection *collection = collections[i];
         
-        for (int j = 0; j < collection->wings.size(); j++) {
+        for (int j = 0; j < (int) collection->wings.size(); j++) {
             Wake *wake = collection->wakes[j];
             
             for (int k = 0; k < wake->n_panels(); k++)
@@ -329,7 +329,7 @@ Solver::surface_potentials()
     
     int surface_potentials_idx = 0;
     
-    for (int i = 0; i < collections.size(); i++) {
+    for (int i = 0; i < (int) collections.size(); i++) {
         Collection *collection = collections[i];
         
         for (int j = 0; j < collection->nolift_mesh.n_panels(); j++) {
@@ -337,7 +337,7 @@ Solver::surface_potentials()
             surface_potentials_idx++;
         }
         
-        for (int j = 0; j < collection->wings.size(); j++) {
+        for (int j = 0; j < (int) collection->wings.size(); j++) {
             Wing *wing = collection->wings[j];
             
             for (int k = 0; k < wing->n_panels(); k++) {
@@ -364,7 +364,7 @@ Solver::potential_gradient(Eigen::Vector3d &x)
     
     // Iterate all non-wake meshes:
     int offset = 0;
-    for (int i = 0; i < meshes_without_wakes.size(); i++) {
+    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
         Mesh *other_mesh = meshes_without_wakes[i];
 
         for (int j = 0; j < other_mesh->n_panels(); j++) {
@@ -376,18 +376,18 @@ Solver::potential_gradient(Eigen::Vector3d &x)
     }
     
     // Iterate wakes:
-    for (int i = 0; i < collections.size(); i++) {
+    for (int i = 0; i < (int) collections.size(); i++) {
         Collection *collection = collections[i];
         
-        for (int j = 0; j < collection->wings.size(); j++) {
+        for (int j = 0; j < (int) collection->wings.size(); j++) {
             Wake *wake = collection->wakes[j];
             Wing *wing = collection->wings[j];
             
-            if (wake->n_panels() >= wing->trailing_edge_top_panels.size()) {
-                for (int k = wake->n_panels() - wing->trailing_edge_top_panels.size(); k < wake->n_panels(); k++)
+            if (wake->n_panels() >= (int) wing->trailing_edge_top_panels.size()) {
+                for (int k = wake->n_panels() - (int) wing->trailing_edge_top_panels.size(); k < wake->n_panels(); k++)
                     gradient += wake->vortex_ring_unit_velocity(x, k) * wake->doublet_coefficients[k];
 
-                for (int k = 0; k < wake->n_panels() - wing->trailing_edge_top_panels.size(); k++) {
+                for (int k = 0; k < wake->n_panels() - (int) wing->trailing_edge_top_panels.size(); k++) {
                     if (Parameters::use_ramasamy_leishman_vortex_sheet)
                         gradient += wake->vortex_ring_ramasamy_leishman_velocity(x, k, wake->vortex_core_radii[k], wake->doublet_coefficients[k]);
                     else
@@ -419,7 +419,7 @@ Solver::stream_velocity(Eigen::Vector3d &x, Eigen::Vector3d &kinematic_velocity)
     bool close_near_sharp_edge = false;
     int offset = 0;
     
-    for (int i = 0; i < meshes_without_wakes.size(); i++) {
+    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
         Mesh *mesh_candidate = meshes_without_wakes[i];
         
         int panel_candidate;
@@ -441,7 +441,7 @@ Solver::stream_velocity(Eigen::Vector3d &x, Eigen::Vector3d &kinematic_velocity)
     vector<Vector3d> potential_gradients;
     vector<Vector3d> close_to_body_points;
     if (distance < Parameters::interpolation_layer_thickness && !close_near_sharp_edge) {   
-        for (int i = 0; i < close_mesh->panel_nodes[close_panel].size(); i++) {
+        for (int i = 0; i < (int) close_mesh->panel_nodes[close_panel].size(); i++) {
             Vector3d close_to_body_point = close_mesh->close_to_body_point(close_mesh->panel_nodes[close_panel][i]);
             close_to_body_points.push_back(close_to_body_point);
             
@@ -470,7 +470,7 @@ Solver::stream_velocity(Eigen::Vector3d &x, Eigen::Vector3d &kinematic_velocity)
         
         double total_weight = 0.0;
         
-        for (int i = 0; i < potential_gradients.size(); i++) {
+        for (int i = 0; i < (int) potential_gradients.size(); i++) {
             Vector3d layer_point_distance = x - close_to_body_points[i];
             layer_point_distance = layer_point_distance - layer_point_distance.dot(normal) * normal;
             
@@ -503,12 +503,12 @@ void
 Solver::initialize_wakes(double dt)
 {
     // Add initial wake layers:
-    for (int i = 0; i < collections.size(); i++) {
+    for (int i = 0; i < (int) collections.size(); i++) {
         Collection *collection = collections[i];
         
         Vector3d collection_kinematic_velocity = collection->velocity - freestream_velocity;
         
-        for (int j = 0; j < collection->wings.size(); j++) {
+        for (int j = 0; j < (int) collection->wings.size(); j++) {
             Wake *wake = collection->wakes[j];
             
             wake->add_layer(meshes);
@@ -537,7 +537,7 @@ Solver::update_coefficients(double dt)
     
     int source_coefficients_idx = 0;
     
-    for (int i = 0; i < collections.size(); i++) {
+    for (int i = 0; i < (int) collections.size(); i++) {
         Collection *collection = collections[i];
         
         for (int j = 0; j < collection->nolift_mesh.n_panels(); j++) {
@@ -549,7 +549,7 @@ Solver::update_coefficients(double dt)
             source_coefficients_idx++;
         }
         
-        for (int j = 0; j < collection->wings.size(); j++) {
+        for (int j = 0; j < (int) collection->wings.size(); j++) {
             Wing *wing = collection->wings[j];
             
             for (int k = 0; k < wing->n_panels(); k++) {
@@ -570,9 +570,9 @@ Solver::update_coefficients(double dt)
         b(i) = 0.0;
     
     int offset_one = 0, offset_two = 0;
-    for (int i = 0; i < meshes_without_wakes.size(); i++) {
+    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
         offset_two = 0;
-        for (int j = 0; j < meshes_without_wakes.size(); j++) {
+        for (int j = 0; j < (int) meshes_without_wakes.size(); j++) {
             doublet_coefficient_matrix_block(A, b, *meshes_without_wakes[i], offset_one, *meshes_without_wakes[j], offset_two);
             
             offset_two = offset_two + meshes_without_wakes[j]->n_panels();
@@ -601,12 +601,12 @@ Solver::update_coefficients(double dt)
     
     // Set new wake panel doublet coefficients:
     int offset = 0;
-    for (int i = 0; i < collections.size(); i++) {
+    for (int i = 0; i < (int) collections.size(); i++) {
         Collection *collection = collections[i];
         
         offset += collection->nolift_mesh.n_panels();
         
-        for (int j = 0; j < collection->wings.size(); j++) {
+        for (int j = 0; j < (int) collection->wings.size(); j++) {
             Wing *wing = collection->wings[j];
             Wake *wake = collection->wakes[j];
                      
@@ -633,7 +633,7 @@ Solver::update_coefficients(double dt)
         
         source_coefficients_idx = 0;
         
-        for (int i = 0; i < collections.size(); i++) {
+        for (int i = 0; i < (int) collections.size(); i++) {
             Collection *collection = collections[i];
             
             for (int j = 0; j < collection->nolift_mesh.n_panels(); j++) {
@@ -645,7 +645,7 @@ Solver::update_coefficients(double dt)
                 source_coefficients_idx++;
             }
             
-            for (int j = 0; j < collection->wings.size(); j++) {
+            for (int j = 0; j < (int) collection->wings.size(); j++) {
                 Wing *wing = collection->wings[j];
                 
                 for (int k = 0; k < wing->n_panels(); k++) {
@@ -672,7 +672,7 @@ Solver::update_coefficients(double dt)
     
     offset = 0;
 
-    for (int i = 0; i < collections.size(); i++) {
+    for (int i = 0; i < (int) collections.size(); i++) {
         Collection *collection = collections[i];
         
         double v_ref = (collection->velocity - freestream_velocity).norm();
@@ -701,7 +701,7 @@ Solver::update_coefficients(double dt)
         
         offset += collection->nolift_mesh.n_panels();
         
-        for (int j = 0; j < collection->wings.size(); j++) {
+        for (int j = 0; j < (int) collection->wings.size(); j++) {
             Wing *wing = collection->wings[j];
             
             VectorXd doublet_coefficient_field(wing->n_panels());
@@ -747,10 +747,10 @@ Solver::update_wakes(double dt)
         // Compute velocity values at wake nodes;
         std::vector<std::vector<Vector3d> > wake_velocities;
         
-        for (int i = 0; i < collections.size(); i++) {
+        for (int i = 0; i < (int) collections.size(); i++) {
             Collection *collection = collections[i];
                  
-            for (int j = 0; j < collection->wings.size(); j++) {
+            for (int j = 0; j < (int) collection->wings.size(); j++) {
                 Wake *wake = collection->wakes[j];
                 
                 std::vector<Vector3d> local_wake_velocities;
@@ -772,10 +772,10 @@ Solver::update_wakes(double dt)
         // Add new wake panels at trailing edges, and convect all vertices:
         int idx = 0;
         
-        for (int i = 0; i < collections.size(); i++) {
+        for (int i = 0; i < (int) collections.size(); i++) {
             Collection *collection = collections[i];
             
-            for (int j = 0; j < collection->wings.size(); j++) {
+            for (int j = 0; j < (int) collection->wings.size(); j++) {
                 Wing *wing = collection->wings[j];
                 Wake *wake = collection->wakes[j];
                 
@@ -784,7 +784,7 @@ Solver::update_wakes(double dt)
                 idx++;
                 
                 // Convect wake nodes that coincide with the trailing edge nodes with the freestream velocity,
-                for (int k = wake->n_nodes() - wing->trailing_edge_nodes.size(); k < wake->n_nodes(); k++) {
+                for (int k = wake->n_nodes() - (int) wing->trailing_edge_nodes.size(); k < wake->n_nodes(); k++) {
                      Vector3d kinematic_velocity = wake->node_deformation_velocities[k]
                                                    + collection->node_kinematic_velocity(*wake, k)
                                                    - freestream_velocity;
@@ -793,7 +793,7 @@ Solver::update_wakes(double dt)
                 }                
                 
                 // Convect all other wake nodes according to the local wake velocity:
-                for (int k = 0; k < wake->n_nodes() - wing->trailing_edge_nodes.size(); k++)         
+                for (int k = 0; k < wake->n_nodes() - (int) wing->trailing_edge_nodes.size(); k++)         
                     wake->nodes[k] += local_wake_velocities[k] * dt;
                     
                 // Update vortex core radii:
@@ -807,16 +807,16 @@ Solver::update_wakes(double dt)
         
     } else {
         // No wake convection.  Re-position wake:
-        for (int i = 0; i < collections.size(); i++) {
+        for (int i = 0; i < (int) collections.size(); i++) {
             Collection *collection = collections[i];
             
             Vector3d collection_kinematic_velocity = collection->velocity - freestream_velocity;
             
-            for (int j = 0; j < collection->wings.size(); j++) {
+            for (int j = 0; j < (int) collection->wings.size(); j++) {
                 Wing *wing = collection->wings[j];
                 Wake *wake = collection->wakes[j];
                 
-                for (int k = 0; k < wing->trailing_edge_nodes.size(); k++) {
+                for (int k = 0; k < (int) wing->trailing_edge_nodes.size(); k++) {
                     // Connect wake to trailing edge nodes:                             
                     wake->nodes[wing->trailing_edge_nodes.size() + k] = wing->nodes[wing->trailing_edge_nodes[k]];
                     
@@ -847,7 +847,7 @@ Solver::aerodynamic_force(Collection &collection)
     Vector3d F(0, 0, 0);
     int offset = 0;
     
-    for (int i = 0; i < meshes_without_wakes.size(); i++) {
+    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
         Mesh *mesh = meshes_without_wakes[i];
         
         for (int k = 0; k < mesh->n_panels(); k++) {                                    
@@ -878,7 +878,7 @@ Solver::aerodynamic_moment(Collection &collection, Eigen::Vector3d x)
     Vector3d M(0, 0, 0);
     int offset = 0;
     
-    for (int i = 0; i < meshes_without_wakes.size(); i++) {
+    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
         Mesh *mesh = meshes_without_wakes[i];
         
         for (int k = 0; k < mesh->n_panels(); k++) {                                    
@@ -908,12 +908,12 @@ Solver::log_coefficients(int step_number)
     int save_node_offset = 0;
     int save_panel_offset = 0;
     
-    for (int i = 0; i < collections.size(); i++) {
+    for (int i = 0; i < (int) collections.size(); i++) {
         Collection *collection = collections[i];
         
         offset += collection->nolift_mesh.n_panels();
         
-        for (int j = 0; j < collection->wings.size(); j++) {
+        for (int j = 0; j < (int) collection->wings.size(); j++) {
             Wing *wing = collection->wings[j];
             Wake *wake = collection->wakes[j];
             
@@ -950,7 +950,7 @@ Solver::log_coefficients(int step_number)
             
             // Log wake mesh and coefficients:
             VectorXd wake_doublet_coefficients(wake->doublet_coefficients.size());
-            for (int k = 0; k < wake->doublet_coefficients.size(); k++)
+            for (int k = 0; k < (int) wake->doublet_coefficients.size(); k++)
                 wake_doublet_coefficients(k) = wake->doublet_coefficients[k];
                 
             view_names.clear();

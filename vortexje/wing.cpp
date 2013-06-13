@@ -41,9 +41,9 @@ Wing::Wing(Mesh &mesh, Eigen::Vector3d location, Eigen::Vector3d chord_direction
 {   
     // Load wing data from existing mesh:
     nodes                       = mesh.nodes;
-    for (int i = 0; i < mesh.node_panel_neighbors.size(); i++) {
+    for (int i = 0; i < (int) mesh.node_panel_neighbors.size(); i++) {
         vector<int> *single_node_panel_neighbors = new vector<int>;
-        for (int j = 0; j < mesh.node_panel_neighbors[i]->size(); j++)
+        for (int j = 0; j < (int) mesh.node_panel_neighbors[i]->size(); j++)
             single_node_panel_neighbors->push_back((*mesh.node_panel_neighbors[i])[j]);
         node_panel_neighbors.push_back(single_node_panel_neighbors);
     }
@@ -75,15 +75,15 @@ Wing::Wing(Mesh &mesh, Eigen::Vector3d location, Eigen::Vector3d chord_direction
             trailing_edge_nodes.push_back(i);
     
     // Initialize trailing edge panels:
-    for (int i = 0; i < trailing_edge_nodes.size(); i++) {
+    for (int i = 0; i < (int) trailing_edge_nodes.size(); i++) {
         int node = trailing_edge_nodes[i];
-        for (int j = 0; j < node_panel_neighbors[node]->size(); j++) {
+        for (int j = 0; j < (int) node_panel_neighbors[node]->size(); j++) {
             int neighbor_panel = (*node_panel_neighbors[node])[j];
             
             double direction_coefficient = panel_normal(neighbor_panel).dot(Vector3d::UnitY());
             if (direction_coefficient < -Parameters::sharp_edge_threshold) {
                 double found = false;
-                for (int k = 0; k < trailing_edge_top_panels.size(); k++) {
+                for (int k = 0; k < (int) trailing_edge_top_panels.size(); k++) {
                     if (trailing_edge_top_panels[k] == neighbor_panel) {
                         found = true;
                         break;
@@ -95,7 +95,7 @@ Wing::Wing(Mesh &mesh, Eigen::Vector3d location, Eigen::Vector3d chord_direction
                     
             } else if (direction_coefficient > Parameters::sharp_edge_threshold) {
                 double found = false;
-                for (int k = 0; k < trailing_edge_bottom_panels.size(); k++) {
+                for (int k = 0; k < (int) trailing_edge_bottom_panels.size(); k++) {
                     if (trailing_edge_bottom_panels[k] == neighbor_panel) {
                         found = true;
                         break;
@@ -209,7 +209,7 @@ Wing::closest_panel(Eigen::Vector3d x, int &panel, double &distance)
     this->Mesh::closest_panel(x, panel, distance);
     
     bool trailing_edge = false;
-    for (int i = 0; i < trailing_edge_nodes.size(); i++) {
+    for (int i = 0; i < (int) trailing_edge_nodes.size(); i++) {
         Vector3d &trailing_edge_node = nodes[trailing_edge_nodes[i]];
         
         Vector3d x_direction = x - trailing_edge_node;
@@ -241,7 +241,7 @@ Wing::close_to_body_point(int node)
     //   K. Dixon, C. S. Ferreira, C. Hofemann, G. van Brussel, G. van Kuik,
     //   A 3D Unsteady Panel Method for Vertical Axis Wind Turbines, DUWIND, 2008.
     bool trailing_edge = false;
-    for (int i = 0; i < trailing_edge_nodes.size(); i++) {
+    for (int i = 0; i < (int) trailing_edge_nodes.size(); i++) {
         if (node == trailing_edge_nodes[i]) {
             trailing_edge = true;
             break;

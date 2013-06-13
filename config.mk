@@ -5,4 +5,4 @@ EIGEN_LDFLAGS  =
 
 OPT_CPPFLAGS = -O3 -march=core2
 
-CXX = g++ -fPIC -fopenmp
+CXX = g++ -fPIC -fopenmp -Wall

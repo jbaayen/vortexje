@@ -55,9 +55,9 @@ Mesh::clear_node_panel_neighbors()
 {
     vector<vector<int> *> unique;
     
-    for (int i = 0; i < node_panel_neighbors.size(); i++) {
+    for (int i = 0; i < (int) node_panel_neighbors.size(); i++) {
         bool found = false;
-        for (int j = 0; j < unique.size(); j++) {
+        for (int j = 0; j < (int) unique.size(); j++) {
             if (node_panel_neighbors[i] == unique[j]) {
                 found = true;
                 break;
@@ -68,7 +68,7 @@ Mesh::clear_node_panel_neighbors()
             unique.push_back(node_panel_neighbors[i]);
     }
     
-    for (int i = 0; i < unique.size(); i++)
+    for (int i = 0; i < (int) unique.size(); i++)
         delete unique[i];
         
     node_panel_neighbors.clear();
@@ -274,19 +274,19 @@ void
 Mesh::compute_panel_neighbors()
 {   
     // Compute panel neighbors:
-    for (int i = 0; i < panel_nodes.size(); i++) {
+    for (int i = 0; i < (int) panel_nodes.size(); i++) {
         vector<int> single_panel_potential_neighbors;
         vector<int> single_panel_neighbors;
         
-        for (int j = 0; j < panel_nodes[i].size(); j++) {
+        for (int j = 0; j < (int) panel_nodes[i].size(); j++) {
             int node = panel_nodes[i][j];
-            for (int k = 0; k < node_panel_neighbors[node]->size(); k++) {
+            for (int k = 0; k < (int) node_panel_neighbors[node]->size(); k++) {
                 int potential_neighbor = (*node_panel_neighbors[node])[k];
                 if (potential_neighbor == i)
                     continue;
                 
                 bool found = false;
-                for (int l = 0; l < single_panel_potential_neighbors.size(); l++) {
+                for (int l = 0; l < (int) single_panel_potential_neighbors.size(); l++) {
                     if (potential_neighbor == single_panel_potential_neighbors[l]) {
                         found = true;
                         break;
@@ -369,7 +369,7 @@ Mesh::save(std::string file, std::vector<std::string> &view_names, std::vector<E
         
         f << 0;
         
-        for (int j = 0; j < panel_nodes[i].size(); j++) {
+        for (int j = 0; j < (int) panel_nodes[i].size(); j++) {
             f << ' ';
             f << panel_nodes[i][j] + node_offset + 1;
         }
@@ -379,7 +379,7 @@ Mesh::save(std::string file, std::vector<std::string> &view_names, std::vector<E
     
     f << "$EndElements" << endl;
     
-    for (int k = 0; k < view_names.size(); k++) {
+    for (int k = 0; k < (int) view_names.size(); k++) {
         f << "$ElementData" << endl;
         f << "1" << endl;
         f << '"' << view_names[k] << '"' << endl;
@@ -524,7 +524,7 @@ Mesh::transform(Eigen::Matrix3d transformation, std::vector<Mesh*> &cotransformi
     std::vector<std::vector<Vector3d> > *vortex_ring_unit_velocity_backup = new std::vector<std::vector<Vector3d> >[cotransforming_meshes.size()];
     std::vector<std::vector<Vector3d> > *source_unit_velocity_backup      = new std::vector<std::vector<Vector3d> >[cotransforming_meshes.size()];
     
-    for (int i = 0; i < cotransforming_meshes.size(); i++) {
+    for (int i = 0; i < (int) cotransforming_meshes.size(); i++) {
         // Ensure the caches exist.
         if (n_panels() > 0 && cotransforming_meshes[i]->n_panels() > 0) {
             doublet_influence(*cotransforming_meshes[i], 0, 0);
@@ -545,7 +545,7 @@ Mesh::transform(Eigen::Matrix3d transformation, std::vector<Mesh*> &cotransformi
     source_unit_velocity_cache.clear();
     vortex_ring_ramasamy_leishman_velocity_cache.clear();
     
-    for (int i = 0; i < cotransforming_meshes.size(); i++) {
+    for (int i = 0; i < (int) cotransforming_meshes.size(); i++) {
         doublet_influence_cache[cotransforming_meshes[i]->id]         = doublet_influence_backup[i];
         source_influence_cache[cotransforming_meshes[i]->id]          = source_influence_backup[i];
         vortex_ring_unit_velocity_cache[cotransforming_meshes[i]->id] = vortex_ring_unit_velocity_backup[i];
@@ -583,7 +583,7 @@ Mesh::translate(Eigen::Vector3d translation, std::vector<Mesh*> &cotranslating_m
     std::vector<std::vector<Vector3d> > *vortex_ring_unit_velocity_backup = new std::vector<std::vector<Vector3d> >[cotranslating_meshes.size()];
     std::vector<std::vector<Vector3d> > *source_unit_velocity_backup      = new std::vector<std::vector<Vector3d> >[cotranslating_meshes.size()];
     
-    for (int i = 0; i < cotranslating_meshes.size(); i++) {
+    for (int i = 0; i < (int) cotranslating_meshes.size(); i++) {
         // Ensure the caches exist.
         if (n_panels() > 0 && cotranslating_meshes[i]->n_panels() > 0) {
             doublet_influence(*cotranslating_meshes[i], 0, 0);
@@ -604,7 +604,7 @@ Mesh::translate(Eigen::Vector3d translation, std::vector<Mesh*> &cotranslating_m
     source_unit_velocity_cache.clear();
     vortex_ring_ramasamy_leishman_velocity_cache.clear();
     
-    for (int i = 0; i < cotranslating_meshes.size(); i++) {
+    for (int i = 0; i < (int) cotranslating_meshes.size(); i++) {
         doublet_influence_cache[cotranslating_meshes[i]->id]         = doublet_influence_backup[i];
         source_influence_cache[cotranslating_meshes[i]->id]          = source_influence_backup[i];
         vortex_ring_unit_velocity_cache[cotranslating_meshes[i]->id] = vortex_ring_unit_velocity_backup[i];
@@ -634,7 +634,7 @@ Mesh::distance_to_panel(Eigen::Vector3d x, int panel)
     
     // Distance to vertices:
     Vector3d mid(0, 0, 0);
-    for (int i = 0; i < single_panel_nodes.size(); i++) {           
+    for (int i = 0; i < (int) single_panel_nodes.size(); i++) {           
         Vector3d &vertex = nodes[single_panel_nodes[i]];
         
         double vertex_distance = (x - vertex).norm();
@@ -646,7 +646,7 @@ Mesh::distance_to_panel(Eigen::Vector3d x, int panel)
     mid /= single_panel_nodes.size();
     
     // Distance to edges:
-    for (int i = 0; i < single_panel_nodes.size(); i++) {
+    for (int i = 0; i < (int) single_panel_nodes.size(); i++) {
         int prev_idx;
         if (i == 0)
             prev_idx = single_panel_nodes.size() - 1;
@@ -679,7 +679,7 @@ Mesh::distance_to_panel(Eigen::Vector3d x, int panel)
     Vector3d projection_on_plane = x + vector_to_plane;
     
     int n_right_of_side = 0;
-    for (int i = 0; i < single_panel_nodes.size(); i++) {
+    for (int i = 0; i < (int) single_panel_nodes.size(); i++) {
         int prev_idx;
         if (i == 0)
             prev_idx = single_panel_nodes.size() - 1;
@@ -698,7 +698,7 @@ Mesh::distance_to_panel(Eigen::Vector3d x, int panel)
             n_right_of_side++;
     }
     
-    if (n_right_of_side == single_panel_nodes.size()) {
+    if (n_right_of_side == (int) single_panel_nodes.size()) {
         double plane_distance = vector_to_plane.norm();
         if (plane_distance < distance)
             distance = plane_distance;
@@ -757,7 +757,7 @@ Mesh::panel_collocation_point(int panel, bool below_surface)
             Vector3d collocation_point(0, 0, 0);
             double max_edge = numeric_limits<double>::min();
             double min_edge = numeric_limits<double>::max();
-            for (int j = 0; j < single_panel_nodes.size(); j++) {
+            for (int j = 0; j < (int) single_panel_nodes.size(); j++) {
                 collocation_point = collocation_point + nodes[single_panel_nodes[j]];
                 
                 int prev_idx;
@@ -887,7 +887,7 @@ Mesh::panel_diameter(int panel)
         for (int i = 0; i < n_panels(); i++) {
             double diameter = numeric_limits<double>::min();
             
-            for (int j = 0; j < panel_nodes[i].size(); j++) {
+            for (int j = 0; j < (int) panel_nodes[i].size(); j++) {
                 Vector3d a = nodes[panel_nodes[i][j]];
                 
                 for (int k = 0; k < j; k++) {
@@ -917,7 +917,7 @@ Eigen::Vector3d
 Mesh::panel_deformation_velocity(int panel)
 {
     Vector3d deformation_velocity(0, 0, 0);
-    for (int i = 0; i < panel_nodes[panel].size(); i++)
+    for (int i = 0; i < (int) panel_nodes[panel].size(); i++)
         deformation_velocity += node_deformation_velocities[panel_nodes[panel][i]];
     return deformation_velocity / (double) panel_nodes[panel].size();
 }
@@ -936,7 +936,7 @@ Eigen::Vector3d
 Mesh::close_to_body_point(int node)
 {
     Vector3d layer_direction(0, 0, 0);
-    for (int i = 0; i < node_panel_neighbors[node]->size(); i++)
+    for (int i = 0; i < (int) node_panel_neighbors[node]->size(); i++)
         layer_direction += panel_normal((*node_panel_neighbors[node])[i]);
     layer_direction /= layer_direction.norm();
     
@@ -967,7 +967,7 @@ Mesh::scalar_field_gradient(Eigen::VectorXd &scalar_field, int panel)
         
         double a = 0.0, b = 0.0;
         
-        for (int n = 0; n < panel_neighbors[panel].size(); n++) {
+        for (int n = 0; n < (int) panel_neighbors[panel].size(); n++) {
             Vector3d neighbor_normal = panel_normal(panel_neighbors[panel][n]);
             if (normal.dot(neighbor_normal) < 0)
                 continue; // Don't differentiate along sharp corners.
@@ -1044,18 +1044,18 @@ Mesh::doublet_influence(Eigen::Vector3d x, int this_panel)
     Vector3d x_normalized = rotation * x;
     
     vector<Vector3d> normalized_panel_nodes;
-    for (int i = 0; i < panel_nodes[this_panel].size(); i++)
+    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
         normalized_panel_nodes.push_back(rotation * nodes[panel_nodes[this_panel][i]]);
     
     Vector3d translation(0, 0, -normalized_panel_nodes[0](2));
     
     x_normalized += translation;
-    for (int i = 0; i < panel_nodes[this_panel].size(); i++)
+    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
         normalized_panel_nodes[i] += translation;
     
     // Compute influence coefficient according to Hess:
     double influence = 0.0;
-    for (int i = 0; i < normalized_panel_nodes.size(); i++) {
+    for (int i = 0; i < (int) normalized_panel_nodes.size(); i++) {
         int prev_idx;
         if (i == 0)
             prev_idx = normalized_panel_nodes.size() - 1;
@@ -1118,18 +1118,18 @@ Mesh::source_influence(Eigen::Vector3d x, int this_panel)
     Vector3d x_normalized = rotation * x;
     
     vector<Vector3d> normalized_panel_nodes;
-    for (int i = 0; i < panel_nodes[this_panel].size(); i++)
+    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
         normalized_panel_nodes.push_back(rotation * nodes[panel_nodes[this_panel][i]]);
     
     Vector3d translation(0, 0, -normalized_panel_nodes[0](2));
     
     x_normalized += translation;
-    for (int i = 0; i < panel_nodes[this_panel].size(); i++)
+    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
         normalized_panel_nodes[i] += translation;
     
     // Compute influence coefficient according to Hess:
     double influence = 0.0;
-    for (int i = 0; i < normalized_panel_nodes.size(); i++) {
+    for (int i = 0; i < (int) normalized_panel_nodes.size(); i++) {
         int prev_idx;
         if (i == 0)
             prev_idx = normalized_panel_nodes.size() - 1;
@@ -1195,18 +1195,18 @@ Mesh::source_unit_velocity(Eigen::Vector3d x, int this_panel)
     Vector3d x_normalized = rotation * x;
     
     vector<Vector3d> normalized_panel_nodes;
-    for (int i = 0; i < panel_nodes[this_panel].size(); i++)
+    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
         normalized_panel_nodes.push_back(rotation * nodes[panel_nodes[this_panel][i]]);
     
     Vector3d translation(0, 0, -normalized_panel_nodes[0](2));
     
     x_normalized += translation;
-    for (int i = 0; i < panel_nodes[this_panel].size(); i++)
+    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
         normalized_panel_nodes[i] += translation;
     
     // Compute influence coefficient according to Hess:
     Vector3d velocity(0, 0, 0);
-    for (int i = 0; i < normalized_panel_nodes.size(); i++) {
+    for (int i = 0; i < (int) normalized_panel_nodes.size(); i++) {
         int prev_idx;
         if (i == 0)
             prev_idx = normalized_panel_nodes.size() - 1;
@@ -1239,7 +1239,7 @@ Mesh::vortex_ring_unit_velocity(Eigen::Vector3d x, int this_panel)
 {    
     Vector3d velocity(0, 0, 0);
     
-    for (int i = 0; i < panel_nodes[this_panel].size(); i++) {
+    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++) {
         int previous_idx;
         if (i == 0)
             previous_idx = panel_nodes[this_panel].size() - 1;
@@ -1363,7 +1363,7 @@ Mesh::vortex_ring_ramasamy_leishman_velocity(Eigen::Vector3d x, int this_panel, 
     // Compute velocity:
     Vector3d velocity(0, 0, 0);
     
-    for (int i = 0; i < panel_nodes[this_panel].size(); i++) {
+    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++) {
         int previous_idx;
         if (i == 0)
             previous_idx = panel_nodes[this_panel].size() - 1;

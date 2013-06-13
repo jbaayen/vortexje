@@ -341,7 +341,7 @@ WingBuilder::add_points(vector<Vector3d> &points, int trailing_edge_point_id)
 {
     vector<int> added_nodes;
     
-    for (int i = 0; i < points.size(); i++) {
+    for (int i = 0; i < (int) points.size(); i++) {
         int node_id = wing.nodes.size();
         
         wing.nodes.push_back(points[i]);
@@ -376,9 +376,9 @@ WingBuilder::connect_nodes(vector<int> &first_nodes, vector<int> &second_nodes,
                            int trailing_edge_point_id, int &trailing_edge_top_panel_id, int &trailing_edge_bottom_panel_id,
                            bool cyclic, ConnectNodesMode mode)
 {
-    for (int i = 0; i < first_nodes.size(); i++) {
+    for (int i = 0; i < (int) first_nodes.size(); i++) {
         int next_i;
-        if (i == first_nodes.size() - 1) {
+        if (i == (int) first_nodes.size() - 1) {
             if (cyclic)
                 next_i = 0;
             else

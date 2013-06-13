@@ -43,7 +43,7 @@ main (int argc, char **argv)
     
     for (int i = 0; i < n_airfoils; i++) {
         vector<Vector3d> airfoil_points = wing_builder.generate_clarky_airfoil(chord, n_points_per_airfoil, trailing_edge_point_id);
-        for (int j = 0; j < airfoil_points.size(); j++)
+        for (int j = 0; j < (int) airfoil_points.size(); j++)
             airfoil_points[j](2) += i * span / (double) (n_airfoils - 1);
             
         vector<int> airfoil_nodes = wing_builder.add_points(airfoil_points, trailing_edge_point_id);
