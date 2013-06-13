@@ -164,8 +164,6 @@ Solver::wakes_influence(MatrixXd &A, VectorXd &b, Mesh &mesh, int offset)
     for (int j = 0; j < mesh.n_panels(); j++) {
         int wing_offset = 0;
         
-        Vector3d normal = mesh.panel_normal(j);
-        
         for (int k = 0; k < collections.size(); k++) {
             Collection *collection = collections[k];
             
@@ -470,8 +468,6 @@ Solver::stream_velocity(Eigen::Vector3d &x, Eigen::Vector3d &kinematic_velocity)
         
         Vector3d normal = close_mesh->panel_normal(close_panel);
         
-        double max_layer_point_distance = Vector2d(close_mesh->panel_diameter(close_panel), Parameters::interpolation_layer_thickness).norm();
-        
         double total_weight = 0.0;
         
         for (int i = 0; i < potential_gradients.size(); i++) {
@@ -513,7 +509,6 @@ Solver::initialize_wakes(double dt)
         Vector3d collection_kinematic_velocity = collection->velocity - freestream_velocity;
         
         for (int j = 0; j < collection->wings.size(); j++) {
-            Wing *wing = collection->wings[j];
             Wake *wake = collection->wakes[j];
             
             wake->add_layer(meshes);
@@ -706,11 +701,8 @@ Solver::update_coefficients(double dt)
         
         offset += collection->nolift_mesh.n_panels();
         
-        double collection_force_normal = 0.0, collection_force_tangential = 0.0;
-        
         for (int j = 0; j < collection->wings.size(); j++) {
             Wing *wing = collection->wings[j];
-            Wake *wake = collection->wakes[j];
             
             VectorXd doublet_coefficient_field(wing->n_panels());
             for (int k = 0; k < wing->n_panels(); k++)
@@ -759,7 +751,6 @@ Solver::update_wakes(double dt)
             Collection *collection = collections[i];
                  
             for (int j = 0; j < collection->wings.size(); j++) {
-                Wing *wing = collection->wings[j];
                 Wake *wake = collection->wakes[j];
                 
                 std::vector<Vector3d> local_wake_velocities;
