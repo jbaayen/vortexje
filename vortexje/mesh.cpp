@@ -451,7 +451,7 @@ Mesh::n_panels()
    @param[in]   angle                   Angle of rotation.
 */
 void
-Mesh::rotate(Eigen::Vector3d &axis, double angle)
+Mesh::rotate(const Eigen::Vector3d &axis, double angle)
 {
     Eigen::Matrix3d transformation = AngleAxis<double>(angle, axis).toRotationMatrix();
     transform(transformation);
@@ -463,7 +463,7 @@ Mesh::rotate(Eigen::Vector3d &axis, double angle)
    @param[in]   transformation             Transformation matrix.
 */
 void
-Mesh::transform(Eigen::Matrix3d &transformation)
+Mesh::transform(const Eigen::Matrix3d &transformation)
 {
     vector<Mesh*> empty;
     transform(transformation, empty);
@@ -475,7 +475,7 @@ Mesh::transform(Eigen::Matrix3d &transformation)
    @param[in]   translation             Translation vector.
 */
 void
-Mesh::translate(Eigen::Vector3d &translation)
+Mesh::translate(const Eigen::Vector3d &translation)
 {
     vector<Mesh*> empty;
     translate(translation, empty);
@@ -490,7 +490,7 @@ Mesh::translate(Eigen::Vector3d &translation)
    @param[in]   corotating_meshes       List of co-rotating meshes.
 */
 void
-Mesh::rotate(Eigen::Vector3d &axis, double angle, std::vector<Mesh*> &corotating_meshes)
+Mesh::rotate(const Eigen::Vector3d &axis, double angle, std::vector<Mesh*> &corotating_meshes)
 {
     Eigen::Matrix3d transformation = AngleAxis<double>(angle, axis).toRotationMatrix();
     transform(transformation, corotating_meshes);
@@ -504,7 +504,7 @@ Mesh::rotate(Eigen::Vector3d &axis, double angle, std::vector<Mesh*> &corotating
    @param[in]   cotransforming_meshes   List of co-transforming meshes.
 */
 void
-Mesh::transform(Eigen::Matrix3d &transformation, std::vector<Mesh*> &cotransforming_meshes)
+Mesh::transform(const Eigen::Matrix3d &transformation, std::vector<Mesh*> &cotransforming_meshes)
 {
     for (int i = 0; i < n_nodes(); i++)
         nodes[i] = transformation * nodes[i];
@@ -572,7 +572,7 @@ Mesh::transform(Eigen::Matrix3d &transformation, std::vector<Mesh*> &cotransform
    @param[in]   cotranslating_meshes    List of co-translating meshes.
 */
 void
-Mesh::translate(Eigen::Vector3d &translation, std::vector<Mesh*> &cotranslating_meshes)
+Mesh::translate(const Eigen::Vector3d &translation, std::vector<Mesh*> &cotranslating_meshes)
 {
     for (int i = 0; i < n_nodes(); i++)
         nodes[i] = nodes[i] + translation;
@@ -636,7 +636,7 @@ Mesh::translate(Eigen::Vector3d &translation, std::vector<Mesh*> &cotranslating_
    @returns Distance between reference point and panel.
 */
 double
-Mesh::distance_to_panel(Eigen::Vector3d &x, int panel)
+Mesh::distance_to_panel(const Eigen::Vector3d &x, int panel)
 {
     double distance = numeric_limits<double>::max();
     
@@ -728,7 +728,7 @@ Mesh::distance_to_panel(Eigen::Vector3d &x, int panel)
    @returns true if the closest panel borders a trailing edge.
 */
 bool
-Mesh::closest_panel(Eigen::Vector3d &x, int &panel, double &distance)
+Mesh::closest_panel(const Eigen::Vector3d &x, int &panel, double &distance)
 {
     distance = numeric_limits<double>::max();
     panel = -1;
@@ -962,7 +962,7 @@ Mesh::close_to_body_point(int node)
    @returns On-body gradient.
 */
 Vector3d
-Mesh::scalar_field_gradient(Eigen::VectorXd &scalar_field, int panel)
+Mesh::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int panel)
 {
     Vector3d x = panel_collocation_point(panel, false);
     double v = scalar_field(panel);
@@ -1016,7 +1016,7 @@ x_to_y_rotation(const Vector3d &unit_x, const Vector3d &unit_y)
 
 // Compute influence of doublet panel edge on given point.
 static double
-doublet_edge_influence(Vector3d &x, Vector3d &node_a, Vector3d &node_b)
+doublet_edge_influence(const Vector3d &x, const Vector3d &node_a, const Vector3d &node_b)
 {   
     double r1 = (x - node_a).norm();
     double r2 = (x - node_b).norm();
@@ -1046,7 +1046,7 @@ doublet_edge_influence(Vector3d &x, Vector3d &node_a, Vector3d &node_b)
    @returns Influence coefficient.
 */
 double
-Mesh::doublet_influence(Eigen::Vector3d &x, int this_panel)
+Mesh::doublet_influence(const Eigen::Vector3d &x, int this_panel)
 {
     // Transform such that panel normal becomes unit Z vector:
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
@@ -1083,7 +1083,7 @@ Mesh::doublet_influence(Eigen::Vector3d &x, int this_panel)
 
 // Compute influence of source panel edge on given point.
 static double
-source_edge_influence(Vector3d &x, Vector3d &node_a, Vector3d &node_b)
+source_edge_influence(const Vector3d &x, const Vector3d &node_a, const Vector3d &node_b)
 {
     Vector3d edge = node_b - node_a;
     Vector3d Jedge(-edge(1), edge(0), 0.0);
@@ -1120,7 +1120,7 @@ source_edge_influence(Vector3d &x, Vector3d &node_a, Vector3d &node_b)
    @returns Influence coefficient.
 */
 double
-Mesh::source_influence(Eigen::Vector3d &x, int this_panel)
+Mesh::source_influence(const Eigen::Vector3d &x, int this_panel)
 {
     // Transform such that panel normal becomes unit Z vector:
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
@@ -1157,7 +1157,7 @@ Mesh::source_influence(Eigen::Vector3d &x, int this_panel)
 
 // Compute velocity induced by an edge of a source panel:
 static Vector3d
-source_edge_unit_velocity(Vector3d &x, Vector3d &node_a, Vector3d &node_b)
+source_edge_unit_velocity(const Vector3d &x, const Vector3d &node_a, const Vector3d &node_b)
 {
     Vector3d edge = node_b - node_a;
     
@@ -1197,7 +1197,7 @@ source_edge_unit_velocity(Vector3d &x, Vector3d &node_a, Vector3d &node_b)
    @returns Velocity induced by the source panel.
 */
 Vector3d
-Mesh::source_unit_velocity(Eigen::Vector3d &x, int this_panel)
+Mesh::source_unit_velocity(const Eigen::Vector3d &x, int this_panel)
 {   
     // Transform such that panel normal becomes unit Z vector:
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
@@ -1245,7 +1245,7 @@ Mesh::source_unit_velocity(Eigen::Vector3d &x, int this_panel)
    @returns Velocity induced by the vortex ring.
 */
 Vector3d
-Mesh::vortex_ring_unit_velocity(Eigen::Vector3d &x, int this_panel)
+Mesh::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel)
 {    
     Vector3d velocity(0, 0, 0);
     
@@ -1293,7 +1293,7 @@ Mesh::vortex_ring_unit_velocity(Eigen::Vector3d &x, int this_panel)
    @note See M. Ramasamy and J. G. Leishman, Reynolds Number Based Blade Tip Vortex Model, University of Maryland, 2005.
 */
 Vector3d
-Mesh::vortex_ring_ramasamy_leishman_velocity(Eigen::Vector3d &x, int this_panel, std::vector<double> core_radii, double vorticity)
+Mesh::vortex_ring_ramasamy_leishman_velocity(const Eigen::Vector3d &x, int this_panel, std::vector<double> core_radii, double vorticity)
 {
     // Ramasamy-Leishman series data:
     typedef struct {

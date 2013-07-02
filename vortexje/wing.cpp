@@ -36,7 +36,7 @@ Wing::Wing() : Mesh()
    @param[in]   top_direction       Unit vector pointing upwards, out of, and perpendicular to the wing.
    @param[in]   span_direction      Unit vector pointing along the wing span.
 */
-Wing::Wing(Mesh &mesh, Eigen::Vector3d &location, Eigen::Vector3d &chord_direction, Eigen::Vector3d &top_direction, Eigen::Vector3d &span_direction)
+Wing::Wing(Mesh &mesh, const Eigen::Vector3d &location, const Eigen::Vector3d &chord_direction, const Eigen::Vector3d &top_direction, const Eigen::Vector3d &span_direction)
     : Mesh(), location(location), chord_direction(chord_direction), top_direction(top_direction), span_direction(span_direction)
 {   
     // Load wing data from existing mesh:
@@ -170,14 +170,14 @@ Wing::sort_trailing_edge()
 
 // Translate mesh.
 void
-Wing::translate(Eigen::Vector3d &translation)
+Wing::translate(const Eigen::Vector3d &translation)
 {
     vector<Mesh*> empty;
     translate(translation, empty);
 }
 
 void
-Wing::translate(Eigen::Vector3d &translation, std::vector<Mesh*> &corotating_meshes)
+Wing::translate(const Eigen::Vector3d &translation, std::vector<Mesh*> &corotating_meshes)
 {
     this->Mesh::translate(translation, corotating_meshes);
     
@@ -186,14 +186,14 @@ Wing::translate(Eigen::Vector3d &translation, std::vector<Mesh*> &corotating_mes
 
 // Rotate mesh.
 void
-Wing::transform(Eigen::Matrix3d &transformation)
+Wing::transform(const Eigen::Matrix3d &transformation)
 {
     vector<Mesh*> empty;
     transform(transformation, empty);
 }
 
 void
-Wing::transform(Eigen::Matrix3d &transformation, std::vector<Mesh*> &corotating_meshes)
+Wing::transform(const Eigen::Matrix3d &transformation, std::vector<Mesh*> &corotating_meshes)
 {
     this->Mesh::transform(transformation, corotating_meshes);
     
@@ -204,7 +204,7 @@ Wing::transform(Eigen::Matrix3d &transformation, std::vector<Mesh*> &corotating_
 
 // Find closest panel to given point, returning 'true' if this panel borders the trailing edge:
 bool
-Wing::closest_panel(Eigen::Vector3d &x, int &panel, double &distance)
+Wing::closest_panel(const Eigen::Vector3d &x, int &panel, double &distance)
 {
     this->Mesh::closest_panel(x, panel, distance);
     

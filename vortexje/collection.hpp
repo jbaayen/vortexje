@@ -82,11 +82,11 @@ public:
     */
     Eigen::Vector3d rotational_velocity;
 
-    void set_position(Eigen::Vector3d &position);
-    void set_attitude(Eigen::Quaterniond &attitude);
+    void set_position(const Eigen::Vector3d &position);
+    void set_attitude(const Eigen::Quaterniond &attitude);
     
-    void set_velocity(Eigen::Vector3d &velocity);
-    void set_rotational_velocity(Eigen::Vector3d &rotational_velocity);
+    void set_velocity(const Eigen::Vector3d &velocity);
+    void set_rotational_velocity(const Eigen::Vector3d &rotational_velocity);
     
     Eigen::Vector3d panel_kinematic_velocity(Mesh &mesh, int panel);
     

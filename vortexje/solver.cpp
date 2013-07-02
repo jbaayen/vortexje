@@ -127,7 +127,7 @@ Solver::add_collection(Collection &collection)
    @param[in]   value   Freestream velocity.
 */
 void
-Solver::set_freestream_velocity(Vector3d &value)
+Solver::set_freestream_velocity(const Vector3d &value)
 {
     freestream_velocity = value;
 }
@@ -192,7 +192,7 @@ Solver::wakes_influence(MatrixXd &A, VectorXd &b, Mesh &mesh, int offset)
 
 // Compute source coefficient for given mesh and panel:
 double
-Solver::source_coefficient(Mesh &mesh, int panel, Vector3d &kinematic_velocity, bool include_wake_influence)
+Solver::source_coefficient(Mesh &mesh, int panel, const Vector3d &kinematic_velocity, bool include_wake_influence)
 {
     // Main velocity:
     Vector3d velocity = -kinematic_velocity;
@@ -233,7 +233,7 @@ Solver::source_coefficient(Mesh &mesh, int panel, Vector3d &kinematic_velocity, 
    @returns Surface velocity.
 */
 Eigen::Vector3d
-Solver::surface_velocity(Mesh &mesh, int panel, Eigen::VectorXd &doublet_coefficient_field, Eigen::Vector3d &kinematic_velocity)
+Solver::surface_velocity(Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field, const Eigen::Vector3d &kinematic_velocity)
 {
     Vector3d x = mesh.panel_collocation_point(panel, false);
     
@@ -265,8 +265,8 @@ Solver::surface_velocity(Mesh &mesh, int panel, Eigen::VectorXd &doublet_coeffic
    @returns Pressure coefficient.
 */
 double
-Solver::pressure_coefficient(Mesh &mesh, int panel, Eigen::Vector3d &kinematic_velocity,
-                             Eigen::VectorXd &doublet_coefficient_field, double dpotentialdt, double v_ref)
+Solver::pressure_coefficient(Mesh &mesh, int panel, const Eigen::Vector3d &kinematic_velocity,
+                             const Eigen::VectorXd &doublet_coefficient_field, double dpotentialdt, double v_ref)
 {
     double C_p = 1 - (surface_velocity(mesh, panel, doublet_coefficient_field, kinematic_velocity).squaredNorm() + 2 * dpotentialdt) / pow(v_ref, 2);
     if (C_p < Parameters::min_pressure_coefficient)
@@ -283,7 +283,7 @@ Solver::pressure_coefficient(Mesh &mesh, int panel, Eigen::Vector3d &kinematic_v
    @returns Disturbance potential.
 */
 double
-Solver::potential(Vector3d &x)
+Solver::potential(const Vector3d &x)
 {
     double potential = 0.0;
     
@@ -358,7 +358,7 @@ Solver::surface_potentials()
    @returns Disturbance potential gradient.
 */ 
 Eigen::Vector3d
-Solver::potential_gradient(Eigen::Vector3d &x)
+Solver::potential_gradient(const Eigen::Vector3d &x)
 {
     Vector3d gradient(0, 0, 0);
     
@@ -409,7 +409,7 @@ Solver::potential_gradient(Eigen::Vector3d &x)
    @returns Stream velocity.
 */
 Eigen::Vector3d
-Solver::stream_velocity(Eigen::Vector3d &x, Eigen::Vector3d &kinematic_velocity)
+Solver::stream_velocity(const Eigen::Vector3d &x, const Eigen::Vector3d &kinematic_velocity)
 {
     // Find closest mesh and panel:
     double distance = numeric_limits<double>::max();
@@ -871,7 +871,7 @@ Solver::aerodynamic_force(Collection &collection)
    @returns Aerodynamic moment.
 */
 Eigen::Vector3d
-Solver::aerodynamic_moment(Collection &collection, Eigen::Vector3d x)
+Solver::aerodynamic_moment(Collection &collection, const Eigen::Vector3d &x)
 {
     double v_ref = (collection.velocity - freestream_velocity).norm();
         

@@ -127,7 +127,7 @@ Wake::add_layer(vector<Mesh*> &other_meshes)
    @param[in]   translation     Translation vector.
 */
 void
-Wake::translate_trailing_edge(Eigen::Vector3d &translation)
+Wake::translate_trailing_edge(const Eigen::Vector3d &translation)
 {
     if (n_nodes() < (int) wing.trailing_edge_nodes.size())
         return;
@@ -150,7 +150,7 @@ Wake::translate_trailing_edge(Eigen::Vector3d &translation)
    @param[in]   transformation  Transformation matrix.
 */
 void
-Wake::transform_trailing_edge(Eigen::Matrix3d &transformation)
+Wake::transform_trailing_edge(const Eigen::Matrix3d &transformation)
 {
     if (n_nodes() < (int) wing.trailing_edge_nodes.size())
         return;

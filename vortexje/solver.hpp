@@ -46,7 +46,7 @@ public:
     */
     Eigen::Vector3d freestream_velocity;
     
-    void set_freestream_velocity(Eigen::Vector3d &value);
+    void set_freestream_velocity(const Eigen::Vector3d &value);
     
     /**
        Density of the fluid.
@@ -60,7 +60,7 @@ public:
     void update_wakes(double dt);
     
     Eigen::Vector3d aerodynamic_force(Collection &collection);
-    Eigen::Vector3d aerodynamic_moment(Collection &collection, Eigen::Vector3d x);
+    Eigen::Vector3d aerodynamic_moment(Collection &collection, const Eigen::Vector3d &x);
     
     void log_coefficients(int step_number);
     
@@ -80,20 +80,20 @@ private:
                                           
     void wakes_influence(Eigen::MatrixXd &A, Eigen::VectorXd &b, Mesh &mesh, int offset);
                                           
-    double source_coefficient(Mesh &mesh, int panel, Eigen::Vector3d &kinematic_velocity, bool include_wake_influence);
+    double source_coefficient(Mesh &mesh, int panel, const Eigen::Vector3d &kinematic_velocity, bool include_wake_influence);
     
-    Eigen::Vector3d surface_velocity(Mesh &mesh, int panel, Eigen::VectorXd &doublet_coefficient_field, Eigen::Vector3d &kinematic_velocity);
+    Eigen::Vector3d surface_velocity(Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field, const Eigen::Vector3d &kinematic_velocity);
 
-    double pressure_coefficient(Mesh &mesh, int panel, Eigen::Vector3d &kinematic_velocity,
-                                Eigen::VectorXd &doublet_coefficient_field, double dpotentialdt, double v_ref);
+    double pressure_coefficient(Mesh &mesh, int panel, const Eigen::Vector3d &kinematic_velocity,
+                                const Eigen::VectorXd &doublet_coefficient_field, double dpotentialdt, double v_ref);
     
-    double potential(Eigen::Vector3d &x);
+    double potential(const Eigen::Vector3d &x);
     
     Eigen::VectorXd surface_potentials();
     
-    Eigen::Vector3d potential_gradient(Eigen::Vector3d &x);
+    Eigen::Vector3d potential_gradient(const Eigen::Vector3d &x);
     
-    Eigen::Vector3d stream_velocity(Eigen::Vector3d &x, Eigen::Vector3d &kinematic_velocity);
+    Eigen::Vector3d stream_velocity(const Eigen::Vector3d &x, const Eigen::Vector3d &kinematic_velocity);
 };
 
 };

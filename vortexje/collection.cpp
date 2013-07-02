@@ -61,7 +61,7 @@ Collection::add_wing(Wing *wing)
    @param[in]   position    Linear position.
 */
 void
-Collection::set_position(Vector3d &position)
+Collection::set_position(const Vector3d &position)
 {
     // Compute differential:
     Vector3d dposition = position - this->position;
@@ -92,7 +92,7 @@ Collection::set_position(Vector3d &position)
    @param[in]   attitude    Attitude (orientation) of this collection, as normalized quaternion.
 */
 void
-Collection::set_attitude(Quaterniond &attitude)
+Collection::set_attitude(const Quaterniond &attitude)
 {   
     Eigen::Vector3d translation;
     Eigen::Matrix3d transformation;
@@ -147,7 +147,7 @@ Collection::set_attitude(Quaterniond &attitude)
    @param[in]   velocity    Linear velocity.
 */
 void 
-Collection::set_velocity(Vector3d &velocity)
+Collection::set_velocity(const Vector3d &velocity)
 {
     this->velocity = velocity;
 }
@@ -158,7 +158,7 @@ Collection::set_velocity(Vector3d &velocity)
    @param[in]   rotational_velocity     Rotational velocity.
 */
 void
-Collection::set_rotational_velocity(Vector3d &rotational_velocity)
+Collection::set_rotational_velocity(const Vector3d &rotational_velocity)
 {
     this->rotational_velocity = rotational_velocity;
 }
