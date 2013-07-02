@@ -25,6 +25,8 @@ namespace Vortexje
 class WingBuilder
 {
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    
     WingBuilder(Wing &wing);
     
     /**

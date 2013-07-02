@@ -34,6 +34,8 @@ public:
     */
     int id;
     
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    
     Mesh();
     Mesh(std::string file);
     

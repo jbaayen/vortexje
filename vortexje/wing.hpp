@@ -27,6 +27,8 @@ namespace Vortexje
 class Wing : public Mesh
 {
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    
     Wing();
     Wing(Mesh &mesh, Eigen::Vector3d &location, Eigen::Vector3d &chord_direction, Eigen::Vector3d &top_direction, Eigen::Vector3d &span_direction);
 

@@ -25,6 +25,8 @@ namespace Vortexje
 class Wake : public Mesh
 {
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    
     Wake(Wing &wing);
     
     /**

@@ -28,6 +28,8 @@ namespace Vortexje
 class Solver
 {
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+        
     Solver(std::string log_folder);
     
     ~Solver();

@@ -53,6 +53,8 @@ public:
     */
     std::vector<Wake*> wakes;
     
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    
     Collection(std::string id,
                Mesh       &nolift_mesh);
          
