@@ -170,14 +170,14 @@ Wing::sort_trailing_edge()
 
 // Translate mesh.
 void
-Wing::translate(Vector3d &translation)
+Wing::translate(Eigen::Vector3d &translation)
 {
     vector<Mesh*> empty;
     translate(translation, empty);
 }
 
 void
-Wing::translate(Vector3d &translation, vector<Mesh*> &corotating_meshes)
+Wing::translate(Eigen::Vector3d &translation, std::vector<Mesh*> &corotating_meshes)
 {
     this->Mesh::translate(translation, corotating_meshes);
     
@@ -186,14 +186,14 @@ Wing::translate(Vector3d &translation, vector<Mesh*> &corotating_meshes)
 
 // Rotate mesh.
 void
-Wing::transform(Matrix3d &transformation)
+Wing::transform(Eigen::Matrix3d &transformation)
 {
     vector<Mesh*> empty;
     transform(transformation, empty);
 }
 
 void
-Wing::transform(Matrix3d &transformation, vector<Mesh*> &corotating_meshes)
+Wing::transform(Eigen::Matrix3d &transformation, std::vector<Mesh*> &corotating_meshes)
 {
     this->Mesh::transform(transformation, corotating_meshes);
     
