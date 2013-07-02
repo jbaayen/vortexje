@@ -9,7 +9,7 @@
 #ifndef __WAKE_HPP__
 #define __WAKE_HPP__
 
-#include <vector>
+#include <Eigen/StdVector>
 
 #include <vortexje/mesh.hpp>
 #include <vortexje/wing.hpp>

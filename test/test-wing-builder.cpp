@@ -42,7 +42,7 @@ main (int argc, char **argv)
     const double span = 5.0;
     
     for (int i = 0; i < n_airfoils; i++) {
-        vector<Vector3d> airfoil_points = wing_builder.generate_clarky_airfoil(chord, n_points_per_airfoil, trailing_edge_point_id);
+        vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points = wing_builder.generate_clarky_airfoil(chord, n_points_per_airfoil, trailing_edge_point_id);
         for (int j = 0; j < (int) airfoil_points.size(); j++)
             airfoil_points[j](2) += i * span / (double) (n_airfoils - 1);
             

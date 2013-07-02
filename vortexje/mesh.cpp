@@ -315,7 +315,7 @@ Mesh::compute_panel_neighbors()
    @param[in]   panel_offset    Panel numbering offset in output file.
 */
 void
-Mesh::save(std::string file, std::vector<std::string> &view_names, std::vector<Eigen::VectorXd> &view_data, int node_offset, int panel_offset)
+Mesh::save(std::string file, std::vector<std::string> &view_names, std::vector<VectorXd> &view_data, int node_offset, int panel_offset)
 {
     cout << "Mesh " << id << ": Saving to " << file << "." << endl;
     
@@ -451,7 +451,7 @@ Mesh::n_panels()
    @param[in]   angle                   Angle of rotation.
 */
 void
-Mesh::rotate(Eigen::Vector3d &axis, double angle)
+Mesh::rotate(Vector3d &axis, double angle)
 {
     Eigen::Matrix3d transformation = AngleAxis<double>(angle, axis).toRotationMatrix();
     transform(transformation);
@@ -475,7 +475,7 @@ Mesh::transform(Eigen::Matrix3d &transformation)
    @param[in]   translation             Translation vector.
 */
 void
-Mesh::translate(Eigen::Vector3d &translation)
+Mesh::translate(Vector3d &translation)
 {
     vector<Mesh*> empty;
     translate(translation, empty);
@@ -490,7 +490,7 @@ Mesh::translate(Eigen::Vector3d &translation)
    @param[in]   corotating_meshes       List of co-rotating meshes.
 */
 void
-Mesh::rotate(Eigen::Vector3d &axis, double angle, std::vector<Mesh*> &corotating_meshes)
+Mesh::rotate(Vector3d &axis, double angle, std::vector<Mesh*> &corotating_meshes)
 {
     Eigen::Matrix3d transformation = AngleAxis<double>(angle, axis).toRotationMatrix();
     transform(transformation, corotating_meshes);
@@ -521,10 +521,14 @@ Mesh::transform(Eigen::Matrix3d &transformation, std::vector<Mesh*> &cotransform
             panel_normal_cache[i] = transformation * panel_normal_cache[i];
     }
     
-    std::vector<std::vector<double> >   *doublet_influence_backup         = new std::vector<std::vector<double> >[cotransforming_meshes.size()];
-    std::vector<std::vector<double> >   *source_influence_backup          = new std::vector<std::vector<double> >[cotransforming_meshes.size()];
-    std::vector<std::vector<Vector3d> > *vortex_ring_unit_velocity_backup = new std::vector<std::vector<Vector3d> >[cotransforming_meshes.size()];
-    std::vector<std::vector<Vector3d> > *source_unit_velocity_backup      = new std::vector<std::vector<Vector3d> >[cotransforming_meshes.size()];
+    std::vector<std::vector<double> > *doublet_influence_backup =
+        new std::vector<std::vector<double> >[cotransforming_meshes.size()];
+    std::vector<std::vector<double> > *source_influence_backup  =
+        new std::vector<std::vector<double> >[cotransforming_meshes.size()];
+    std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > *vortex_ring_unit_velocity_backup =
+        new std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > >[cotransforming_meshes.size()];
+    std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > *source_unit_velocity_backup      =
+        new std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > >[cotransforming_meshes.size()];
     
     for (int i = 0; i < (int) cotransforming_meshes.size(); i++) {
         // Ensure the caches exist.
@@ -568,7 +572,7 @@ Mesh::transform(Eigen::Matrix3d &transformation, std::vector<Mesh*> &cotransform
    @param[in]   cotranslating_meshes    List of co-translating meshes.
 */
 void
-Mesh::translate(Eigen::Vector3d &translation, std::vector<Mesh*> &cotranslating_meshes)
+Mesh::translate(Vector3d &translation, std::vector<Mesh*> &cotranslating_meshes)
 {
     for (int i = 0; i < n_nodes(); i++)
         nodes[i] = nodes[i] + translation;
@@ -580,10 +584,14 @@ Mesh::translate(Eigen::Vector3d &translation, std::vector<Mesh*> &cotranslating_
         }
     }
     
-    std::vector<std::vector<double> > *doublet_influence_backup           = new std::vector<std::vector<double> >[cotranslating_meshes.size()];
-    std::vector<std::vector<double> > *source_influence_backup            = new std::vector<std::vector<double> >[cotranslating_meshes.size()];
-    std::vector<std::vector<Vector3d> > *vortex_ring_unit_velocity_backup = new std::vector<std::vector<Vector3d> >[cotranslating_meshes.size()];
-    std::vector<std::vector<Vector3d> > *source_unit_velocity_backup      = new std::vector<std::vector<Vector3d> >[cotranslating_meshes.size()];
+    std::vector<std::vector<double> > *doublet_influence_backup =
+        new std::vector<std::vector<double> >[cotranslating_meshes.size()];
+    std::vector<std::vector<double> > *source_influence_backup  =
+        new std::vector<std::vector<double> >[cotranslating_meshes.size()];
+    std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > *vortex_ring_unit_velocity_backup =
+        new std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > >[cotranslating_meshes.size()];
+    std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > *source_unit_velocity_backup      =
+        new std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > >[cotranslating_meshes.size()];
     
     for (int i = 0; i < (int) cotranslating_meshes.size(); i++) {
         // Ensure the caches exist.
@@ -628,7 +636,7 @@ Mesh::translate(Eigen::Vector3d &translation, std::vector<Mesh*> &cotranslating_
    @returns Distance between reference point and panel.
 */
 double
-Mesh::distance_to_panel(Eigen::Vector3d &x, int panel)
+Mesh::distance_to_panel(Vector3d &x, int panel)
 {
     double distance = numeric_limits<double>::max();
     
@@ -720,7 +728,7 @@ Mesh::distance_to_panel(Eigen::Vector3d &x, int panel)
    @returns true if the closest panel borders a trailing edge.
 */
 bool
-Mesh::closest_panel(Eigen::Vector3d &x, int &panel, double &distance)
+Mesh::closest_panel(Vector3d &x, int &panel, double &distance)
 {
     distance = numeric_limits<double>::max();
     panel = -1;
@@ -745,7 +753,7 @@ Mesh::closest_panel(Eigen::Vector3d &x, int &panel, double &distance)
    
    @returns Collocation point.
 */
-Eigen::Vector3d
+Vector3d
 Mesh::panel_collocation_point(int panel, bool below_surface)
 {
     if (panel_collocation_point_cache[below_surface].empty()) {
@@ -796,7 +804,7 @@ Mesh::panel_collocation_point(int panel, bool below_surface)
    
    @returns Inward-pointing normal.
 */
-Eigen::Vector3d
+Vector3d
 Mesh::panel_normal(int panel)
 {
     if (panel_normal_cache.empty()) {
@@ -915,7 +923,7 @@ Mesh::panel_diameter(int panel)
    
    @returns Deformation velocity.
 */
-Eigen::Vector3d
+Vector3d
 Mesh::panel_deformation_velocity(int panel)
 {
     Vector3d deformation_velocity(0, 0, 0);
@@ -934,7 +942,7 @@ Mesh::panel_deformation_velocity(int panel)
    
    @returns Point, located outside of the body, close to the given node.
 */
-Eigen::Vector3d
+Vector3d
 Mesh::close_to_body_point(int node)
 {
     Vector3d layer_direction(0, 0, 0);
@@ -953,7 +961,7 @@ Mesh::close_to_body_point(int node)
    
    @returns On-body gradient.
 */
-Eigen::Vector3d
+Vector3d
 Mesh::scalar_field_gradient(Eigen::VectorXd &scalar_field, int panel)
 {
     Vector3d x = panel_collocation_point(panel, false);
@@ -1038,14 +1046,14 @@ doublet_edge_influence(Vector3d &x, Vector3d &node_a, Vector3d &node_b)
    @returns Influence coefficient.
 */
 double
-Mesh::doublet_influence(Eigen::Vector3d &x, int this_panel)
+Mesh::doublet_influence(Vector3d &x, int this_panel)
 {
     // Transform such that panel normal becomes unit Z vector:
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
     
     Vector3d x_normalized = rotation * x;
     
-    vector<Vector3d> normalized_panel_nodes;
+    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > normalized_panel_nodes;
     for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
         normalized_panel_nodes.push_back(rotation * nodes[panel_nodes[this_panel][i]]);
     
@@ -1112,14 +1120,14 @@ source_edge_influence(Vector3d &x, Vector3d &node_a, Vector3d &node_b)
    @returns Influence coefficient.
 */
 double
-Mesh::source_influence(Eigen::Vector3d &x, int this_panel)
+Mesh::source_influence(Vector3d &x, int this_panel)
 {
     // Transform such that panel normal becomes unit Z vector:
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
     
     Vector3d x_normalized = rotation * x;
     
-    vector<Vector3d> normalized_panel_nodes;
+    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > normalized_panel_nodes;
     for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
         normalized_panel_nodes.push_back(rotation * nodes[panel_nodes[this_panel][i]]);
     
@@ -1188,15 +1196,15 @@ source_edge_unit_velocity(Vector3d &x, Vector3d &node_a, Vector3d &node_b)
    
    @returns Velocity induced by the source panel.
 */
-Eigen::Vector3d
-Mesh::source_unit_velocity(Eigen::Vector3d &x, int this_panel)
+Vector3d
+Mesh::source_unit_velocity(Vector3d &x, int this_panel)
 {   
     // Transform such that panel normal becomes unit Z vector:
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
     
     Vector3d x_normalized = rotation * x;
     
-    vector<Vector3d> normalized_panel_nodes;
+    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > normalized_panel_nodes;
     for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
         normalized_panel_nodes.push_back(rotation * nodes[panel_nodes[this_panel][i]]);
     
@@ -1236,8 +1244,8 @@ Mesh::source_unit_velocity(Eigen::Vector3d &x, int this_panel)
    
    @returns Velocity induced by the vortex ring.
 */
-Eigen::Vector3d
-Mesh::vortex_ring_unit_velocity(Eigen::Vector3d &x, int this_panel)
+Vector3d
+Mesh::vortex_ring_unit_velocity(Vector3d &x, int this_panel)
 {    
     Vector3d velocity(0, 0, 0);
     
@@ -1284,8 +1292,8 @@ Mesh::vortex_ring_unit_velocity(Eigen::Vector3d &x, int this_panel)
    
    @note See M. Ramasamy and J. G. Leishman, Reynolds Number Based Blade Tip Vortex Model, University of Maryland, 2005.
 */
-Eigen::Vector3d
-Mesh::vortex_ring_ramasamy_leishman_velocity(Eigen::Vector3d &x, int this_panel, std::vector<double> core_radii, double vorticity)
+Vector3d
+Mesh::vortex_ring_ramasamy_leishman_velocity(Vector3d &x, int this_panel, std::vector<double> core_radii, double vorticity)
 {
     // Ramasamy-Leishman series data:
     typedef struct {
@@ -1498,20 +1506,20 @@ Mesh::source_influence(Mesh &other, int other_panel, int this_panel)
    
    @returns Velocity induced by the source panel.
 */
-Eigen::Vector3d
+Vector3d
 Mesh::source_unit_velocity(Mesh &other, int other_panel, int this_panel)
 {
     // Retrieve inner matrix:
-    map<int, std::vector<std::vector<Vector3d> > >::iterator it = source_unit_velocity_cache.find(other.id);
+    map<int, std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > >::iterator it = source_unit_velocity_cache.find(other.id);
     if (it == source_unit_velocity_cache.end()) {
         cout << "Mesh " << id << ": Generating source unit velocity cache for mesh " << other.id << "." << endl;
         
-        std::vector<std::vector<Vector3d> > inner;
+        std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > inner;
         inner.reserve(other.n_panels());
         for (int i = 0; i < other.n_panels(); i++) {
             Vector3d x = other.panel_collocation_point(i, true);
             
-            std::vector<Vector3d> inner_inner;
+            std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > inner_inner;
             inner_inner.reserve(n_panels());
             for (int j = 0; j < n_panels(); j++)        
                 inner_inner.push_back(source_unit_velocity(x, j));
@@ -1522,7 +1530,7 @@ Mesh::source_unit_velocity(Mesh &other, int other_panel, int this_panel)
         
         return inner[other_panel][this_panel];
     } else {
-        std::vector<std::vector<Vector3d> > &inner = it->second;
+        std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > &inner = it->second;
  
         return inner[other_panel][this_panel];
     }
@@ -1543,16 +1551,16 @@ Vector3d
 Mesh::vortex_ring_unit_velocity(Mesh &other, int other_panel, int this_panel)
 {
     // Retrieve inner matrix:
-    map<int, std::vector<std::vector<Vector3d> > >::iterator it = vortex_ring_unit_velocity_cache.find(other.id);
+    map<int, std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > >::iterator it = vortex_ring_unit_velocity_cache.find(other.id);
     if (it == vortex_ring_unit_velocity_cache.end()) {
         cout << "Mesh " << id << ": Generating vortex ring unit velocity cache for mesh " << other.id << "." << endl;
         
-        std::vector<std::vector<Vector3d> > inner;
+        std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > inner;
         inner.reserve(other.n_panels());
         for (int i = 0; i < other.n_panels(); i++) {
             Vector3d x = other.panel_collocation_point(i, true);
             
-            std::vector<Vector3d> inner_inner;
+            std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > inner_inner;
             inner_inner.reserve(n_panels());
             for (int j = 0; j < n_panels(); j++)        
                 inner_inner.push_back(vortex_ring_unit_velocity(x, j));
@@ -1563,7 +1571,7 @@ Mesh::vortex_ring_unit_velocity(Mesh &other, int other_panel, int this_panel)
         
         return inner[other_panel][this_panel];
     } else {
-        std::vector<std::vector<Vector3d> > &inner = it->second;
+        std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > &inner = it->second;
  
         return inner[other_panel][this_panel];
     }
@@ -1584,20 +1592,20 @@ Mesh::vortex_ring_unit_velocity(Mesh &other, int other_panel, int this_panel)
    
    @note See M. Ramasamy and J. G. Leishman, Reynolds Number Based Blade Tip Vortex Model, University of Maryland, 2005.
 */
-Eigen::Vector3d
+Vector3d
 Mesh::vortex_ring_ramasamy_leishman_velocity(Mesh &other, int other_panel, int this_panel, std::vector<double> core_radii, double vorticity)
 {
     // Retrieve inner matrix:
-    map<int, std::vector<std::vector<Vector3d> > >::iterator it = vortex_ring_ramasamy_leishman_velocity_cache.find(other.id);
+    map<int, std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > >::iterator it = vortex_ring_ramasamy_leishman_velocity_cache.find(other.id);
     if (it == vortex_ring_ramasamy_leishman_velocity_cache.end()) {
         cout << "Mesh " << id << ": Generating vortex ring unit velocity cache for mesh " << other.id << "." << endl;
         
-        std::vector<std::vector<Vector3d> > inner;
+        std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > inner;
         inner.reserve(other.n_panels());
         for (int i = 0; i < other.n_panels(); i++) {
             Vector3d x = other.panel_collocation_point(i, true);
             
-            std::vector<Vector3d> inner_inner;
+            std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > inner_inner;
             inner_inner.reserve(n_panels());
             for (int j = 0; j < n_panels(); j++)        
                 inner_inner.push_back(vortex_ring_ramasamy_leishman_velocity(x, j, core_radii, vorticity));
@@ -1608,7 +1616,7 @@ Mesh::vortex_ring_ramasamy_leishman_velocity(Mesh &other, int other_panel, int t
         
         return inner[other_panel][this_panel];
     } else {
-        std::vector<std::vector<Vector3d> > &inner = it->second;
+        std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > &inner = it->second;
  
         return inner[other_panel][this_panel];
     }

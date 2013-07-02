@@ -9,11 +9,11 @@
 #ifndef __COLLECTION_HPP__
 #define __COLLECTION_HPP__
 
-#include <vector>
 #include <string>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <Eigen/StdVector>
 
 #include <vortexje/mesh.hpp>
 #include <vortexje/wing.hpp>

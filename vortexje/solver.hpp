@@ -9,11 +9,11 @@
 #ifndef __SOLVER_HPP__
 #define __SOLVER_HPP__
 
-#include <vector>
 #include <string>
 #include <fstream>
 
 #include <Eigen/Core>
+#include <Eigen/StdVector>
 
 #include <vortexje/collection.hpp>
 

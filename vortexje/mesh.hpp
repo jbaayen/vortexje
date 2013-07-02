@@ -9,11 +9,11 @@
 #ifndef __MESH_HPP__
 #define __MESH_HPP__
 
-#include <vector>
 #include <map>
 #include <string>
 
 #include <Eigen/Core>
+#include <Eigen/StdVector>
 
 #include <vortexje/parameters.hpp>
 
@@ -59,12 +59,12 @@ public:
     /**
        Node number to point map.
     */
-    std::vector<Eigen::Vector3d> nodes;
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > nodes;
     
     /**
        Node number to node deformation velocity map.
     */
-    std::vector<Eigen::Vector3d> node_deformation_velocities;
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > node_deformation_velocities;
     
     /**
        Node number to neigboring panel numbers map.
@@ -125,12 +125,12 @@ public:
     /**
        Panel collocation point caches.
     */
-    std::vector<Eigen::Vector3d> panel_collocation_point_cache[2];
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > panel_collocation_point_cache[2];
     
     /**
        Panel normal vector cache.
     */
-    std::vector<Eigen::Vector3d> panel_normal_cache;
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > panel_normal_cache;
     
     /**
        Panel surface area cache.
@@ -155,17 +155,17 @@ public:
     /**
        Unit source panel induced velocity cache.
     */
-    std::map<int, std::vector<std::vector<Eigen::Vector3d> > > source_unit_velocity_cache;
+    std::map<int, std::vector<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > > > source_unit_velocity_cache;
     
     /**
        Unit vortex ring induced velocity cache.
     */
-    std::map<int, std::vector<std::vector<Eigen::Vector3d> > > vortex_ring_unit_velocity_cache;
+    std::map<int, std::vector<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > > > vortex_ring_unit_velocity_cache;
     
     /**
        Ramasamy-Leishman vortex ring induced velocity cache.
     */
-    std::map<int, std::vector<std::vector<Eigen::Vector3d> > > vortex_ring_ramasamy_leishman_velocity_cache;
+    std::map<int, std::vector<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > > > vortex_ring_ramasamy_leishman_velocity_cache;
 };
 
 };

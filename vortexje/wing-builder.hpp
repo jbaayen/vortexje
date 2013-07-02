@@ -9,9 +9,8 @@
 #ifndef __WING_BUILDER_HPP__
 #define __WING_BUILDER_HPP__
 
-#include <vector>
-
 #include <Eigen/Core>
+#include <Eigen/StdVector>
 
 #include <vortexje/wing.hpp>
 
@@ -33,11 +32,11 @@ public:
     */
     Wing &wing;
 
-    std::vector<Eigen::Vector3d> generate_naca_airfoil(double max_camber, double max_camber_dist, double max_thickness, bool finite_te_thickness, double chord, int n_points, int &trailing_edge_point_id);
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > generate_naca_airfoil(double max_camber, double max_camber_dist, double max_thickness, bool finite_te_thickness, double chord, int n_points, int &trailing_edge_point_id);
     
-    std::vector<Eigen::Vector3d> generate_clarky_airfoil(double chord, int n_points, int &trailing_edge_point_id);
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > generate_clarky_airfoil(double chord, int n_points, int &trailing_edge_point_id);
     
-    std::vector<int> add_points(std::vector<Eigen::Vector3d> &points, int trailing_edge_point_id);
+    std::vector<int> add_points(std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > &points, int trailing_edge_point_id);
     
     /**
        Node connection mode. 

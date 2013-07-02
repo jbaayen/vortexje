@@ -9,9 +9,8 @@
 #ifndef __WING_HPP__
 #define __WING_HPP__
 
-#include <vector>
-
 #include <Eigen/Core>
+#include <Eigen/StdVector>
 
 #include <vortexje/mesh.hpp>
 
