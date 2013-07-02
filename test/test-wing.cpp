@@ -42,8 +42,12 @@ main (int argc, char **argv)
     // Set up solver:
     Solver solver("test-wing-log");
     solver.add_collection(collection);
-    solver.set_freestream_velocity(Vector3d(30, 0, 0));
-    solver.set_fluid_density(1.2);
+    
+    Vector3d freestream_velocity(30, 0, 0);
+    solver.set_freestream_velocity(freestream_velocity);
+    
+    double fluid_density = 1.2;
+    solver.set_fluid_density(fluid_density);
     
     // Run simulation:
     double t = 0.0;

@@ -54,7 +54,7 @@ public:
     std::vector<Wake*> wakes;
     
     Collection(std::string id,
-               Mesh        &nolift_mesh);
+               Mesh       &nolift_mesh);
          
     ~Collection();
          
@@ -80,11 +80,11 @@ public:
     */
     Eigen::Vector3d rotational_velocity;
 
-    void set_position(Eigen::Vector3d position);
-    void set_attitude(Eigen::Quaterniond attitude);
+    void set_position(Eigen::Vector3d &position);
+    void set_attitude(Eigen::Quaterniond &attitude);
     
-    void set_velocity(Eigen::Vector3d velocity);
-    void set_rotational_velocity(Eigen::Vector3d rotational_velocity);
+    void set_velocity(Eigen::Vector3d &velocity);
+    void set_rotational_velocity(Eigen::Vector3d &rotational_velocity);
     
     Eigen::Vector3d panel_kinematic_velocity(Mesh &mesh, int panel);
     

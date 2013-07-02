@@ -81,16 +81,16 @@ public:
     */
     std::vector<std::vector<int> > panel_neighbors;
     
-    void rotate(Eigen::Vector3d axis, double angle);
-    virtual void transform(Eigen::Matrix3d transformation);
-    virtual void translate(Eigen::Vector3d translation);
+    void rotate(Eigen::Vector3d &axis, double angle);
+    virtual void transform(Eigen::Matrix3d &transformation);
+    virtual void translate(Eigen::Vector3d &translation);
     
-    void rotate(Eigen::Vector3d axis, double angle, std::vector<Mesh*> &corotating_meshes);
-    virtual void transform(Eigen::Matrix3d transformation, std::vector<Mesh*> &cotransforming_meshes);
-    virtual void translate(Eigen::Vector3d translation, std::vector<Mesh*> &cotranslating_meshes);
+    void rotate(Eigen::Vector3d &axis, double angle, std::vector<Mesh*> &corotating_meshes);
+    virtual void transform(Eigen::Matrix3d &transformation, std::vector<Mesh*> &cotransforming_meshes);
+    virtual void translate(Eigen::Vector3d &translation, std::vector<Mesh*> &cotranslating_meshes);
     
-    double distance_to_panel(Eigen::Vector3d x, int panel);
-    virtual bool closest_panel(Eigen::Vector3d x, int &panel, double &distance);
+    double distance_to_panel(Eigen::Vector3d &x, int panel);
+    virtual bool closest_panel(Eigen::Vector3d &x, int &panel, double &distance);
     
     Eigen::Vector3d panel_collocation_point(int panel, bool below_surface);
     
@@ -106,12 +106,12 @@ public:
     
     Eigen::Vector3d scalar_field_gradient(Eigen::VectorXd &scalar_field, int panel);
     
-    double doublet_influence(Eigen::Vector3d x, int this_panel);
-    double source_influence(Eigen::Vector3d x, int this_panel);
+    double doublet_influence(Eigen::Vector3d &x, int this_panel);
+    double source_influence(Eigen::Vector3d &x, int this_panel);
     
-    Eigen::Vector3d source_unit_velocity(Eigen::Vector3d x, int this_panel);
-    Eigen::Vector3d vortex_ring_unit_velocity(Eigen::Vector3d x, int this_panel);
-    Eigen::Vector3d vortex_ring_ramasamy_leishman_velocity(Eigen::Vector3d x, int this_panel, std::vector<double> core_radii, double vorticity);
+    Eigen::Vector3d source_unit_velocity(Eigen::Vector3d &x, int this_panel);
+    Eigen::Vector3d vortex_ring_unit_velocity(Eigen::Vector3d &x, int this_panel);
+    Eigen::Vector3d vortex_ring_ramasamy_leishman_velocity(Eigen::Vector3d &x, int this_panel, std::vector<double> core_radii, double vorticity);
     
     double doublet_influence(Mesh &other, int other_panel, int this_panel);
     double source_influence(Mesh &other, int other_panel, int this_panel);

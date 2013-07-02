@@ -42,6 +42,7 @@ public:
         this->rotational_velocity = Vector3d(0, 0, dthetadt);
         
         // Initialize blades:
+        Vector3d unit_z = Vector3d::UnitZ();
         for (int i = 0; i < n_blades; i++) {
             Vector3d location(0, 0, 0);
             Vector3d chord_direction(1, 0, 0);
@@ -50,12 +51,13 @@ public:
     
             Wing *blade = new Wing(blade_mesh, location, chord_direction, top_direction, span_direction);
             
-            blade->rotate(Vector3d::UnitZ(), -M_PI / 2.0);
+            blade->rotate(unit_z, -M_PI / 2.0);
             
-            blade->translate(Vector3d(rotor_radius, 0, 0));
+            Vector3d translation(rotor_radius, 0, 0);
+            blade->translate(translation);
             
             double theta_blade = theta_0 + 2 * M_PI / n_blades * i;
-            blade->rotate(Vector3d::UnitZ(), theta_blade);
+            blade->rotate(unit_z, theta_blade);
             
             blade->translate(position);
             
@@ -81,7 +83,8 @@ public:
     rotate(double dt)
     { 
         // Compute new kinematic state:
-        set_attitude(AngleAxis<double>(rotational_velocity(2) * dt, Vector3d::UnitZ()) * attitude);
+        Quaterniond new_attitude = AngleAxis<double>(rotational_velocity(2) * dt, Vector3d::UnitZ()) * attitude;
+        set_attitude(new_attitude);
     }
 };
 
@@ -111,8 +114,12 @@ main (int argc, char **argv)
     // Set up solver:
     Solver solver("test-vawt-log");
     solver.add_collection(vawt);
-    solver.set_freestream_velocity(Vector3d(WIND_VELOCITY, 0, 0));
-    solver.set_fluid_density(1.2);
+    
+    Vector3d freestream_velocity(WIND_VELOCITY, 0, 0);
+    solver.set_freestream_velocity(freestream_velocity);
+    
+    double fluid_density = 1.2;
+    solver.set_fluid_density(fluid_density);
     
     // Run simulation:
     double t = 0.0;

@@ -61,7 +61,7 @@ Collection::add_wing(Wing *wing)
    @param[in]   position    Linear position.
 */
 void
-Collection::set_position(Vector3d position)
+Collection::set_position(Vector3d &position)
 {
     // Compute differential:
     Vector3d dposition = position - this->position;
@@ -92,20 +92,26 @@ Collection::set_position(Vector3d position)
    @param[in]   attitude    Attitude (orientation) of this collection, as normalized quaternion.
 */
 void
-Collection::set_attitude(Quaterniond attitude)
+Collection::set_attitude(Quaterniond &attitude)
 {   
+    Eigen::Vector3d translation;
+    Eigen::Matrix3d transformation;
+    
     // Apply for all non-wake meshes:
     for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
         Mesh *mesh = meshes_without_wakes[i];
         
         // Translate to origin:
-        mesh->translate(-position, meshes_without_wakes);
+        translation = -position;
+        mesh->translate(translation, meshes_without_wakes);
         
         // Transform to canonical orientation:
-        mesh->transform(this->attitude.inverse().toRotationMatrix(), meshes_without_wakes);
+        transformation = this->attitude.inverse().toRotationMatrix();
+        mesh->transform(transformation, meshes_without_wakes);
         
         // Transform to new orientation:
-        mesh->transform(attitude.toRotationMatrix(), meshes_without_wakes);
+        transformation = attitude.toRotationMatrix();
+        mesh->transform(transformation, meshes_without_wakes);
         
         // Translate back:
         mesh->translate(position, meshes_without_wakes);
@@ -116,13 +122,16 @@ Collection::set_attitude(Quaterniond attitude)
         Wake *wake = wakes[i];
         
         // Translate:
-        wake->translate_trailing_edge(-position);
+        translation = -position;
+        wake->translate_trailing_edge(translation);
         
         // Transform to canonical orientation:
-        wake->transform_trailing_edge(this->attitude.inverse().toRotationMatrix());
+        transformation = this->attitude.inverse().toRotationMatrix();
+        wake->transform_trailing_edge(transformation);
         
         // Transform to new orientation:
-        wake->transform_trailing_edge(attitude.toRotationMatrix());
+        transformation = attitude.toRotationMatrix();
+        wake->transform_trailing_edge(transformation);
         
         // Translate back:
         wake->translate_trailing_edge(position);
@@ -138,7 +147,7 @@ Collection::set_attitude(Quaterniond attitude)
    @param[in]   velocity    Linear velocity.
 */
 void 
-Collection::set_velocity(Vector3d velocity)
+Collection::set_velocity(Vector3d &velocity)
 {
     this->velocity = velocity;
 }
@@ -149,7 +158,7 @@ Collection::set_velocity(Vector3d velocity)
    @param[in]   rotational_velocity     Rotational velocity.
 */
 void
-Collection::set_rotational_velocity(Vector3d rotational_velocity)
+Collection::set_rotational_velocity(Vector3d &rotational_velocity)
 {
     this->rotational_velocity = rotational_velocity;
 }

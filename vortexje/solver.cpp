@@ -127,7 +127,7 @@ Solver::add_collection(Collection &collection)
    @param[in]   value   Freestream velocity.
 */
 void
-Solver::set_freestream_velocity(Vector3d value)
+Solver::set_freestream_velocity(Vector3d &value)
 {
     freestream_velocity = value;
 }

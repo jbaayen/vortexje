@@ -44,7 +44,7 @@ public:
     */
     Eigen::Vector3d freestream_velocity;
     
-    void set_freestream_velocity(Eigen::Vector3d value);
+    void set_freestream_velocity(Eigen::Vector3d &value);
     
     /**
        Density of the fluid.

@@ -29,7 +29,7 @@ class Wing : public Mesh
 {
 public:
     Wing();
-    Wing(Mesh &mesh, Eigen::Vector3d location, Eigen::Vector3d chord_direction, Eigen::Vector3d top_direction, Eigen::Vector3d span_direction);
+    Wing(Mesh &mesh, Eigen::Vector3d &location, Eigen::Vector3d &chord_direction, Eigen::Vector3d &top_direction, Eigen::Vector3d &span_direction);
 
     void sort_trailing_edge();
     
@@ -68,13 +68,13 @@ public:
     */
     std::vector<int> trailing_edge_bottom_panels;
     
-    void translate(Eigen::Vector3d translation);
-    void translate(Eigen::Vector3d translation, std::vector<Mesh*> &corotating_meshes);
+    void translate(Eigen::Vector3d &translation);
+    void translate(Eigen::Vector3d &translation, std::vector<Mesh*> &corotating_meshes);
     
-    void transform(Eigen::Matrix3d transformation);
-    void transform(Eigen::Matrix3d transformation, std::vector<Mesh*> &corotating_meshes);
+    void transform(Eigen::Matrix3d &transformation);
+    void transform(Eigen::Matrix3d &transformation, std::vector<Mesh*> &corotating_meshes);
     
-    bool closest_panel(Eigen::Vector3d x, int &panel, double &distance);
+    bool closest_panel(Eigen::Vector3d &x, int &panel, double &distance);
     
     Eigen::Vector3d close_to_body_point(int node);
 };
