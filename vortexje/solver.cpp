@@ -41,7 +41,7 @@ Solver::Solver(string log_folder) : log_folder(log_folder)
     // Initialize wind:
     freestream_velocity = Vector3d(0, 0, 0);
     
-    // Initialize air density:
+    // Initialize fluid density:
     fluid_density = 0.0;
     
     // Total number of panels:
@@ -241,7 +241,7 @@ Solver::surface_velocity(Mesh &mesh, int panel, const Eigen::VectorXd &doublet_c
     Vector3d tangential_velocity = potential_gradient(x);
     tangential_velocity -= 0.5 * mesh.scalar_field_gradient(doublet_coefficient_field, panel);
 
-    // Add airflow due to kinematic velocity:
+    // Add flow due to kinematic velocity:
     tangential_velocity -= kinematic_velocity;
     
     // Remove any normal velocity:
