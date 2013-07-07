@@ -318,6 +318,8 @@ Solver::potential(const Vector3d &x)
 /**
    Computes disturbance potential values on the body surface.
    
+   See J. Katz and A. Plotkin, Low-Speed Aerodynamics, Cambridge University Press, 2nd edition, 2001.
+   
    @returns Vector of potential values, ordered by panel number.
 */
 Eigen::VectorXd
