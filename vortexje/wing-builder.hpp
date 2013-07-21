@@ -34,11 +34,11 @@ public:
     */
     Wing &wing;
 
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > generate_naca_airfoil(double max_camber, double max_camber_dist, double max_thickness, bool finite_te_thickness, double chord, int n_points, int &trailing_edge_point_id);
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > generate_naca_airfoil(double max_camber, double max_camber_dist, double max_thickness, bool finite_te_thickness, double chord, int n_points, int &trailing_edge_point_id) const;
     
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > generate_clarky_airfoil(double chord, int n_points, int &trailing_edge_point_id);
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > generate_clarky_airfoil(double chord, int n_points, int &trailing_edge_point_id) const;
     
-    std::vector<int> add_points(std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > &points, int trailing_edge_point_id);
+    std::vector<int> add_points(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > &points, int trailing_edge_point_id);
     
     /**
        Node connection mode. 
@@ -50,11 +50,11 @@ public:
         QUADRANGLES   /**< Quadrangles only. */
     } ConnectNodesMode;
     
-    void connect_nodes(std::vector<int> &first_nodes, std::vector<int> &second_nodes,
+    void connect_nodes(const std::vector<int> &first_nodes, const std::vector<int> &second_nodes,
                        int trailing_edge_point_id, int &trailing_edge_top_panel_id, int &trailing_edge_bottom_panel_id,
                        bool cyclic, ConnectNodesMode mode);
     
-    std::vector<int> fill_airfoil(std::vector<int> airfoil_nodes, int trailing_edge_point_id, int z_sign);
+    std::vector<int> fill_airfoil(const std::vector<int> &airfoil_nodes, int trailing_edge_point_id, int z_sign);
 };
 
 };

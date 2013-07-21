@@ -842,7 +842,7 @@ Solver::update_wakes(double dt)
    @returns Aerodynamic force.
 */
 Eigen::Vector3d
-Solver::aerodynamic_force(Collection &collection)
+Solver::aerodynamic_force(const Collection &collection) const
 {
     double v_ref = (collection.velocity - freestream_velocity).norm();
         
@@ -873,7 +873,7 @@ Solver::aerodynamic_force(Collection &collection)
    @returns Aerodynamic moment.
 */
 Eigen::Vector3d
-Solver::aerodynamic_moment(Collection &collection, const Eigen::Vector3d &x)
+Solver::aerodynamic_moment(const Collection &collection, const Eigen::Vector3d &x) const
 {
     double v_ref = (collection.velocity - freestream_velocity).norm();
         
@@ -903,7 +903,7 @@ Solver::aerodynamic_moment(Collection &collection, const Eigen::Vector3d &x)
    @param[in]   step_number     Step number used to name the output files.
 */
 void
-Solver::log_coefficients(int step_number)
+Solver::log_coefficients(int step_number) const
 {   
     // Log coefficients: 
     int offset = 0;

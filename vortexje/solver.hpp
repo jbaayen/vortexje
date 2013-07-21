@@ -59,10 +59,10 @@ public:
     void update_coefficients(double dt);
     void update_wakes(double dt);
     
-    Eigen::Vector3d aerodynamic_force(Collection &collection);
-    Eigen::Vector3d aerodynamic_moment(Collection &collection, const Eigen::Vector3d &x);
+    Eigen::Vector3d aerodynamic_force(const Collection &collection) const;
+    Eigen::Vector3d aerodynamic_moment(const Collection &collection, const Eigen::Vector3d &x) const;
     
-    void log_coefficients(int step_number);
+    void log_coefficients(int step_number) const;
     
 private:
     std::string log_folder;

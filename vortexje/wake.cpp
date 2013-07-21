@@ -92,8 +92,8 @@ Wake::add_layer(vector<Mesh*> &other_meshes)
                 else
                     prev_idx = i - 1;
                     
-                Vector3d &node_a = nodes[vertices[prev_idx]];
-                Vector3d &node_b = nodes[vertices[i]];
+                const Vector3d &node_a = nodes[vertices[prev_idx]];
+                const Vector3d &node_b = nodes[vertices[i]];
                 
                 Vector3d edge = node_b - node_a;
                 edge_lengths.push_back(edge.norm());

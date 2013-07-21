@@ -640,12 +640,12 @@ Mesh::distance_to_panel(const Eigen::Vector3d &x, int panel)
 {
     double distance = numeric_limits<double>::max();
     
-    vector<int> &single_panel_nodes = panel_nodes[panel];
+    const vector<int> &single_panel_nodes = panel_nodes[panel];
     
     // Distance to vertices:
     Vector3d mid(0, 0, 0);
     for (int i = 0; i < (int) single_panel_nodes.size(); i++) {           
-        Vector3d &vertex = nodes[single_panel_nodes[i]];
+        const Vector3d &vertex = nodes[single_panel_nodes[i]];
         
         double vertex_distance = (x - vertex).norm();
         if (vertex_distance < distance)
@@ -663,8 +663,8 @@ Mesh::distance_to_panel(const Eigen::Vector3d &x, int panel)
         else
             prev_idx = i - 1;
             
-        Vector3d &vertex = nodes[single_panel_nodes[i]];
-        Vector3d &prev_vertex = nodes[single_panel_nodes[prev_idx]];
+        const Vector3d &vertex = nodes[single_panel_nodes[i]];
+        const Vector3d &prev_vertex = nodes[single_panel_nodes[prev_idx]];
         
         Vector3d edge = vertex - prev_vertex;
         Vector3d edge_direction = edge / edge.norm();
@@ -696,8 +696,8 @@ Mesh::distance_to_panel(const Eigen::Vector3d &x, int panel)
         else
             prev_idx = i - 1;
             
-        Vector3d &vertex = nodes[single_panel_nodes[i]];
-        Vector3d &prev_vertex = nodes[single_panel_nodes[prev_idx]];
+        const Vector3d &vertex = nodes[single_panel_nodes[i]];
+        const Vector3d &prev_vertex = nodes[single_panel_nodes[prev_idx]];
         
         Vector3d edge = vertex - prev_vertex;
         Vector3d edge_direction = edge / edge.norm();
@@ -924,7 +924,7 @@ Mesh::panel_diameter(int panel)
    @returns Deformation velocity.
 */
 Vector3d
-Mesh::panel_deformation_velocity(int panel)
+Mesh::panel_deformation_velocity(int panel) const
 {
     Vector3d deformation_velocity(0, 0, 0);
     for (int i = 0; i < (int) panel_nodes[panel].size(); i++)
@@ -1072,8 +1072,8 @@ Mesh::doublet_influence(const Eigen::Vector3d &x, int this_panel)
         else
             prev_idx = i - 1;
             
-        Vector3d &node_a = normalized_panel_nodes[prev_idx];
-        Vector3d &node_b = normalized_panel_nodes[i];
+        const Vector3d &node_a = normalized_panel_nodes[prev_idx];
+        const Vector3d &node_b = normalized_panel_nodes[i];
         
         influence += doublet_edge_influence(x_normalized, node_a, node_b);
     }
@@ -1146,8 +1146,8 @@ Mesh::source_influence(const Eigen::Vector3d &x, int this_panel)
         else
             prev_idx = i - 1;
             
-        Vector3d &node_a = normalized_panel_nodes[prev_idx];
-        Vector3d &node_b = normalized_panel_nodes[i];
+        const Vector3d &node_a = normalized_panel_nodes[prev_idx];
+        const Vector3d &node_b = normalized_panel_nodes[i];
         
         influence += source_edge_influence(x_normalized, node_a, node_b);
     }   
@@ -1223,8 +1223,8 @@ Mesh::source_unit_velocity(const Eigen::Vector3d &x, int this_panel)
         else
             prev_idx = i - 1;
             
-        Vector3d &node_a = normalized_panel_nodes[prev_idx];
-        Vector3d &node_b = normalized_panel_nodes[i];
+        const Vector3d &node_a = normalized_panel_nodes[prev_idx];
+        const Vector3d &node_b = normalized_panel_nodes[i];
         
         velocity += source_edge_unit_velocity(x_normalized, node_a, node_b);
     }   
@@ -1256,8 +1256,8 @@ Mesh::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel)
         else
             previous_idx = i - 1;
             
-        Vector3d &node_a = nodes[panel_nodes[this_panel][previous_idx]];
-        Vector3d &node_b = nodes[panel_nodes[this_panel][i]];
+        const Vector3d &node_a = nodes[panel_nodes[this_panel][previous_idx]];
+        const Vector3d &node_b = nodes[panel_nodes[this_panel][i]];
         
         Vector3d r_0 = node_b - node_a;
         Vector3d r_1 = node_a - x;
@@ -1380,8 +1380,8 @@ Mesh::vortex_ring_ramasamy_leishman_velocity(const Eigen::Vector3d &x, int this_
         else
             previous_idx = i - 1;
             
-        Vector3d &node_a = nodes[panel_nodes[this_panel][previous_idx]];
-        Vector3d &node_b = nodes[panel_nodes[this_panel][i]];
+        const Vector3d &node_a = nodes[panel_nodes[this_panel][previous_idx]];
+        const Vector3d &node_b = nodes[panel_nodes[this_panel][i]];
         
         Vector3d r_0 = node_b - node_a;
         Vector3d r_1 = node_a - x;

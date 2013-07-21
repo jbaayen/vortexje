@@ -102,7 +102,7 @@ public:
     
     double panel_diameter(int panel);
     
-    Eigen::Vector3d panel_deformation_velocity(int panel);
+    Eigen::Vector3d panel_deformation_velocity(int panel) const;
     
     virtual Eigen::Vector3d close_to_body_point(int node);
     

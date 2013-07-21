@@ -210,7 +210,7 @@ Wing::closest_panel(const Eigen::Vector3d &x, int &panel, double &distance)
     
     bool trailing_edge = false;
     for (int i = 0; i < (int) trailing_edge_nodes.size(); i++) {
-        Vector3d &trailing_edge_node = nodes[trailing_edge_nodes[i]];
+        const Vector3d &trailing_edge_node = nodes[trailing_edge_nodes[i]];
         
         Vector3d x_direction = x - trailing_edge_node;
         x_direction -= x_direction.dot(span_direction) * span_direction;
