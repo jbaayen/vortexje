@@ -1,5 +1,5 @@
 //
-// Vortexje -- VAWT test case.
+// Vortexje -- Simple VAWT example.
 //
 // Copyright (C) 2012 Baayen & Heinz GmbH.
 //
@@ -102,7 +102,7 @@ main (int argc, char **argv)
     Mesh tower_mesh;
     Mesh blade_mesh(string("naca0012.msh"));
     
-    VAWT vawt(string("test-mill"),
+    VAWT vawt(string("mill"),
               tower_mesh,
               blade_mesh,
               MILL_RADIUS,
@@ -112,7 +112,7 @@ main (int argc, char **argv)
               TIP_SPEED_RATIO * WIND_VELOCITY / MILL_RADIUS);
     
     // Set up solver:
-    Solver solver("test-vawt-log");
+    Solver solver("vawt-log");
     solver.add_collection(vawt);
     
     Vector3d freestream_velocity(WIND_VELOCITY, 0, 0);

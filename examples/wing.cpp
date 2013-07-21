@@ -1,5 +1,5 @@
 //
-// Vortexje -- Simple wing test case.
+// Vortexje -- Simple wing example.
 //
 // Copyright (C) 2012 Baayen & Heinz GmbH.
 //
@@ -35,12 +35,12 @@ main (int argc, char **argv)
     wing.rotate(span_direction, -alpha);
     
     // Create mesh collection:
-    Collection collection(string("test-wing"),
+    Collection collection(string("wing"),
                           nolift_mesh);
     collection.add_wing(&wing);
     
     // Set up solver:
-    Solver solver("test-wing-log");
+    Solver solver("wing-log");
     solver.add_collection(collection);
     
     Vector3d freestream_velocity(30, 0, 0);
