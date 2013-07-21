@@ -244,7 +244,7 @@ Solver::surface_velocity(Mesh &mesh, int panel, const Eigen::VectorXd &doublet_c
     // Add flow due to kinematic velocity:
     tangential_velocity -= kinematic_velocity;
     
-    // Remove any normal velocity:
+    // Remove any normal velocity.  This is the (implicit) contribution of the source term.
     Vector3d normal = mesh.panel_normal(panel);
     tangential_velocity -= tangential_velocity.dot(normal) * normal;
     
