@@ -318,8 +318,6 @@ Solver::potential(const Vector3d &x)
 /**
    Computes disturbance potential values on the body surface.
    
-   See J. Katz and A. Plotkin, Low-Speed Aerodynamics, Cambridge University Press, 2nd edition, 2001.
-   
    @returns Vector of potential values, ordered by panel number.
 */
 Eigen::VectorXd
@@ -335,7 +333,7 @@ Solver::surface_potentials()
         Collection *collection = collections[i];
         
         for (int j = 0; j < collection->nolift_mesh.n_panels(); j++) {
-            surface_potentials(surface_potentials_idx) = -doublet_coefficients(surface_potentials_idx);
+            surface_potentials(surface_potentials_idx) = potential(collection->nolift_mesh.panel_collocation_point(j, false));
             surface_potentials_idx++;
         }
         
@@ -343,7 +341,7 @@ Solver::surface_potentials()
             Wing *wing = collection->wings[j];
             
             for (int k = 0; k < wing->n_panels(); k++) {
-                surface_potentials(surface_potentials_idx) = -doublet_coefficients(surface_potentials_idx);
+                surface_potentials(surface_potentials_idx) = potential(wing->panel_collocation_point(k, false));
                 surface_potentials_idx++;
             }
         }
