@@ -253,6 +253,19 @@ Solver::surface_velocity(Mesh &mesh, int panel, const Eigen::VectorXd &doublet_c
 }
 
 /**
+   Establishes the reference velocity the given collection.
+   
+   @param[in]   collection   Collection to establish reference velocity for.
+   
+   @returns Reference velocity.
+*/
+double
+Solver::reference_velocity(const Collection &collection) const
+{
+    return (collection.velocity - freestream_velocity).norm();
+}
+
+/**
    Computes the pressure coefficient for the given panel.
    
    @param[in]   mesh                        Reference Mesh.
@@ -701,9 +714,9 @@ Solver::update_coefficients(double dt)
     offset = 0;
 
     for (int i = 0; i < (int) collections.size(); i++) {
-        Collection *collection = collections[i];
+        const Collection *collection = collections[i];
         
-        double v_ref = (collection->velocity - freestream_velocity).norm();
+        double v_ref = reference_velocity(*collection);
         
         VectorXd doublet_coefficient_field(collection->nolift_mesh.n_panels());
         for (int j = 0; j < collection->nolift_mesh.n_panels(); j++)
@@ -862,7 +875,7 @@ Solver::update_wakes(double dt)
 Eigen::Vector3d
 Solver::aerodynamic_force(const Collection &collection) const
 {
-    double v_ref = (collection.velocity - freestream_velocity).norm();
+    double v_ref = reference_velocity(collection);
         
     Vector3d F(0, 0, 0);
     int offset = 0;
@@ -893,7 +906,7 @@ Solver::aerodynamic_force(const Collection &collection) const
 Eigen::Vector3d
 Solver::aerodynamic_moment(const Collection &collection, const Eigen::Vector3d &x) const
 {
-    double v_ref = (collection.velocity - freestream_velocity).norm();
+    double v_ref = reference_velocity(collection);
         
     Vector3d M(0, 0, 0);
     int offset = 0;

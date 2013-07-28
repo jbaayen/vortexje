@@ -83,6 +83,8 @@ private:
     double source_coefficient(Mesh &mesh, int panel, const Eigen::Vector3d &kinematic_velocity, bool include_wake_influence);
     
     Eigen::Vector3d surface_velocity(Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field, const Eigen::Vector3d &kinematic_velocity);
+    
+    double reference_velocity(const Collection &collection) const;
 
     double pressure_coefficient(Mesh &mesh, int panel, const Eigen::Vector3d &kinematic_velocity,
                                 const Eigen::VectorXd &doublet_coefficient_field, double dpotentialdt, double v_ref);
