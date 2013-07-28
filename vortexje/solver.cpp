@@ -329,6 +329,8 @@ Solver::surface_potentials()
     
     int surface_potentials_idx = 0;
     
+    // The potential functions are not singular on the panel collocation points.  We can
+    // therefoce compute the surface potential values directly.  
     for (int i = 0; i < (int) collections.size(); i++) {
         Collection *collection = collections[i];
         
@@ -401,7 +403,33 @@ Solver::potential_gradient(const Eigen::Vector3d &x)
 }
 
 /**
-   Compute stream velocity at a given point.
+   Computes disturbance potential time derivative at the given panel.
+   
+   @param[in]  potentials         Current potential values.
+   @param[in]  old_potentials     Previous potential values
+   @param[in]  offset             Offset to requested Mesh
+   @param[in]  panel              Panel number.
+   @param[in]  dt                 Time step.
+   
+   @returns Disturbance potential time derivative.
+*/ 
+double
+Solver::potential_time_derivative(const Eigen::VectorXd &potentials, const Eigen::VectorXd &old_potentials, int offset, int panel, double dt)
+{
+    double dpotentialdt;
+    
+    // Evaluate the time-derivative of the potential in a body-fixed reference frame, as in
+    //   J. P. Giesing, Nonlinear Two-Dimensional Unsteady Potential Flow with Lift, Journal of Aircraft, 1968.
+    if (Parameters::unsteady_bernoulli && dt > 0.0)
+        dpotentialdt = (potentials(offset + panel) - old_potentials(offset + panel)) / dt;
+    else
+        dpotentialdt = 0.0;
+        
+    return dpotentialdt;
+}
+
+/**
+   Computes the stream velocity at the given point.
    
    @param[in]   x                   Reference point.
    @param[in]   kinematic_velocity  Reference kinematic velocity.
@@ -685,12 +713,8 @@ Solver::update_coefficients(double dt)
             Vector3d kinematic_velocity = collection->nolift_mesh.panel_deformation_velocity(j)
                                           + collection->panel_kinematic_velocity(collection->nolift_mesh, j) 
                                           - freestream_velocity;
-
-            double dpotentialdt;
-            if (Parameters::unsteady_bernoulli && dt > 0.0)
-                dpotentialdt = (potentials(offset + j) - old_potentials(offset + j)) / dt;
-            else
-                dpotentialdt = 0.0;
+                                          
+            double dpotentialdt = potential_time_derivative(potentials, old_potentials, offset, j, dt);
                                                  
             pressure_coefficients(pressure_coefficients_idx) = pressure_coefficient(collection->nolift_mesh, j,
                                                                                     kinematic_velocity,
@@ -715,11 +739,7 @@ Solver::update_coefficients(double dt)
                                               + collection->panel_kinematic_velocity(*wing, k) 
                                               - freestream_velocity;
                
-                double dpotentialdt;
-                if (Parameters::unsteady_bernoulli && dt > 0.0)
-                    dpotentialdt = (potentials(offset + k) - old_potentials(offset + k)) / dt;
-                else
-                    dpotentialdt = 0.0;
+                double dpotentialdt = potential_time_derivative(potentials, old_potentials, offset, k, dt);
  
                 pressure_coefficients(pressure_coefficients_idx) = pressure_coefficient(*wing, k,
                                                                                         kinematic_velocity,

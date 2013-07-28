@@ -93,6 +93,8 @@ private:
     
     Eigen::Vector3d potential_gradient(const Eigen::Vector3d &x);
     
+    double potential_time_derivative(const Eigen::VectorXd &potentials, const Eigen::VectorXd &old_potentials, int offset, int panel, double dt);
+    
     Eigen::Vector3d stream_velocity(const Eigen::Vector3d &x, const Eigen::Vector3d &kinematic_velocity);
 };
 
