@@ -178,6 +178,8 @@ Solver::wakes_influence(MatrixXd &A, VectorXd &b, Mesh &mesh, int offset)
                     int pa = wing->trailing_edge_top_panels[idx];
                     int pb = wing->trailing_edge_bottom_panels[idx];
                     
+                    // Account for the influence of the new wake panels.  The doublet strength of these panels
+                    // is set according to the Kutta condition;  see below.
                     A(offset + j, wing_offset + pa) -= wake->doublet_influence(mesh, j, m);
                     A(offset + j, wing_offset + pb) += wake->doublet_influence(mesh, j, m);
                     
@@ -206,7 +208,8 @@ Solver::source_coefficient(Mesh &mesh, int panel, const Vector3d &kinematic_velo
                 Wake *wake = collection->wakes[j];
                 
                 for (int k = 0; k < wake->n_panels(); k++) {
-                    // Use doublet panel - vortex ring equivalence:
+                    // Use doublet panel - vortex ring equivalence.  Any new wake panels have zero doublet
+                    // coefficient, and are therefore not accounted for here.
                     if (Parameters::use_ramasamy_leishman_vortex_sheet)
                         velocity += wake->vortex_ring_ramasamy_leishman_velocity
                             (mesh, panel, k, wake->vortex_core_radii[k], wake->doublet_coefficients[k]);
@@ -657,6 +660,8 @@ Solver::update_coefficients(double dt)
             for (int k = 0; k < trailing_edge_n_panels; k++) {
                 double doublet_coefficient_top    = doublet_coefficients(offset + wing->trailing_edge_top_panels[k]);
                 double doublet_coefficient_bottom = doublet_coefficients(offset + wing->trailing_edge_bottom_panels[k]);
+                
+                // Use the trailing-edge Kutta condition to compute the doublet coefficients of the new wake panels.
                 double doublet_coefficient = doublet_coefficient_top - doublet_coefficient_bottom;
                 
                 int idx = wake->n_panels() - trailing_edge_n_panels + k;
@@ -816,7 +821,9 @@ Solver::update_wakes(double dt)
                 std::vector<Vector3d> &local_wake_velocities = wake_velocities[idx];
                 idx++;
                 
-                // Convect wake nodes that coincide with the trailing edge nodes with the freestream velocity,
+                // Convect wake nodes that coincide with the trailing edge nodes with the freestream velocity.
+                // Alternative options are discussed in
+                //   K. Dixon, The Near Wake Structure of a Vertical Axis Wind Turbine, M.Sc. Thesis, TU Delft, 2008.
                 for (int k = wake->n_nodes() - (int) wing->trailing_edge_nodes.size(); k < wake->n_nodes(); k++) {
                      Vector3d kinematic_velocity = wake->node_deformation_velocities[k]
                                                    + collection->node_kinematic_velocity(*wake, k)
@@ -985,7 +992,7 @@ Solver::log_coefficients(int step_number) const
             VectorXd wake_doublet_coefficients(wake->doublet_coefficients.size());
             for (int k = 0; k < (int) wake->doublet_coefficients.size(); k++)
                 wake_doublet_coefficients(k) = wake->doublet_coefficients[k];
-                
+
             view_names.clear();
             view_data.clear();
             
