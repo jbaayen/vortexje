@@ -106,6 +106,13 @@ Solver::add_collection(Collection &collection)
     string collection_log_folder = log_folder + "/" + collection.id;
     
     mkdir_helper(collection_log_folder);
+    
+    stringstream ss;
+    ss << collection_log_folder << "/nolift_mesh";
+   
+    string s = ss.str();
+    mkdir_helper(s);
+    
     for (int i = 0; i < (int) collection.wings.size(); i++) {
         stringstream ss;
         ss << collection_log_folder << "/wake_" << i;
@@ -951,8 +958,38 @@ Solver::log_coefficients(int step_number) const
     for (int i = 0; i < (int) collections.size(); i++) {
         Collection *collection = collections[i];
         
+        // Log no-lift mesh:
+        VectorXd nolift_mesh_doublet_coefficients(collection->nolift_mesh.n_panels());
+        VectorXd nolift_mesh_source_coefficients(collection->nolift_mesh.n_panels());
+        VectorXd nolift_mesh_pressure_coefficients(collection->nolift_mesh.n_panels());
+        for (int k = 0; k < collection->nolift_mesh.n_panels(); k++) {
+            nolift_mesh_doublet_coefficients(k)  = doublet_coefficients(offset + k);
+            nolift_mesh_source_coefficients(k)   = source_coefficients(offset + k);
+            nolift_mesh_pressure_coefficients(k) = pressure_coefficients(offset + k);
+        }
+        
         offset += collection->nolift_mesh.n_panels();
         
+        vector<string> view_names;
+        vector<VectorXd> view_data;
+        
+        view_names.push_back("Doublet distribution");
+        view_data.push_back(nolift_mesh_doublet_coefficients);
+        
+        view_names.push_back("Source distribution");
+        view_data.push_back(nolift_mesh_source_coefficients);
+        
+        view_names.push_back("Pressure distribution");
+        view_data.push_back(nolift_mesh_pressure_coefficients);
+        
+        std::stringstream ss;
+        ss << log_folder << "/" << collection->id << "/nolift_mesh/step_" << step_number << ".msh";
+
+        collection->nolift_mesh.save(ss.str(), view_names, view_data, save_node_offset, save_panel_offset);
+        save_node_offset += collection->nolift_mesh.n_nodes();
+        save_panel_offset += collection->nolift_mesh.n_panels();
+        
+        // Iterate wings:
         for (int j = 0; j < (int) collection->wings.size(); j++) {
             Wing *wing = collection->wings[j];
             Wake *wake = collection->wakes[j];
