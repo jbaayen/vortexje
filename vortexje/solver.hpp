@@ -59,6 +59,10 @@ public:
     void update_coefficients(double dt);
     void update_wakes(double dt);
     
+    double velocity_potential(const Eigen::Vector3d &x);
+    
+    Eigen::Vector3d velocity(const Eigen::Vector3d &x);
+    
     double pressure_coefficient(const Mesh &mesh, int panel) const;
     
     Eigen::Vector3d aerodynamic_force(const Collection &collection) const;
@@ -72,10 +76,12 @@ private:
     std::vector<Mesh*> meshes_without_wakes;
     int total_n_panels_without_wakes;
     
+    std::map<Mesh*, Collection*> mesh_to_collection;
+    
     Eigen::VectorXd source_coefficients;   
     Eigen::VectorXd doublet_coefficients;
     Eigen::VectorXd pressure_coefficients;
-    Eigen::VectorXd potentials;
+    Eigen::VectorXd velocity_potentials;
     
     void doublet_coefficient_matrix_block(Eigen::MatrixXd &doublet_influence_coefficients, 
                                           Eigen::MatrixXd &source_influence_coefficients,
@@ -85,22 +91,17 @@ private:
                                           
     double source_coefficient(Mesh &mesh, int panel, const Eigen::Vector3d &kinematic_velocity, bool include_wake_influence);
     
-    Eigen::Vector3d surface_velocity(Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field, const Eigen::Vector3d &kinematic_velocity);
+    Eigen::Vector3d surface_velocity(Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field);
     
     double reference_velocity(const Collection &collection) const;
 
-    double pressure_coefficient(Mesh &mesh, int panel, const Eigen::Vector3d &kinematic_velocity,
-                                const Eigen::VectorXd &doublet_coefficient_field, double dpotentialdt, double v_ref);
+    double pressure_coefficient(Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field, double dphidt, double v_ref);   
     
-    double potential(const Eigen::Vector3d &x);
+    Eigen::VectorXd surface_velocity_potentials();
     
-    Eigen::VectorXd surface_potentials();
+    Eigen::Vector3d disturbance_potential_gradient(const Eigen::Vector3d &x);
     
-    Eigen::Vector3d potential_gradient(const Eigen::Vector3d &x);
-    
-    double potential_time_derivative(const Eigen::VectorXd &potentials, const Eigen::VectorXd &old_potentials, int offset, int panel, double dt);
-    
-    Eigen::Vector3d stream_velocity(const Eigen::Vector3d &x, const Eigen::Vector3d &kinematic_velocity);
+    double velocity_potential_time_derivative(const Eigen::VectorXd &velocity_potentials, const Eigen::VectorXd &old_velocity_potentials, int offset, int panel, double dt);
 };
 
 };

@@ -51,12 +51,12 @@ Solver::Solver(string log_folder) : log_folder(log_folder)
     doublet_coefficients.resize(total_n_panels_without_wakes);
     source_coefficients.resize(total_n_panels_without_wakes);
     pressure_coefficients.resize(total_n_panels_without_wakes);
-    potentials.resize(total_n_panels_without_wakes);
+    velocity_potentials.resize(total_n_panels_without_wakes);
     for (int i = 0; i < total_n_panels_without_wakes; i++) {
         doublet_coefficients(i) = 0.0;
         source_coefficients(i) = 0.0;
         pressure_coefficients(i) = 0.0;
-        potentials(i) = 0.0;
+        velocity_potentials(i) = 0.0;
     }
         
     // Open log files:
@@ -82,24 +82,31 @@ Solver::add_collection(Collection &collection)
     
     meshes.push_back(&collection.nolift_mesh);
     meshes_without_wakes.push_back(&collection.nolift_mesh);
+    
+    mesh_to_collection[&collection.nolift_mesh] = &collection;
+ 
     total_n_panels_without_wakes = total_n_panels_without_wakes + collection.nolift_mesh.n_panels();
     
     for (int i = 0; i < (int) collection.wings.size(); i++) {
         meshes.push_back(collection.wings[i]);
         meshes.push_back(collection.wakes[i]);
-        meshes_without_wakes.push_back(collection.wings[i]);      
+        meshes_without_wakes.push_back(collection.wings[i]);
+           
+        mesh_to_collection[collection.wings[i]] = &collection;
+        mesh_to_collection[collection.wakes[i]] = &collection;
+        
         total_n_panels_without_wakes = total_n_panels_without_wakes + collection.wings[i]->n_panels();
     }
     
     doublet_coefficients.resize(total_n_panels_without_wakes);
     source_coefficients.resize(total_n_panels_without_wakes);
     pressure_coefficients.resize(total_n_panels_without_wakes);
-    potentials.resize(total_n_panels_without_wakes);
+    velocity_potentials.resize(total_n_panels_without_wakes);
     for (int i = 0; i < total_n_panels_without_wakes; i++) {
         doublet_coefficients(i) = 0.0;
         source_coefficients(i) = 0.0;
         pressure_coefficients(i) = 0.0;
-        potentials(i) = 0.0;
+        velocity_potentials(i) = 0.0;
     }
         
     // Open logs:
@@ -224,25 +231,29 @@ Solver::source_coefficient(Mesh &mesh, int panel, const Vector3d &kinematic_velo
    @param[in]   mesh                        Reference mesh.
    @param[in]   panel                       Reference panel.
    @param[in]   doublet_coefficient_field   Doublet coefficient distribution on given mesh.
-   @param[in]   kinematic_velocity          Reference kinematic velocity.
    
    @returns Surface velocity.
 */
 Eigen::Vector3d
-Solver::surface_velocity(Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field, const Eigen::Vector3d &kinematic_velocity)
+Solver::surface_velocity(Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field)
 {
-    // Compute induced part of surface velocity.
+    // Compute disturbance part of surface velocity.
     Vector3d tangential_velocity;
     if (Parameters::marcov_surface_velocity) {
         Vector3d x = mesh.panel_collocation_point(panel, false);
         
         // Use N. Marcov's formula for surface velocity, see L. Dragoş, Mathematical Methods in Aerodynamics, Springer, 2003.
-        Vector3d tangential_velocity = potential_gradient(x);
+        Vector3d tangential_velocity = disturbance_potential_gradient(x);
         tangential_velocity -= 0.5 * mesh.scalar_field_gradient(doublet_coefficient_field, panel);
     } else
         tangential_velocity = -mesh.scalar_field_gradient(doublet_coefficient_field, panel);
 
     // Add flow due to kinematic velocity:
+    Collection *collection = mesh_to_collection[&mesh];
+    Vector3d kinematic_velocity = mesh.panel_deformation_velocity(panel)
+                                      + collection->panel_kinematic_velocity(mesh, panel)
+                                      - freestream_velocity;
+                                          
     tangential_velocity -= kinematic_velocity;
     
     // Remove any normal velocity.  This is the (implicit) contribution of the source term.
@@ -271,18 +282,16 @@ Solver::reference_velocity(const Collection &collection) const
    
    @param[in]   mesh                        Reference Mesh.
    @param[in]   panel                       Reference panel.
-   @param[in]   kinematic_velocity          Reference kinematic velocity.
    @param[in]   doublet_coefficient_field   Doublet coefficient distribution on given mesh.
-   @param[in]   dpotentialdt                Time-derivative of the disturbance potential of the reference panel.
+   @param[in]   dphidt                      Time-derivative of the velocity potential of the reference panel.
    @param[in]   v_ref                       Reference velocity for unit removal.
    
    @returns Pressure coefficient.
 */
 double
-Solver::pressure_coefficient(Mesh &mesh, int panel, const Eigen::Vector3d &kinematic_velocity,
-                             const Eigen::VectorXd &doublet_coefficient_field, double dpotentialdt, double v_ref)
+Solver::pressure_coefficient(Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field, double dphidt, double v_ref)
 {
-    double C_p = 1 - (surface_velocity(mesh, panel, doublet_coefficient_field, kinematic_velocity).squaredNorm() + 2 * dpotentialdt) / pow(v_ref, 2);
+    double C_p = 1 - (surface_velocity(mesh, panel, doublet_coefficient_field).squaredNorm() + 2 * dphidt) / pow(v_ref, 2);
     if (C_p < Parameters::min_pressure_coefficient)
         cerr << "Solver: Pressure coefficient on mesh " << mesh.id << ", panel " << panel << " is less than minimum." << endl;
     
@@ -290,16 +299,16 @@ Solver::pressure_coefficient(Mesh &mesh, int panel, const Eigen::Vector3d &kinem
 }
 
 /**
-   Computes disturbance potential at the given point.
+   Computes velocity potential at the given point.
    
    @param[in]   x   Reference point.
    
-   @returns Disturbance potential.
+   @returns Velocity potential.
 */
 double
-Solver::potential(const Vector3d &x)
+Solver::velocity_potential(const Vector3d &x)
 {
-    double potential = 0.0;
+    double phi = 0.0;
     
     // Iterate all non-wake meshes:
     int offset = 0;
@@ -307,8 +316,8 @@ Solver::potential(const Vector3d &x)
         Mesh *other_mesh = meshes_without_wakes[i];
 
         for (int j = 0; j < other_mesh->n_panels(); j++) {
-            potential += other_mesh->doublet_influence(x, j) * doublet_coefficients(offset + j);
-            potential += other_mesh->source_influence(x, j) * source_coefficients(offset + j);
+            phi += other_mesh->doublet_influence(x, j) * doublet_coefficients(offset + j);
+            phi += other_mesh->source_influence(x, j) * source_coefficients(offset + j);
         }
         
         offset += other_mesh->n_panels();
@@ -322,26 +331,27 @@ Solver::potential(const Vector3d &x)
             Wake *wake = collection->wakes[j];
             
             for (int k = 0; k < wake->n_panels(); k++)
-                potential += wake->doublet_influence(x, k) * wake->doublet_coefficients[k];
+                phi += wake->doublet_influence(x, k) * wake->doublet_coefficients[k];
         }
     }
                     
-    return potential;
+    // Sum with freestream velocity potential:
+    return phi + freestream_velocity.dot(x);
 }
 
 /**
-   Computes disturbance potential values on the body surface.
+   Computes velocity potential values on the body surface.
    
-   @returns Vector of potential values, ordered by panel number.
+   @returns Vector of velocity potential values, ordered by panel number.
 */
 Eigen::VectorXd
-Solver::surface_potentials()
+Solver::surface_velocity_potentials()
 {
     cout << "Solver: Computing surface potential values." << endl;
     
-    VectorXd surface_potentials(total_n_panels_without_wakes);
+    VectorXd surface_velocity_potentials(total_n_panels_without_wakes);
     
-    int surface_potentials_idx = 0;
+    int surface_velocity_potentials_idx = 0;
     
     // The potential functions are not singular on the panel collocation points.  We can
     // therefoce compute the surface potential values directly.  
@@ -349,21 +359,21 @@ Solver::surface_potentials()
         Collection *collection = collections[i];
         
         for (int j = 0; j < collection->nolift_mesh.n_panels(); j++) {
-            surface_potentials(surface_potentials_idx) = potential(collection->nolift_mesh.panel_collocation_point(j, false));
-            surface_potentials_idx++;
+            surface_velocity_potentials(surface_velocity_potentials_idx) = velocity_potential(collection->nolift_mesh.panel_collocation_point(j, false));
+            surface_velocity_potentials_idx++;
         }
         
         for (int j = 0; j < (int) collection->wings.size(); j++) {
             Wing *wing = collection->wings[j];
             
             for (int k = 0; k < wing->n_panels(); k++) {
-                surface_potentials(surface_potentials_idx) = potential(wing->panel_collocation_point(k, false));
-                surface_potentials_idx++;
+                surface_velocity_potentials(surface_velocity_potentials_idx) = velocity_potential(wing->panel_collocation_point(k, false));
+                surface_velocity_potentials_idx++;
             }
         }
     }
     
-    return surface_potentials;
+    return surface_velocity_potentials;
 }
 
 /**
@@ -374,7 +384,7 @@ Solver::surface_potentials()
    @returns Disturbance potential gradient.
 */ 
 Eigen::Vector3d
-Solver::potential_gradient(const Eigen::Vector3d &x)
+Solver::disturbance_potential_gradient(const Eigen::Vector3d &x)
 {
     Vector3d gradient(0, 0, 0);
     
@@ -412,46 +422,46 @@ Solver::potential_gradient(const Eigen::Vector3d &x)
             }
         }
     }
-                    
+               
+    // Done:
     return gradient;
 }
 
 /**
-   Computes disturbance potential time derivative at the given panel.
+   Computes velocity potential time derivative at the given panel.
    
-   @param[in]  potentials         Current potential values.
-   @param[in]  old_potentials     Previous potential values
-   @param[in]  offset             Offset to requested Mesh
-   @param[in]  panel              Panel number.
-   @param[in]  dt                 Time step.
+   @param[in]  velocity_potentials         Current potential values.
+   @param[in]  old_velocity_potentials     Previous potential values
+   @param[in]  offset                      Offset to requested Mesh
+   @param[in]  panel                       Panel number.
+   @param[in]  dt                          Time step.
    
-   @returns Disturbance potential time derivative.
+   @returns Velocity potential time derivative.
 */ 
 double
-Solver::potential_time_derivative(const Eigen::VectorXd &potentials, const Eigen::VectorXd &old_potentials, int offset, int panel, double dt)
+Solver::velocity_potential_time_derivative(const Eigen::VectorXd &velocity_potentials, const Eigen::VectorXd &old_velocity_potentials, int offset, int panel, double dt)
 {
-    double dpotentialdt;
+    double dphidt;
     
     // Evaluate the time-derivative of the potential in a body-fixed reference frame, as in
     //   J. P. Giesing, Nonlinear Two-Dimensional Unsteady Potential Flow with Lift, Journal of Aircraft, 1968.
     if (Parameters::unsteady_bernoulli && dt > 0.0)
-        dpotentialdt = (potentials(offset + panel) - old_potentials(offset + panel)) / dt;
+        dphidt = (velocity_potentials(offset + panel) - old_velocity_potentials(offset + panel)) / dt;
     else
-        dpotentialdt = 0.0;
+        dphidt = 0.0;
         
-    return dpotentialdt;
+    return dphidt;
 }
 
 /**
-   Computes the stream velocity at the given point.
+   Computes the total stream velocity at the given point.
    
-   @param[in]   x                   Reference point.
-   @param[in]   kinematic_velocity  Reference kinematic velocity.
+   @param[in]   x   Reference point.
    
    @returns Stream velocity.
 */
 Eigen::Vector3d
-Solver::stream_velocity(const Eigen::Vector3d &x, const Eigen::Vector3d &kinematic_velocity)
+Solver::velocity(const Eigen::Vector3d &x)
 {
     // Find closest mesh and panel:
     double distance = numeric_limits<double>::max();
@@ -479,19 +489,19 @@ Solver::stream_velocity(const Eigen::Vector3d &x, const Eigen::Vector3d &kinemat
         offset += meshes_without_wakes[i]->n_panels();
     }
  
-    // Compute disturbance potential gradients near the body:
-    vector<Vector3d> potential_gradients;
+    // Compute velocity potential gradients near the body:
+    vector<Vector3d> disturbance_potential_gradients;
     vector<Vector3d> close_to_body_points;
     if (distance < Parameters::interpolation_layer_thickness && !close_near_sharp_edge) {   
         for (int i = 0; i < (int) close_mesh->panel_nodes[close_panel].size(); i++) {
             Vector3d close_to_body_point = close_mesh->close_to_body_point(close_mesh->panel_nodes[close_panel][i]);
             close_to_body_points.push_back(close_to_body_point);
             
-            potential_gradients.push_back(potential_gradient(close_to_body_point));
+            disturbance_potential_gradients.push_back(disturbance_potential_gradient(close_to_body_point));
         }
         
     } else {
-        potential_gradients.push_back(potential_gradient(x));
+        disturbance_potential_gradients.push_back(disturbance_potential_gradient(x));
         
         close_mesh  = NULL;
         close_panel = -1;
@@ -512,25 +522,25 @@ Solver::stream_velocity(const Eigen::Vector3d &x, const Eigen::Vector3d &kinemat
         
         double total_weight = 0.0;
         
-        for (int i = 0; i < (int) potential_gradients.size(); i++) {
+        for (int i = 0; i < (int) disturbance_potential_gradients.size(); i++) {
             Vector3d layer_point_distance = x - close_to_body_points[i];
             layer_point_distance = layer_point_distance - layer_point_distance.dot(normal) * normal;
             
             double weight = distance * (close_mesh->panel_diameter(close_panel) - layer_point_distance.norm());
                  
-            velocity += weight * (potential_gradients[i] - kinematic_velocity);
+            velocity += weight * (disturbance_potential_gradients[i] + freestream_velocity);
             total_weight += weight;
         }
         
         double weight = Parameters::interpolation_layer_thickness - distance;
-        velocity += weight * surface_velocity(*close_mesh, close_panel, doublet_coefficient_field, kinematic_velocity);
+        velocity += weight * surface_velocity(*close_mesh, close_panel, doublet_coefficient_field);
         total_weight += weight;
         
         velocity /= total_weight;
         
     } else {
-        // We are not close to the boundary.  Use sum of disturbance potential and flow due to kinematic velocity.
-        velocity = potential_gradients[0] - kinematic_velocity;
+        // We are not close to the boundary.  Use sum of disturbance potential and freestream velocity.
+        velocity = disturbance_potential_gradients[0] + freestream_velocity;
     }
     
     return velocity;
@@ -725,9 +735,9 @@ Solver::update_coefficients(double dt)
     }
     
     // Compute potential values on new body with new coefficients:
-    VectorXd old_potentials = potentials;
+    VectorXd old_velocity_potentials = velocity_potentials;
     if (Parameters::unsteady_bernoulli)
-        potentials = surface_potentials();
+        velocity_potentials = surface_velocity_potentials();
 
     // Compute pressure distribution:
     cout << "Solver: Computing pressure distribution." << endl;
@@ -745,17 +755,12 @@ Solver::update_coefficients(double dt)
         for (int j = 0; j < collection->nolift_mesh.n_panels(); j++)
             doublet_coefficient_field(j) = doublet_coefficients(offset + j); 
             
-        for (int j = 0; j < collection->nolift_mesh.n_panels(); j++) {
-            Vector3d kinematic_velocity = collection->nolift_mesh.panel_deformation_velocity(j)
-                                          + collection->panel_kinematic_velocity(collection->nolift_mesh, j) 
-                                          - freestream_velocity;
-                                          
-            double dpotentialdt = potential_time_derivative(potentials, old_potentials, offset, j, dt);
+        for (int j = 0; j < collection->nolift_mesh.n_panels(); j++) {                          
+            double dphidt = velocity_potential_time_derivative(velocity_potentials, old_velocity_potentials, offset, j, dt);
                                                  
             pressure_coefficients(pressure_coefficients_idx) = pressure_coefficient(collection->nolift_mesh, j,
-                                                                                    kinematic_velocity,
                                                                                     doublet_coefficient_field,
-                                                                                    dpotentialdt, v_ref);
+                                                                                    dphidt, v_ref);
             pressure_coefficients_idx++;
         }
         
@@ -771,16 +776,11 @@ Solver::update_coefficients(double dt)
             Vector3d wing_force(0, 0, 0);
                 
             for (int k = 0; k < wing->n_panels(); k++) {
-                Vector3d kinematic_velocity = wing->panel_deformation_velocity(k) 
-                                              + collection->panel_kinematic_velocity(*wing, k) 
-                                              - freestream_velocity;
-               
-                double dpotentialdt = potential_time_derivative(potentials, old_potentials, offset, k, dt);
+                double dphidt = velocity_potential_time_derivative(velocity_potentials, old_velocity_potentials, offset, k, dt);
  
                 pressure_coefficients(pressure_coefficients_idx) = pressure_coefficient(*wing, k,
-                                                                                        kinematic_velocity,
                                                                                         doublet_coefficient_field,
-                                                                                        dpotentialdt, v_ref);
+                                                                                        dphidt, v_ref);
                 
                 pressure_coefficients_idx++;
             }   
@@ -811,15 +811,8 @@ Solver::update_wakes(double dt)
                 
                 std::vector<Vector3d> local_wake_velocities;
                 
-                for (int k = 0; k < wake->n_nodes(); k++) {  
-                    Vector3d kinematic_velocity = - freestream_velocity;
-                    
-                    Vector3d x = wake->nodes[k];
-
-                    Vector3d velocity = stream_velocity(x, kinematic_velocity);
-                    
-                    local_wake_velocities.push_back(velocity);
-                }
+                for (int k = 0; k < wake->n_nodes(); k++)
+                    local_wake_velocities.push_back(velocity(wake->nodes[k]));
                 
                 wake_velocities.push_back(local_wake_velocities);
             }
@@ -1080,61 +1073,4 @@ Solver::log_coefficients(int step_number) const
             save_panel_offset += wake->n_panels();
         }
     }
-
-#if 0
-    // Make a snapshot of the velocity field:
-    stringstream str_x;
-    str_x << "/home/jorn/snapshot_x_" << step_number << ".txt";
-    ofstream snapshot_x(str_x.str().c_str());
-    stringstream str_y;
-    str_y << "/home/jorn/snapshot_y_" << step_number << ".txt";
-    ofstream snapshot_y(str_y.str().c_str());
-    stringstream str_p;
-    str_p << "/home/jorn/snapshot_p_" << step_number << ".txt";
-    ofstream snapshot_p(str_p.str().c_str());
-    stringstream str_a;
-    str_a << "/home/jorn/snapshot_a_" << step_number << ".txt";
-    ofstream snapshot_a(str_a.str().c_str());
-    
-    double x_min = -0.5;
-    double x_max = 1.5;
-    double y_min = -0.2;
-    double y_max = 0.2;
-    double z = -0.1875;
-    for (int i = 0; i <= 20; i++) {
-        for (int j = 0; j <= 20; j++) {
-            if (j > 0) {
-                snapshot_x << ' ';
-                snapshot_y << ' ';
-                snapshot_p << ' ';
-            }
-            
-            Vector3d kinematic_velocity = - freestream_velocity;
-                
-            Vector3d x = Vector3d(x_min + (x_max - x_min) / 20.0 * i, y_min + (y_max - y_min) / 20.0 * j, z);
-            
-            Vector3d velocity = stream_velocity(x, kinematic_velocity);
-            
-            snapshot_x << velocity(0);
-            snapshot_y << velocity(1);
-            snapshot_p << potential(x);
-        }
-        
-        snapshot_x << endl;
-        snapshot_y << endl;
-        snapshot_p << endl;
-    }
-    
-    for (int i = 0; i < meshes_without_wakes[2]->nodes.size(); i++) {
-        Vector3d n = meshes_without_wakes[2]->nodes[i];
-        
-        if (meshes_without_wakes[2]->node_panel_neighbors[i].size() == 4)
-            snapshot_a << n(0) << ' ' << n(1) << endl;
-    }
-    
-    snapshot_x.close();
-    snapshot_y.close();
-    snapshot_p.close();
-    snapshot_a.close();
-#endif
 }
