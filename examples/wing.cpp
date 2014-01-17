@@ -17,6 +17,9 @@ using namespace Vortexje;
 int
 main (int argc, char **argv)
 {
+    // Set simulation parameters for dynamic wake convection:
+    Parameters::convect_wake = true;
+
     // Load meshes:
     Mesh nolift_mesh;
     
