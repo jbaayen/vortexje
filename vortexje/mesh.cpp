@@ -1,7 +1,7 @@
 //
 // Vortexje -- Mesh.
 //
-// Copyright (C) 2012 Baayen & Heinz GmbH.
+// Copyright (C) 2012 - 2014 Baayen & Heinz GmbH.
 //
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
@@ -13,6 +13,7 @@
 #include <cmath>
 
 #include <Eigen/Geometry>
+#include <Eigen/SVD>
 
 #include <vortexje/mesh.hpp>
 #include <vortexje/parameters.hpp>
@@ -784,10 +785,8 @@ Mesh::panel_collocation_point(int panel, bool below_surface)
             }
             collocation_point = collocation_point / single_panel_nodes.size();
             
-            if (below_surface) {
-                double collocation_point_delta = Parameters::collocation_point_delta_factor * min_edge;
-                collocation_point = collocation_point + collocation_point_delta * panel_normal(i);
-            }
+            if (below_surface)
+                collocation_point = collocation_point + Parameters::collocation_point_delta * panel_normal(i);
                 
             panel_collocation_point_cache[below_surface].push_back(collocation_point);
         }
@@ -953,57 +952,6 @@ Mesh::close_to_body_point(int node)
     return nodes[node] - Parameters::interpolation_layer_thickness * layer_direction;
 }
 
-/**
-   Computes the on-body gradient of a scalar field.
-   
-   @param[in]   scalar_field    Scalar field, ordered by panel number.
-   @param[in]   panel           Panel on which the on-body gradient is evaluated.
-   
-   @returns On-body gradient.
-*/
-Vector3d
-Mesh::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int panel)
-{
-    Vector3d x = panel_collocation_point(panel, false);
-    double v = scalar_field(panel);
-    
-    Vector3d normal = panel_normal(panel);
-    
-    Vector3d gradient(0, 0, 0);
-        
-    for (int i = 0; i < 3; i++) {
-        Vector3d derivative_direction(0, 0, 0);
-        derivative_direction(i) = 1.0;
-        
-        double a = 0.0, b = 0.0;
-        
-        for (int n = 0; n < (int) panel_neighbors[panel].size(); n++) {
-            Vector3d neighbor_normal = panel_normal(panel_neighbors[panel][n]);
-            if (normal.dot(neighbor_normal) < 0)
-                continue; // Don't differentiate along sharp corners.
-            
-            Vector3d neighbor_vector = panel_collocation_point(panel_neighbors[panel][n], false) - x;
-            double neighbor_distance = neighbor_vector.norm();
-            if (neighbor_distance < Parameters::inversion_tolerance)
-                continue; // Don't differentiate along too small distances.
-                
-            Vector3d neighbor_direction = neighbor_vector / neighbor_distance;
-
-            double neighbor_gradient = (scalar_field(panel_neighbors[panel][n]) - v) / neighbor_distance;
-            double direction_coefficient = neighbor_direction.dot(derivative_direction);
-            
-            a += direction_coefficient * neighbor_gradient;
-            b += fabs(direction_coefficient);
-        }
-        
-        if (fabs(b) > Parameters::inversion_tolerance)
-            gradient += derivative_direction * a / b;
-    }
-    
-    gradient -= gradient.dot(normal) * normal;
-
-    return gradient;
-}
 
 // Compute a matrix that rotates x to y.
 static Matrix3d
@@ -1014,25 +962,89 @@ x_to_y_rotation(const Vector3d &unit_x, const Vector3d &unit_y)
     return q.toRotationMatrix();
 }
 
+/**
+   Computes the on-body gradient of a scalar field.
+   
+   @param[in]   scalar_field    Scalar field, ordered by panel number.
+   @param[in]   panel           Panel on which the on-body gradient is evaluated.
+   
+   @returns On-body gradient.
+*/
+Vector3d
+Mesh::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int this_panel)
+{
+    // We compute the scalar field gradient by fitting a linear model.
+    Vector3d this_normal = panel_normal(this_panel);
+
+    // Set up a transformation such that panel normal becomes unit Z vector:
+    Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
+    
+    Vector3d x_normalized = rotation * panel_collocation_point(this_panel, false);
+    
+    // Set up model equations:
+    MatrixXd A(panel_neighbors[this_panel].size() + 1, 3);
+    VectorXd b(panel_neighbors[this_panel].size() + 1);
+    
+    // The model is centered on this_panel:
+    A(0, 0) = 0.0;
+    A(0, 1) = 0.0;
+    A(0, 2) = 1.0;
+    b(0) = scalar_field(this_panel);
+    
+    for (int i = 0; i < (int) panel_neighbors[this_panel].size(); i++) {
+        int neighbor_panel = panel_neighbors[this_panel][i];
+        
+        Vector3d neighbor_normal = panel_normal(neighbor_panel);
+        if (this_normal.dot(neighbor_normal) >= 0) {
+            // Add neighbor relative to this_panel:
+            Vector3d neighbor_vector_normalized = rotation * panel_collocation_point(neighbor_panel, false) - x_normalized;
+        
+            A(i + 1, 0) = neighbor_vector_normalized(0);
+            A(i + 1, 1) = neighbor_vector_normalized(1);
+            A(i + 1, 2) = 1.0;
+        
+            b(i + 1) = scalar_field(neighbor_panel);
+        } else {
+            // Don't differentiate along sharp edges, such as the trailing edge.
+            A(i + 1, 0) = A(i + 1, 1) = A(i + 1, 2) = 0.0;
+        }
+    }
+    
+    // Solve model equations:
+    JacobiSVD<MatrixXd> svd(A, ComputeThinU | ComputeThinV);
+    
+    VectorXd model_coefficients = svd.solve(b);
+    
+    // Extract gradient in local frame:
+    Vector3d gradient_normalized = Vector3d(model_coefficients(0), model_coefficients(1), 0.0);
+    
+    // Transform gradient to global frame:
+    return rotation.transpose() * gradient_normalized;
+}
+
 // Compute influence of doublet panel edge on given point.
 static double
-doublet_edge_influence(const Vector3d &x, const Vector3d &node_a, const Vector3d &node_b)
+doublet_edge_influence(const Vector3d &x, const Vector3d &this_panel_collocation_point_normalized, const Vector3d &node_a, const Vector3d &node_b)
 {   
-    double r1 = (x - node_a).norm();
-    double r2 = (x - node_b).norm();
+    double z = x(2) - this_panel_collocation_point_normalized(2);
     
-    if (fabs(node_b(0) - node_a(0)) < Parameters::inversion_tolerance)
+    double r1 = sqrt(pow(x(0) - node_a(0), 2) + pow(x(1) - node_a(1), 2) + pow(z, 2));
+    double r2 = sqrt(pow(x(0) - node_b(0), 2) + pow(x(1) - node_b(1), 2) + pow(z, 2));
+    
+    double d = sqrt(pow(node_b(0) - node_a(0), 2) + pow(node_b(1) - node_a(1), 2));
+    
+    if (d < Parameters::inversion_tolerance)
         return 0.0;
     
     double m = (node_b(1) - node_a(1)) / (node_b(0) - node_a(0));
     
-    double e1 = pow(x(0) - node_a(0), 2) + pow(x(2), 2);
-    double e2 = pow(x(0) - node_b(0), 2) + pow(x(2), 2);
+    double e1 = pow(x(0) - node_a(0), 2) + pow(z, 2);
+    double e2 = pow(x(0) - node_b(0), 2) + pow(z, 2);
     
     double h1 = (x(0) - node_a(0)) * (x(1) - node_a(1));
     double h2 = (x(0) - node_b(0)) * (x(1) - node_b(1));
 
-    double delta_theta = atan((m * e1 - h1) / (x(2) * r1)) - atan((m * e2 - h2) / (x(2) * r2));
+    double delta_theta = atan((m * e1 - h1) / (z * r1)) - atan((m * e2 - h2) / (z * r2));
     
     return delta_theta;
 }
@@ -1052,16 +1064,11 @@ Mesh::doublet_influence(const Eigen::Vector3d &x, int this_panel)
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
     
     Vector3d x_normalized = rotation * x;
+    Vector3d this_panel_collocation_point_normalized = rotation * panel_collocation_point(this_panel, false);
     
     vector<Vector3d, Eigen::aligned_allocator<Vector3d> > normalized_panel_nodes;
     for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
         normalized_panel_nodes.push_back(rotation * nodes[panel_nodes[this_panel][i]]);
-    
-    Vector3d translation(0, 0, -normalized_panel_nodes[0](2));
-    
-    x_normalized += translation;
-    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
-        normalized_panel_nodes[i] += translation;
     
     // Compute influence coefficient according to Hess:
     double influence = 0.0;
@@ -1075,7 +1082,7 @@ Mesh::doublet_influence(const Eigen::Vector3d &x, int this_panel)
         const Vector3d &node_a = normalized_panel_nodes[prev_idx];
         const Vector3d &node_b = normalized_panel_nodes[i];
         
-        influence += doublet_edge_influence(x_normalized, node_a, node_b);
+        influence += doublet_edge_influence(x_normalized, this_panel_collocation_point_normalized, node_a, node_b);
     }
     
     return influence / (4 * M_PI);
@@ -1083,32 +1090,33 @@ Mesh::doublet_influence(const Eigen::Vector3d &x, int this_panel)
 
 // Compute influence of source panel edge on given point.
 static double
-source_edge_influence(const Vector3d &x, const Vector3d &node_a, const Vector3d &node_b)
+source_edge_influence(const Vector3d &x, const Vector3d &this_panel_collocation_point_normalized, const Vector3d &node_a, const Vector3d &node_b)
 {
-    Vector3d edge = node_b - node_a;
-    Vector3d Jedge(-edge(1), edge(0), 0.0);
-    
-    double d = edge.norm();
-    
-    double r1 = (x - node_a).norm();
-    double r2 = (x - node_b).norm();
-    
-    if (fabs(node_b(0) - node_a(0)) < Parameters::inversion_tolerance ||
-        d                           < Parameters::inversion_tolerance ||
-        fabs(r1 + r2 - d)           < Parameters::inversion_tolerance)
+    double d = sqrt(pow(node_b(0) - node_a(0), 2) + pow(node_b(1) - node_a(1), 2));
+
+    if (d < Parameters::inversion_tolerance)
         return 0.0;
+        
+    double z = x(2) - this_panel_collocation_point_normalized(2);
+    
+    double r1 = sqrt(pow(x(0) - node_a(0), 2) + pow(x(1) - node_a(1), 2) + pow(z, 2));
+    double r2 = sqrt(pow(x(0) - node_b(0), 2) + pow(x(1) - node_b(1), 2) + pow(z, 2));
     
     double m = (node_b(1) - node_a(1)) / (node_b(0) - node_a(0));
     
-    double e1 = pow(x(0) - node_a(0), 2) + pow(x(2), 2);
-    double e2 = pow(x(0) - node_b(0), 2) + pow(x(2), 2);
+    double e1 = pow(x(0) - node_a(0), 2) + pow(z, 2);
+    double e2 = pow(x(0) - node_b(0), 2) + pow(z, 2);
     
     double h1 = (x(0) - node_a(0)) * (x(1) - node_a(1));
     double h2 = (x(0) - node_b(0)) * (x(1) - node_b(1));
     
-    double delta_theta = atan((m * e1 - h1) / (x(2) * r1)) - atan((m * e2 - h2) / (x(2) * r2));
+    double delta_theta;
+    if (fabs(z) < Parameters::inversion_tolerance)
+        delta_theta = 0.0;
+    else
+        delta_theta = atan((m * e1 - h1) / (z * r1)) - atan((m * e2 - h2) / (z * r2));
     
-    return (x - node_a).dot(-Jedge) / d * log((r1 + r2 + d) / (r1 + r2 - d)) + fabs(x(2)) * delta_theta;
+    return ((x(0) - node_a(0)) * (node_b(1) - node_a(1)) - (x(1) - node_a(1)) * (node_b(0) - node_a(0))) / d * log((r1 + r2 + d) / (r1 + r2 - d)) - fabs(z) * delta_theta; 
 }
 
 /**
@@ -1126,16 +1134,11 @@ Mesh::source_influence(const Eigen::Vector3d &x, int this_panel)
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
     
     Vector3d x_normalized = rotation * x;
+    Vector3d this_panel_collocation_point_normalized = rotation * panel_collocation_point(this_panel, false);
     
     vector<Vector3d, Eigen::aligned_allocator<Vector3d> > normalized_panel_nodes;
     for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
         normalized_panel_nodes.push_back(rotation * nodes[panel_nodes[this_panel][i]]);
-    
-    Vector3d translation(0, 0, -normalized_panel_nodes[0](2));
-    
-    x_normalized += translation;
-    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
-        normalized_panel_nodes[i] += translation;
     
     // Compute influence coefficient according to Hess:
     double influence = 0.0;
@@ -1149,7 +1152,7 @@ Mesh::source_influence(const Eigen::Vector3d &x, int this_panel)
         const Vector3d &node_a = normalized_panel_nodes[prev_idx];
         const Vector3d &node_b = normalized_panel_nodes[i];
         
-        influence += source_edge_influence(x_normalized, node_a, node_b);
+        influence += source_edge_influence(x_normalized, this_panel_collocation_point_normalized, node_a, node_b);
     }   
     
     return -influence / (4 * M_PI);
@@ -1157,29 +1160,27 @@ Mesh::source_influence(const Eigen::Vector3d &x, int this_panel)
 
 // Compute velocity induced by an edge of a source panel:
 static Vector3d
-source_edge_unit_velocity(const Vector3d &x, const Vector3d &node_a, const Vector3d &node_b)
-{
-    Vector3d edge = node_b - node_a;
+source_edge_unit_velocity(const Vector3d &x, const Vector3d &this_panel_collocation_point_normalized, const Vector3d &node_a, const Vector3d &node_b)
+{   
+    double d = sqrt(pow(node_b(0) - node_a(0), 2) + pow(node_b(1) - node_a(1), 2));
     
-    double d = edge.norm();
-    
-    double r1 = (x - node_a).norm();
-    double r2 = (x - node_b).norm();
-    
-    if (fabs(node_b(0) - node_a(0)) < Parameters::inversion_tolerance ||
-        d                           < Parameters::inversion_tolerance ||
-        fabs(r1 + r2 + d)           < Parameters::inversion_tolerance)
+    if (d < Parameters::inversion_tolerance)
         return Vector3d(0, 0, 0);
+        
+    double z = x(2) - this_panel_collocation_point_normalized(2);
+    
+    double r1 = sqrt(pow(x(0) - node_a(0), 2) + pow(x(1) - node_a(1), 2) + pow(z, 2));
+    double r2 = sqrt(pow(x(0) - node_b(0), 2) + pow(x(1) - node_b(1), 2) + pow(z, 2));
     
     double m = (node_b(1) - node_a(1)) / (node_b(0) - node_a(0));
     
-    double e1 = pow(x(0) - node_a(0), 2) + pow(x(2), 2);
-    double e2 = pow(x(0) - node_b(0), 2) + pow(x(2), 2);
+    double e1 = pow(x(0) - node_a(0), 2) + pow(z, 2);
+    double e2 = pow(x(0) - node_b(0), 2) + pow(z, 2);
     
     double h1 = (x(0) - node_a(0)) * (x(1) - node_a(1));
     double h2 = (x(0) - node_b(0)) * (x(1) - node_b(1));
     
-    double delta_theta = atan((m * e1 - h1) / (x(2) * r1)) - atan((m * e2 - h2) / (x(2) * r2));
+    double delta_theta = atan((m * e1 - h1) / (z * r1)) - atan((m * e2 - h2) / (z * r2));
     
     double u = (node_b(1) - node_a(1)) / d * log((r1 + r2 - d) / (r1 + r2 + d));
     double v = (node_a(0) - node_b(0)) / d * log((r1 + r2 - d) / (r1 + r2 + d));
@@ -1203,16 +1204,11 @@ Mesh::source_unit_velocity(const Eigen::Vector3d &x, int this_panel)
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
     
     Vector3d x_normalized = rotation * x;
+    Vector3d this_panel_collocation_point_normalized = rotation * panel_collocation_point(this_panel, false);
     
     vector<Vector3d, Eigen::aligned_allocator<Vector3d> > normalized_panel_nodes;
     for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
         normalized_panel_nodes.push_back(rotation * nodes[panel_nodes[this_panel][i]]);
-    
-    Vector3d translation(0, 0, -normalized_panel_nodes[0](2));
-    
-    x_normalized += translation;
-    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
-        normalized_panel_nodes[i] += translation;
     
     // Compute influence coefficient according to Hess:
     Vector3d velocity(0, 0, 0);
@@ -1226,7 +1222,7 @@ Mesh::source_unit_velocity(const Eigen::Vector3d &x, int this_panel)
         const Vector3d &node_a = normalized_panel_nodes[prev_idx];
         const Vector3d &node_b = normalized_panel_nodes[i];
         
-        velocity += source_edge_unit_velocity(x_normalized, node_a, node_b);
+        velocity += source_edge_unit_velocity(x_normalized, this_panel_collocation_point_normalized, node_a, node_b);
     }   
     
     // Transform back:

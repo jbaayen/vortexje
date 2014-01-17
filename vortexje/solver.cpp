@@ -1,7 +1,7 @@
 //
 // Vortexje -- Solver.
 //
-// Copyright (C) 2012 Baayen & Heinz GmbH.
+// Copyright (C) 2012 - 2014 Baayen & Heinz GmbH.
 //
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
@@ -150,23 +150,9 @@ Solver::set_fluid_density(double value)
     fluid_density = value;
 }
 
-// Solver stepping:
-void
-Solver::doublet_coefficient_matrix_block(MatrixXd &A, VectorXd &b, 
-                                         Mesh &mesh_one, int offset_one, Mesh &mesh_two, int offset_two)
-{
-    for (int i = 0; i < mesh_one.n_panels(); i++) {
-        for (int j = 0; j < mesh_two.n_panels(); j++) {
-            A(offset_one + i, offset_two + j) = -mesh_two.doublet_influence(mesh_one, i, j);
-            
-            b(offset_one + i) = b(offset_one + i) - mesh_two.source_influence(mesh_one, i, j) * source_coefficients(offset_two + j);         
-        }
-    }
-}
-
 // Add doublet influence of wakes to system matrix:
 void
-Solver::wakes_influence(MatrixXd &A, VectorXd &b, Mesh &mesh, int offset)
+Solver::wakes_influence(MatrixXd &A, Mesh &mesh, int offset)
 {
     for (int j = 0; j < mesh.n_panels(); j++) {
         int wing_offset = 0;
@@ -187,8 +173,8 @@ Solver::wakes_influence(MatrixXd &A, VectorXd &b, Mesh &mesh, int offset)
                     
                     // Account for the influence of the new wake panels.  The doublet strength of these panels
                     // is set according to the Kutta condition;  see below.
-                    A(offset + j, wing_offset + pa) -= wake->doublet_influence(mesh, j, m);
-                    A(offset + j, wing_offset + pb) += wake->doublet_influence(mesh, j, m);
+                    A(offset + j, wing_offset + pa) += wake->doublet_influence(mesh, j, m);
+                    A(offset + j, wing_offset + pb) -= wake->doublet_influence(mesh, j, m);
                     
                     idx++;
                 }
@@ -229,7 +215,7 @@ Solver::source_coefficient(Mesh &mesh, int panel, const Vector3d &kinematic_velo
     
     // Take normal component:
     Vector3d normal = mesh.panel_normal(panel);
-    return velocity.dot(normal);
+    return -velocity.dot(normal);
 }
 
 /**
@@ -245,11 +231,16 @@ Solver::source_coefficient(Mesh &mesh, int panel, const Vector3d &kinematic_velo
 Eigen::Vector3d
 Solver::surface_velocity(Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field, const Eigen::Vector3d &kinematic_velocity)
 {
-    Vector3d x = mesh.panel_collocation_point(panel, false);
-    
-    // Use N. Marcov's formula for surface velocity, see L. Dragoş, Mathematical Methods in Aerodynamics, Springer, 2003.
-    Vector3d tangential_velocity = potential_gradient(x);
-    tangential_velocity -= 0.5 * mesh.scalar_field_gradient(doublet_coefficient_field, panel);
+    // Compute induced part of surface velocity.
+    Vector3d tangential_velocity;
+    if (Parameters::marcov_surface_velocity) {
+        Vector3d x = mesh.panel_collocation_point(panel, false);
+        
+        // Use N. Marcov's formula for surface velocity, see L. Dragoş, Mathematical Methods in Aerodynamics, Springer, 2003.
+        Vector3d tangential_velocity = potential_gradient(x);
+        tangential_velocity -= 0.5 * mesh.scalar_field_gradient(doublet_coefficient_field, panel);
+    } else
+        tangential_velocity = -mesh.scalar_field_gradient(doublet_coefficient_field, panel);
 
     // Add flow due to kinematic velocity:
     tangential_velocity -= kinematic_velocity;
@@ -317,7 +308,7 @@ Solver::potential(const Vector3d &x)
 
         for (int j = 0; j < other_mesh->n_panels(); j++) {
             potential += other_mesh->doublet_influence(x, j) * doublet_coefficients(offset + j);
-            potential -= other_mesh->source_influence(x, j) * source_coefficients(offset + j);
+            potential += other_mesh->source_influence(x, j) * source_coefficients(offset + j);
         }
         
         offset += other_mesh->n_panels();
@@ -394,7 +385,7 @@ Solver::potential_gradient(const Eigen::Vector3d &x)
 
         for (int j = 0; j < other_mesh->n_panels(); j++) {
             gradient += other_mesh->vortex_ring_unit_velocity(x, j) * doublet_coefficients(offset + j);
-            gradient -= other_mesh->source_unit_velocity(x, j) * source_coefficients(offset + j);
+            gradient += other_mesh->source_unit_velocity(x, j) * source_coefficients(offset + j);
         }
         
         offset += other_mesh->n_panels();
@@ -575,6 +566,24 @@ Solver::initialize_wakes(double dt)
     }
 }
 
+// Create block of linear system:
+void
+Solver::doublet_coefficient_matrix_block(MatrixXd &doublet_influence_coefficients,
+                                         MatrixXd &source_influence_coefficients,
+                                         Mesh &mesh_one, int offset_one, Mesh &mesh_two, int offset_two)
+{
+    for (int i = 0; i < mesh_one.n_panels(); i++) {
+        for (int j = 0; j < mesh_two.n_panels(); j++) {
+            if ((&mesh_one == &mesh_two) && (i == j))
+                doublet_influence_coefficients(offset_one + i, offset_two + j) = -0.5;
+            else
+                doublet_influence_coefficients(offset_one + i, offset_two + j) = mesh_two.doublet_influence(mesh_one, i, j);
+            
+            source_influence_coefficients(offset_one + i, offset_two + j) = mesh_two.source_influence(mesh_one, i, j);
+        }
+    }
+}
+
 /**
    Computes new source, doublet, and pressure distributions.
    
@@ -616,28 +625,30 @@ Solver::update_coefficients(double dt)
   
     // Compute doublet distribution:
     MatrixXd A(total_n_panels_without_wakes, total_n_panels_without_wakes);
-    VectorXd b(total_n_panels_without_wakes);
-    for (int i = 0; i < total_n_panels_without_wakes; i++)
-        b(i) = 0.0;
+    MatrixXd source_influence_coefficients(total_n_panels_without_wakes, total_n_panels_without_wakes);
     
     int offset_one = 0, offset_two = 0;
     for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
         offset_two = 0;
         for (int j = 0; j < (int) meshes_without_wakes.size(); j++) {
-            doublet_coefficient_matrix_block(A, b, *meshes_without_wakes[i], offset_one, *meshes_without_wakes[j], offset_two);
+            doublet_coefficient_matrix_block(A,
+                                             source_influence_coefficients,
+                                             *meshes_without_wakes[i], offset_one, *meshes_without_wakes[j], offset_two);
             
             offset_two = offset_two + meshes_without_wakes[j]->n_panels();
         }
         
-        wakes_influence(A, b, *meshes_without_wakes[i], offset_one);
+        wakes_influence(A, *meshes_without_wakes[i], offset_one);
         
         offset_one = offset_one + meshes_without_wakes[i]->n_panels();
     }
     
+    VectorXd b = source_influence_coefficients * source_coefficients;
+    
     BiCGSTAB<MatrixXd> solver(A);
     solver.setMaxIterations(Parameters::linear_solver_max_iterations);
     solver.setTolerance(Parameters::linear_solver_tolerance);
-    
+
     cout << "Solver: Computing doublet distribution." << endl;
     
     doublet_coefficients = solver.solveWithGuess(b, doublet_coefficients);
@@ -877,6 +888,32 @@ Solver::update_wakes(double dt)
             }
         }
     }
+}
+
+/**
+   Computes the aerodynamic force on a given collection.
+   
+   @param[in]   collection  Reference collection.
+  
+   @returns Aerodynamic force.
+*/
+double
+Solver::pressure_coefficient(const Mesh &mesh, int panel) const
+{
+    int offset = 0;
+    
+    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
+        Mesh *tmp_mesh = meshes_without_wakes[i];
+        
+        if (&mesh == tmp_mesh)
+            return pressure_coefficients(offset + panel);
+        
+        offset += tmp_mesh->n_panels();
+    }
+    
+    cerr << "Solver::pressure_coefficient():  Panel " << panel << " not found on mesh " << mesh.id << "." << endl;
+    
+    return 0.0;
 }
 
 /**

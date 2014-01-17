@@ -1,7 +1,7 @@
 //
 // Vortexje -- Default parameters
 //
-// Copyright (C) 2012 Baayen & Heinz GmbH.
+// Copyright (C) 2012 - 2014 Baayen & Heinz GmbH.
 //
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
@@ -41,8 +41,10 @@ double Parameters::interpolation_layer_thickness      = 0.075;
 
 double Parameters::interpolation_layer_notch_angle    = 2 * M_PI / 3;
 
-double Parameters::inversion_tolerance                = 1e-6;
+double Parameters::inversion_tolerance                = 1e-7;
 
 double Parameters::sharp_edge_threshold               = 0.1;
 
-double Parameters::collocation_point_delta_factor     = 1e-2;
+double Parameters::collocation_point_delta            = 1e-7;
+
+bool   Parameters::marcov_surface_velocity            = false;

@@ -106,7 +106,7 @@ public:
     
     virtual Eigen::Vector3d close_to_body_point(int node);
     
-    Eigen::Vector3d scalar_field_gradient(const Eigen::VectorXd &scalar_field, int panel);
+    Eigen::Vector3d scalar_field_gradient(const Eigen::VectorXd &scalar_field, int this_panel);
     
     double doublet_influence(const Eigen::Vector3d &x, int this_panel);
     double source_influence(const Eigen::Vector3d &x, int this_panel);

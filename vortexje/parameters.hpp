@@ -1,7 +1,7 @@
 //
 // Vortexje -- Numerical simulation parameters.
 //
-// Copyright (C) 2012 Baayen & Heinz GmbH.
+// Copyright (C) 2012 - 2014 Baayen & Heinz GmbH.
 //
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
@@ -121,10 +121,16 @@ public:
     static double sharp_edge_threshold;
     
     /**
-      Factor applied to the smallest panel edge, to obtain the normal distance for below-surface collocation points:
-      collocation_point_delta \f$=\f$ collocation_point_delta_factor \f$\cdot\f$ min_edge.
+       Distance to below-surface collocation points (along normal).
     */
-    static double collocation_point_delta_factor;
+    static double collocation_point_delta;
+    
+    /**
+       Use N. Marcov's formula for computing the surface velocities.
+       
+       @note See L. Dragoş, Mathematical Methods in Aerodynamics, Springer, 2003.
+    */
+    static bool marcov_surface_velocity;
 };
 
 };
