@@ -1,7 +1,7 @@
 //
 // Vortexje -- Test NACA0012 lift- and drag coefficients against a reference.
 //
-// Copyright (C) 2013 Baayen & Heinz GmbH.
+// Copyright (C) 2013 - 2014 Baayen & Heinz GmbH.
 //
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
@@ -14,7 +14,7 @@ using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
 
-#define TEST_TOLERANCE 1e-4
+#define TEST_TOLERANCE 2e-2
 
 Vector2d
 run_test(double alpha)
@@ -112,7 +112,7 @@ main (int argc, char **argv)
             
             exit(1);
         }
-        
+       
         if (fabs(res[1] - reference_result(2)) > TEST_TOLERANCE) {
             cerr << " *** TEST FAILED *** " << endl;
             cerr << " alpha = " << reference_result(0) << " deg" << endl;
