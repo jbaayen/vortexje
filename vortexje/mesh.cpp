@@ -93,7 +93,7 @@ Mesh::~Mesh()
    @returns New panel number.
     
    @note This method does not update the panel-panel neighbor data structure.  One must call
-   compute_panel_neighbors() when done adding panels.
+   compute_topology() as well as compute_geometry() when done adding panels.
 */
 int
 Mesh::add_triangle(int node_a, int node_b, int node_c)
@@ -154,12 +154,9 @@ Mesh::add_quadrangle(int node_a, int node_b, int node_c, int node_d)
    @returns true on success.
 */
 bool
-Mesh::load(string file)
+Mesh::load(const string file)
 {
     cout << "Mesh " << id << ": Loading from " << file << "." << endl;
-        
-    // Clear cache:
-    invalidate_cache();
     
     // Load mesh from gmsh MSH file:
     ifstream f;
@@ -263,8 +260,13 @@ Mesh::load(string file)
     
     f.close();
     
-    compute_panel_neighbors();
+    // Compute mesh topology:
+    compute_topology();
     
+    // Compute panel geometry:
+    compute_geometry();
+    
+    // Done:
     return true;
 }
 
@@ -272,7 +274,7 @@ Mesh::load(string file)
    Computes neighboring panels of panels, based on existing node-panel data structures.
 */
 void
-Mesh::compute_panel_neighbors()
+Mesh::compute_topology()
 {   
     // Compute panel neighbors:
     for (int i = 0; i < (int) panel_nodes.size(); i++) {
@@ -305,6 +307,116 @@ Mesh::compute_panel_neighbors()
     }
 }
 
+
+/**
+   Computes the normals, collocation points, surface areas, and diameters of all panels.
+*/
+void
+Mesh::compute_geometry()
+{
+    // Normals:
+    cout << "Mesh " << id << ": Generating panel normals." << endl;
+        
+    panel_normals.clear();
+    panel_normals.reserve(n_panels());
+    
+    for (int i = 0; i < n_panels(); i++) {
+        vector<int> &single_panel_nodes = panel_nodes[i];
+        
+        Vector3d normal;
+        if (single_panel_nodes.size() == 3) {
+            Vector3d AB = nodes[single_panel_nodes[1]] - nodes[single_panel_nodes[0]];
+            Vector3d AC = nodes[single_panel_nodes[2]] - nodes[single_panel_nodes[0]];
+            
+            normal = AB.cross(AC);
+            
+        } else { // 4 sides
+            Vector3d AC = nodes[single_panel_nodes[2]] - nodes[single_panel_nodes[0]];
+            Vector3d BD = nodes[single_panel_nodes[3]] - nodes[single_panel_nodes[1]];
+            
+            normal = AC.cross(BD);
+        }
+
+        normal = normal / normal.norm();
+
+        panel_normals.push_back(normal);
+    }
+    
+    // Collocation points: 
+    cout << "Mesh " << id << ": Generating panel collocation points." << endl;
+    
+    panel_collocation_points[0].clear();
+    panel_collocation_points[0].reserve(n_panels());
+    
+    panel_collocation_points[1].clear();
+    panel_collocation_points[1].reserve(n_panels());
+
+    for (int i = 0; i < n_panels(); i++) {
+        vector<int> &single_panel_nodes = panel_nodes[i];
+        
+        Vector3d collocation_point(0, 0, 0);
+        for (int j = 0; j < (int) single_panel_nodes.size(); j++)
+            collocation_point = collocation_point + nodes[single_panel_nodes[j]];
+
+        collocation_point = collocation_point / single_panel_nodes.size();
+            
+        panel_collocation_points[0].push_back(collocation_point);
+        
+        Vector3d below_surface_collocation_point = collocation_point + Parameters::collocation_point_delta * panel_normal(i);
+        panel_collocation_points[1].push_back(below_surface_collocation_point);
+    }
+    
+    // Surface areas:
+    cout << "Mesh " << id << ": Generating panel surface area cache." << endl;
+    
+    panel_surface_areas.clear();
+    panel_surface_areas.reserve(n_panels());
+    
+    for (int i = 0; i < n_panels(); i++) {
+        vector<int> &single_panel_nodes = panel_nodes[i];
+        
+        double surface_area = 0.0;
+        if (single_panel_nodes.size() == 3) {
+            Vector3d AB = nodes[single_panel_nodes[1]] - nodes[single_panel_nodes[0]];
+            Vector3d AC = nodes[single_panel_nodes[2]] - nodes[single_panel_nodes[0]];
+            
+            surface_area = 0.5 * AB.cross(AC).norm();
+            
+        } else { // 4 sides
+            Vector3d AC = nodes[single_panel_nodes[2]] - nodes[single_panel_nodes[0]];
+            Vector3d BD = nodes[single_panel_nodes[3]] - nodes[single_panel_nodes[1]];
+            
+            surface_area = 0.5 * AC.cross(BD).norm();
+        }
+        
+        panel_surface_areas.push_back(surface_area);
+    }
+    
+    // Diameters:
+    cout << "Mesh " << id << ": Generating panel diameter cache." << endl;
+    
+    panel_diameters.clear();
+    panel_diameters.reserve(n_panels());
+    
+    for (int i = 0; i < n_panels(); i++) {
+        double diameter = numeric_limits<double>::min();
+        
+        for (int j = 0; j < (int) panel_nodes[i].size(); j++) {
+            Vector3d a = nodes[panel_nodes[i][j]];
+            
+            for (int k = 0; k < j; k++) {
+                Vector3d b = nodes[panel_nodes[i][k]];
+                
+                double diameter_candidate = (b - a).norm();
+                if (diameter_candidate > diameter)
+                    diameter = diameter_candidate;
+            }
+        }
+        
+        panel_diameters.push_back(diameter);
+    }
+}
+
 /**
    Saves this mesh to a gmsh MSH file, including data vectors associating numerical values to each panel -- views,
    in gmsh terminology.
@@ -316,7 +428,7 @@ Mesh::compute_panel_neighbors()
    @param[in]   panel_offset    Panel numbering offset in output file.
 */
 void
-Mesh::save(std::string file, std::vector<std::string> &view_names, std::vector<Eigen::VectorXd> &view_data, int node_offset, int panel_offset)
+Mesh::save(const std::string file, const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data, int node_offset, int panel_offset) const
 {
     cout << "Mesh " << id << ": Saving to " << file << "." << endl;
     
@@ -415,7 +527,7 @@ Mesh::save(std::string file, std::vector<std::string> &view_names, std::vector<E
    @param[in]   panel_offset    Panel numbering offset in output file.
 */
 void
-Mesh::save(std::string file, int node_offset, int panel_offset)
+Mesh::save(const std::string file, int node_offset, int panel_offset) const
 {
     vector<string> empty_names;
     vector<VectorXd> empty_data;
@@ -429,7 +541,7 @@ Mesh::save(std::string file, int node_offset, int panel_offset)
    @returns Number of nodes.
 */
 int
-Mesh::n_nodes()
+Mesh::n_nodes() const
 {
     return nodes.size();
 }
@@ -440,7 +552,7 @@ Mesh::n_nodes()
    @returns Number of panels.
 */
 int
-Mesh::n_panels()
+Mesh::n_panels() const
 {
     return panel_nodes.size();
 }
@@ -511,58 +623,16 @@ Mesh::transform(const Eigen::Matrix3d &transformation, std::vector<Mesh*> &cotra
         nodes[i] = transformation * nodes[i];
             
     for (int j = 0; j < 2; j++) {
-        if (!panel_collocation_point_cache[j].empty()) {
+        if (!panel_collocation_points[j].empty()) {
             for (int i = 0; i < n_panels(); i++)
-                panel_collocation_point_cache[j][i] = transformation * panel_collocation_point_cache[j][i];
+                panel_collocation_points[j][i] = transformation * panel_collocation_points[j][i];
         }
     }
     
-    if (!panel_normal_cache.empty()) {
+    if (!panel_normals.empty()) {
         for (int i = 0; i < n_panels(); i++)
-            panel_normal_cache[i] = transformation * panel_normal_cache[i];
+            panel_normals[i] = transformation * panel_normals[i];
     }
-    
-    std::vector<std::vector<double> > *doublet_influence_backup =
-        new std::vector<std::vector<double> >[cotransforming_meshes.size()];
-    std::vector<std::vector<double> > *source_influence_backup  =
-        new std::vector<std::vector<double> >[cotransforming_meshes.size()];
-    std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > *vortex_ring_unit_velocity_backup =
-        new std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > >[cotransforming_meshes.size()];
-    std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > *source_unit_velocity_backup      =
-        new std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > >[cotransforming_meshes.size()];
-    
-    for (int i = 0; i < (int) cotransforming_meshes.size(); i++) {
-        // Ensure the caches exist.
-        if (n_panels() > 0 && cotransforming_meshes[i]->n_panels() > 0) {
-            doublet_influence(*cotransforming_meshes[i], 0, 0);
-            source_influence(*cotransforming_meshes[i], 0, 0);
-            vortex_ring_unit_velocity(*cotransforming_meshes[i], 0, 0);
-            source_unit_velocity(*cotransforming_meshes[i], 0, 0);
-        }
-        
-        doublet_influence_backup[i]         = doublet_influence_cache[cotransforming_meshes[i]->id];
-        source_influence_backup[i]          = source_influence_cache[cotransforming_meshes[i]->id];
-        vortex_ring_unit_velocity_backup[i] = vortex_ring_unit_velocity_cache[cotransforming_meshes[i]->id];
-        source_unit_velocity_backup[i]      = source_unit_velocity_cache[cotransforming_meshes[i]->id];
-    }
-    
-    doublet_influence_cache.clear();
-    source_influence_cache.clear();
-    vortex_ring_unit_velocity_cache.clear();
-    source_unit_velocity_cache.clear();
-    vortex_ring_ramasamy_leishman_velocity_cache.clear();
-    
-    for (int i = 0; i < (int) cotransforming_meshes.size(); i++) {
-        doublet_influence_cache[cotransforming_meshes[i]->id]         = doublet_influence_backup[i];
-        source_influence_cache[cotransforming_meshes[i]->id]          = source_influence_backup[i];
-        vortex_ring_unit_velocity_cache[cotransforming_meshes[i]->id] = vortex_ring_unit_velocity_backup[i];
-        source_unit_velocity_cache[cotransforming_meshes[i]->id]      = source_unit_velocity_backup[i];
-    }
-    
-    delete[] doublet_influence_backup;
-    delete[] source_influence_backup;
-    delete[] vortex_ring_unit_velocity_backup;
-    delete[] source_unit_velocity_backup;
 }
 
 /**
@@ -579,53 +649,11 @@ Mesh::translate(const Eigen::Vector3d &translation, std::vector<Mesh*> &cotransl
         nodes[i] = nodes[i] + translation;
             
     for (int j = 0; j < 2; j++) {
-        if (!panel_collocation_point_cache[j].empty()) {
+        if (!panel_collocation_points[j].empty()) {
             for (int i = 0; i < n_panels(); i++)
-                panel_collocation_point_cache[j][i] = panel_collocation_point_cache[j][i] + translation;
+                panel_collocation_points[j][i] = panel_collocation_points[j][i] + translation;
         }
     }
-    
-    std::vector<std::vector<double> > *doublet_influence_backup =
-        new std::vector<std::vector<double> >[cotranslating_meshes.size()];
-    std::vector<std::vector<double> > *source_influence_backup  =
-        new std::vector<std::vector<double> >[cotranslating_meshes.size()];
-    std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > *vortex_ring_unit_velocity_backup =
-        new std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > >[cotranslating_meshes.size()];
-    std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > *source_unit_velocity_backup      =
-        new std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > >[cotranslating_meshes.size()];
-    
-    for (int i = 0; i < (int) cotranslating_meshes.size(); i++) {
-        // Ensure the caches exist.
-        if (n_panels() > 0 && cotranslating_meshes[i]->n_panels() > 0) {
-            doublet_influence(*cotranslating_meshes[i], 0, 0);
-            source_influence(*cotranslating_meshes[i], 0, 0);
-            vortex_ring_unit_velocity(*cotranslating_meshes[i], 0, 0);
-            source_unit_velocity(*cotranslating_meshes[i], 0, 0);
-        }
-        
-        doublet_influence_backup[i]         = doublet_influence_cache[cotranslating_meshes[i]->id];
-        source_influence_backup[i]          = source_influence_cache[cotranslating_meshes[i]->id];
-        vortex_ring_unit_velocity_backup[i] = vortex_ring_unit_velocity_cache[cotranslating_meshes[i]->id];
-        source_unit_velocity_backup[i]      = source_unit_velocity_cache[cotranslating_meshes[i]->id];
-    }
-    
-    doublet_influence_cache.clear();
-    source_influence_cache.clear();
-    vortex_ring_unit_velocity_cache.clear();
-    source_unit_velocity_cache.clear();
-    vortex_ring_ramasamy_leishman_velocity_cache.clear();
-    
-    for (int i = 0; i < (int) cotranslating_meshes.size(); i++) {
-        doublet_influence_cache[cotranslating_meshes[i]->id]         = doublet_influence_backup[i];
-        source_influence_cache[cotranslating_meshes[i]->id]          = source_influence_backup[i];
-        vortex_ring_unit_velocity_cache[cotranslating_meshes[i]->id] = vortex_ring_unit_velocity_backup[i];
-        source_unit_velocity_cache[cotranslating_meshes[i]->id]      = source_unit_velocity_backup[i];
-    }
-    
-    delete[] doublet_influence_backup;
-    delete[] source_influence_backup;
-    delete[] vortex_ring_unit_velocity_backup;
-    delete[] source_unit_velocity_backup;
 }
 
 /**
@@ -637,7 +665,7 @@ Mesh::translate(const Eigen::Vector3d &translation, std::vector<Mesh*> &cotransl
    @returns Distance between reference point and panel.
 */
 double
-Mesh::distance_to_panel(const Eigen::Vector3d &x, int panel)
+Mesh::distance_to_panel(const Eigen::Vector3d &x, int panel) const
 {
     double distance = numeric_limits<double>::max();
     
@@ -729,7 +757,7 @@ Mesh::distance_to_panel(const Eigen::Vector3d &x, int panel)
    @returns true if the closest panel borders a trailing edge.
 */
 bool
-Mesh::closest_panel(const Eigen::Vector3d &x, int &panel, double &distance)
+Mesh::closest_panel(const Eigen::Vector3d &x, int &panel, double &distance) const
 {
     distance = numeric_limits<double>::max();
     panel = -1;
@@ -746,8 +774,7 @@ Mesh::closest_panel(const Eigen::Vector3d &x, int &panel, double &distance)
 }
 
 /**
-   Computes the collocation point of a given panel.  If the point has been computed before,
-   the cached collocation point is returned.  If not, the collocation point is computed and cached.
+   Returns the collocation point of the given panel.
    
    @param[in]   panel           Panel of which the collocation point is evaluated.
    @param[in]   below_surface   true to request the collocation point lying underneath the surface.
@@ -755,164 +782,48 @@ Mesh::closest_panel(const Eigen::Vector3d &x, int &panel, double &distance)
    @returns Collocation point.
 */
 Vector3d
-Mesh::panel_collocation_point(int panel, bool below_surface)
+Mesh::panel_collocation_point(int panel, bool below_surface) const
 {
-    if (panel_collocation_point_cache[below_surface].empty()) {
-        cout << "Mesh " << id << ": Generating panel collocation point cache " << below_surface << "." << endl;
-        
-        panel_collocation_point_cache[below_surface].reserve(n_panels());
-        
-        for (int i = 0; i < n_panels(); i++) {
-            vector<int> &single_panel_nodes = panel_nodes[i];
-            
-            Vector3d collocation_point(0, 0, 0);
-            double max_edge = numeric_limits<double>::min();
-            double min_edge = numeric_limits<double>::max();
-            for (int j = 0; j < (int) single_panel_nodes.size(); j++) {
-                collocation_point = collocation_point + nodes[single_panel_nodes[j]];
-                
-                int prev_idx;
-                if (j == 0)
-                    prev_idx = single_panel_nodes.size() - 1;
-                else
-                    prev_idx = j - 1;
-                    
-                Vector3d edge = nodes[single_panel_nodes[j]] - nodes[single_panel_nodes[prev_idx]];
-                if (edge.norm() > max_edge)
-                    max_edge = edge.norm();
-                if (edge.norm() < min_edge)
-                    min_edge = edge.norm();
-            }
-            collocation_point = collocation_point / single_panel_nodes.size();
-            
-            if (below_surface)
-                collocation_point = collocation_point + Parameters::collocation_point_delta * panel_normal(i);
-                
-            panel_collocation_point_cache[below_surface].push_back(collocation_point);
-        }
-    }
-    
-    return panel_collocation_point_cache[below_surface][panel];
+    return panel_collocation_points[below_surface][panel];
 }
 
 /**
-   Computes the inward-pointing normal of a given panel.  If the normal has been computed before,
-   the cached normal is returned.  If not, the normal is computed and cached.
+   Returns the inward-pointing normal of the given panel.
    
    @param[in]   panel   Panel of which the inward-pointing normal is evaluated.
    
    @returns Inward-pointing normal.
 */
 Vector3d
-Mesh::panel_normal(int panel)
+Mesh::panel_normal(int panel) const
 {
-    if (panel_normal_cache.empty()) {
-        cout << "Mesh " << id << ": Generating panel normal cache." << endl;
-        
-        panel_normal_cache.reserve(n_panels());
-        
-        for (int i = 0; i < n_panels(); i++) {
-            vector<int> &single_panel_nodes = panel_nodes[i];
-            
-            Vector3d normal;
-            if (single_panel_nodes.size() == 3) {
-                Vector3d AB = nodes[single_panel_nodes[1]] - nodes[single_panel_nodes[0]];
-                Vector3d AC = nodes[single_panel_nodes[2]] - nodes[single_panel_nodes[0]];
-                
-                normal = AB.cross(AC);
-                
-            } else { // 4 sides
-                Vector3d AC = nodes[single_panel_nodes[2]] - nodes[single_panel_nodes[0]];
-                Vector3d BD = nodes[single_panel_nodes[3]] - nodes[single_panel_nodes[1]];
-                
-                normal = AC.cross(BD);
-            }
-
-            normal = normal / normal.norm();
-
-            panel_normal_cache.push_back(normal);
-        }
-    }
-    
-    return panel_normal_cache[panel];
+    return panel_normals[panel];
 }
 
 /**
-   Computes the surface area of a given panel.  If the surface area has been computed before,
-   the cached surface area is returned.  If not, the surface area is computed and cached.
+   Returns the surface area of the given panel.
    
    @param[in]   panel   Panel of which the surface area is evaluated.
    
    @returns Panel surface area.
 */
 double
-Mesh::panel_surface_area(int panel)
-{
-    if (panel_surface_area_cache.empty()) {
-        cout << "Mesh " << id << ": Generating panel surface area cache." << endl;
-        
-        panel_surface_area_cache.reserve(n_panels());
-        
-        for (int i = 0; i < n_panels(); i++) {
-            vector<int> &single_panel_nodes = panel_nodes[i];
-            
-            double surface_area = 0.0;
-            if (single_panel_nodes.size() == 3) {
-                Vector3d AB = nodes[single_panel_nodes[1]] - nodes[single_panel_nodes[0]];
-                Vector3d AC = nodes[single_panel_nodes[2]] - nodes[single_panel_nodes[0]];
-                
-                surface_area = 0.5 * AB.cross(AC).norm();
-                
-            } else { // 4 sides
-                Vector3d AC = nodes[single_panel_nodes[2]] - nodes[single_panel_nodes[0]];
-                Vector3d BD = nodes[single_panel_nodes[3]] - nodes[single_panel_nodes[1]];
-                
-                surface_area = 0.5 * AC.cross(BD).norm();
-            }
-            
-            panel_surface_area_cache.push_back(surface_area);
-        }
-    }
-    
-    return panel_surface_area_cache[panel];
+Mesh::panel_surface_area(int panel) const
+{  
+    return panel_surface_areas[panel];
 }
 
 /**
-   Computes the diameter of a given panel.  If the diameter has been computed before,
-   the cached diameter is returned.  If not, the diameter is computed and cached.
+   Returns the diameter of the given panel.
    
    @param[in]   panel   Panel of which the diameter is evaluated.
    
    @returns Panel diameter.
 */
 double
-Mesh::panel_diameter(int panel)
+Mesh::panel_diameter(int panel) const
 {
-    if (panel_diameter_cache.empty()) {
-        cout << "Mesh " << id << ": Generating panel diameter cache." << endl;
-        
-        panel_diameter_cache.reserve(n_panels());
-        
-        for (int i = 0; i < n_panels(); i++) {
-            double diameter = numeric_limits<double>::min();
-            
-            for (int j = 0; j < (int) panel_nodes[i].size(); j++) {
-                Vector3d a = nodes[panel_nodes[i][j]];
-                
-                for (int k = 0; k < j; k++) {
-                    Vector3d b = nodes[panel_nodes[i][k]];
-                    
-                    double diameter_candidate = (b - a).norm();
-                    if (diameter_candidate > diameter)
-                        diameter = diameter_candidate;
-                }
-            }
-            
-            panel_diameter_cache.push_back(diameter);
-        }
-    }
-    
-    return panel_diameter_cache[panel];
+    return panel_diameters[panel];
 }
 
 /**
@@ -942,7 +853,7 @@ Mesh::panel_deformation_velocity(int panel) const
    @returns Point, located outside of the body, close to the given node.
 */
 Vector3d
-Mesh::close_to_body_point(int node)
+Mesh::close_to_body_point(int node) const
 {
     Vector3d layer_direction(0, 0, 0);
     for (int i = 0; i < (int) node_panel_neighbors[node]->size(); i++)
@@ -971,7 +882,7 @@ x_to_y_rotation(const Vector3d &unit_x, const Vector3d &unit_y)
    @returns On-body gradient.
 */
 Vector3d
-Mesh::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int this_panel)
+Mesh::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int this_panel) const
 {
     // We compute the scalar field gradient by fitting a linear model.
     Vector3d this_normal = panel_normal(this_panel);
@@ -1058,7 +969,7 @@ doublet_edge_influence(const Vector3d &x, const Vector3d &this_panel_collocation
    @returns Influence coefficient.
 */
 double
-Mesh::doublet_influence(const Eigen::Vector3d &x, int this_panel)
+Mesh::doublet_influence(const Eigen::Vector3d &x, int this_panel) const
 {
     // Transform such that panel normal becomes unit Z vector:
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
@@ -1128,7 +1039,7 @@ source_edge_influence(const Vector3d &x, const Vector3d &this_panel_collocation_
    @returns Influence coefficient.
 */
 double
-Mesh::source_influence(const Eigen::Vector3d &x, int this_panel)
+Mesh::source_influence(const Eigen::Vector3d &x, int this_panel) const
 {
     // Transform such that panel normal becomes unit Z vector:
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
@@ -1198,7 +1109,7 @@ source_edge_unit_velocity(const Vector3d &x, const Vector3d &this_panel_collocat
    @returns Velocity induced by the source panel.
 */
 Vector3d
-Mesh::source_unit_velocity(const Eigen::Vector3d &x, int this_panel)
+Mesh::source_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
 {   
     // Transform such that panel normal becomes unit Z vector:
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
@@ -1241,7 +1152,7 @@ Mesh::source_unit_velocity(const Eigen::Vector3d &x, int this_panel)
    @returns Velocity induced by the vortex ring.
 */
 Vector3d
-Mesh::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel)
+Mesh::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
 {    
     Vector3d velocity(0, 0, 0);
     
@@ -1289,7 +1200,7 @@ Mesh::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel)
    @note See M. Ramasamy and J. G. Leishman, Reynolds Number Based Blade Tip Vortex Model, University of Maryland, 2005.
 */
 Vector3d
-Mesh::vortex_ring_ramasamy_leishman_velocity(const Eigen::Vector3d &x, int this_panel, std::vector<double> core_radii, double vorticity)
+Mesh::vortex_ring_ramasamy_leishman_velocity(const Eigen::Vector3d &x, int this_panel, const std::vector<double> core_radii, double vorticity) const
 {
     // Ramasamy-Leishman series data:
     typedef struct {
@@ -1421,33 +1332,9 @@ Mesh::vortex_ring_ramasamy_leishman_velocity(const Eigen::Vector3d &x, int this_
    @returns Influence coefficient.
 */
 double
-Mesh::doublet_influence(Mesh &other, int other_panel, int this_panel)
-{
-    // Retrieve inner matrix:
-    map<int, std::vector<std::vector<double> > >::iterator it = doublet_influence_cache.find(other.id);
-    if (it == doublet_influence_cache.end()) {
-        cout << "Mesh " << id << ": Generating doublet influence expression cache for mesh " << other.id << "." << endl;
-        
-        std::vector<std::vector<double> > inner;
-        inner.reserve(other.n_panels());
-        for (int i = 0; i < other.n_panels(); i++) {
-            Vector3d x = other.panel_collocation_point(i, true);
-            
-            std::vector<double> inner_inner;
-            inner_inner.reserve(n_panels());
-            for (int j = 0; j < n_panels(); j++)
-                inner_inner.push_back(doublet_influence(x, j));
-            inner.push_back(inner_inner);
-        }
-        
-        doublet_influence_cache[other.id] = inner;
-        
-        return inner[other_panel][this_panel];
-    } else {
-        std::vector<std::vector<double> > &inner = it->second;
- 
-        return inner[other_panel][this_panel];
-    }
+Mesh::doublet_influence(const Mesh &other, int other_panel, int this_panel) const
+{ 
+    return doublet_influence(other.panel_collocation_point(other_panel, true), this_panel);
 }
 
 /**
@@ -1462,33 +1349,9 @@ Mesh::doublet_influence(Mesh &other, int other_panel, int this_panel)
    @returns Influence coefficient.
 */
 double
-Mesh::source_influence(Mesh &other, int other_panel, int this_panel)
+Mesh::source_influence(const Mesh &other, int other_panel, int this_panel) const
 {
-    // Retrieve inner matrix:
-    map<int, std::vector<std::vector<double> > >::iterator it = source_influence_cache.find(other.id);
-    if (it == source_influence_cache.end()) {
-        cout << "Mesh " << id << ": Generating source influence expression cache for mesh " << other.id << "." << endl;
-        
-        std::vector<std::vector<double> > inner;
-        inner.reserve(other.n_panels());
-        for (int i = 0; i < other.n_panels(); i++) {
-            Vector3d x = other.panel_collocation_point(i, true);
-            
-            std::vector<double> inner_inner;
-            inner_inner.reserve(n_panels());
-            for (int j = 0; j < n_panels(); j++)        
-                inner_inner.push_back(source_influence(x, j));
-            inner.push_back(inner_inner);
-        }
-        
-        source_influence_cache[other.id] = inner;
-        
-        return inner[other_panel][this_panel];
-    } else {
-        std::vector<std::vector<double> > &inner = it->second;
- 
-        return inner[other_panel][this_panel];
-    }
+    return source_influence(other.panel_collocation_point(other_panel, true), this_panel);
 }
 
 /**
@@ -1503,33 +1366,9 @@ Mesh::source_influence(Mesh &other, int other_panel, int this_panel)
    @returns Velocity induced by the source panel.
 */
 Vector3d
-Mesh::source_unit_velocity(Mesh &other, int other_panel, int this_panel)
-{
-    // Retrieve inner matrix:
-    map<int, std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > >::iterator it = source_unit_velocity_cache.find(other.id);
-    if (it == source_unit_velocity_cache.end()) {
-        cout << "Mesh " << id << ": Generating source unit velocity cache for mesh " << other.id << "." << endl;
-        
-        std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > inner;
-        inner.reserve(other.n_panels());
-        for (int i = 0; i < other.n_panels(); i++) {
-            Vector3d x = other.panel_collocation_point(i, true);
-            
-            std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > inner_inner;
-            inner_inner.reserve(n_panels());
-            for (int j = 0; j < n_panels(); j++)        
-                inner_inner.push_back(source_unit_velocity(x, j));
-            inner.push_back(inner_inner);
-        }
-        
-        source_unit_velocity_cache[other.id] = inner;
-        
-        return inner[other_panel][this_panel];
-    } else {
-        std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > &inner = it->second;
- 
-        return inner[other_panel][this_panel];
-    }
+Mesh::source_unit_velocity(const Mesh &other, int other_panel, int this_panel) const
+{ 
+    return source_unit_velocity(other.panel_collocation_point(other_panel, true), this_panel);
 }
 
 /**
@@ -1544,33 +1383,9 @@ Mesh::source_unit_velocity(Mesh &other, int other_panel, int this_panel)
    @returns Velocity induced by the vortex ring.
 */
 Vector3d
-Mesh::vortex_ring_unit_velocity(Mesh &other, int other_panel, int this_panel)
+Mesh::vortex_ring_unit_velocity(const Mesh &other, int other_panel, int this_panel) const
 {
-    // Retrieve inner matrix:
-    map<int, std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > >::iterator it = vortex_ring_unit_velocity_cache.find(other.id);
-    if (it == vortex_ring_unit_velocity_cache.end()) {
-        cout << "Mesh " << id << ": Generating vortex ring unit velocity cache for mesh " << other.id << "." << endl;
-        
-        std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > inner;
-        inner.reserve(other.n_panels());
-        for (int i = 0; i < other.n_panels(); i++) {
-            Vector3d x = other.panel_collocation_point(i, true);
-            
-            std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > inner_inner;
-            inner_inner.reserve(n_panels());
-            for (int j = 0; j < n_panels(); j++)        
-                inner_inner.push_back(vortex_ring_unit_velocity(x, j));
-            inner.push_back(inner_inner);
-        }
-        
-        vortex_ring_unit_velocity_cache[other.id] = inner;
-        
-        return inner[other_panel][this_panel];
-    } else {
-        std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > &inner = it->second;
- 
-        return inner[other_panel][this_panel];
-    }
+    return vortex_ring_unit_velocity(other.panel_collocation_point(other_panel, true), this_panel);
 }
 
 /**
@@ -1589,50 +1404,7 @@ Mesh::vortex_ring_unit_velocity(Mesh &other, int other_panel, int this_panel)
    @note See M. Ramasamy and J. G. Leishman, Reynolds Number Based Blade Tip Vortex Model, University of Maryland, 2005.
 */
 Vector3d
-Mesh::vortex_ring_ramasamy_leishman_velocity(Mesh &other, int other_panel, int this_panel, std::vector<double> core_radii, double vorticity)
+Mesh::vortex_ring_ramasamy_leishman_velocity(const Mesh &other, int other_panel, int this_panel, const std::vector<double> core_radii, double vorticity) const
 {
-    // Retrieve inner matrix:
-    map<int, std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > >::iterator it = vortex_ring_ramasamy_leishman_velocity_cache.find(other.id);
-    if (it == vortex_ring_ramasamy_leishman_velocity_cache.end()) {
-        cout << "Mesh " << id << ": Generating vortex ring unit velocity cache for mesh " << other.id << "." << endl;
-        
-        std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > inner;
-        inner.reserve(other.n_panels());
-        for (int i = 0; i < other.n_panels(); i++) {
-            Vector3d x = other.panel_collocation_point(i, true);
-            
-            std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > inner_inner;
-            inner_inner.reserve(n_panels());
-            for (int j = 0; j < n_panels(); j++)        
-                inner_inner.push_back(vortex_ring_ramasamy_leishman_velocity(x, j, core_radii, vorticity));
-            inner.push_back(inner_inner);
-        }
-        
-        vortex_ring_ramasamy_leishman_velocity_cache[other.id] = inner;
-        
-        return inner[other_panel][this_panel];
-    } else {
-        std::vector<std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > &inner = it->second;
- 
-        return inner[other_panel][this_panel];
-    }
-}
-
-/**
-   Invalidates all caches of mesh data including collocation points, normals,
-   surface areas, diameters, influence coefficients, and unit velocities.
-*/
-void
-Mesh::invalidate_cache()
-{
-    panel_collocation_point_cache[0].clear();
-    panel_collocation_point_cache[1].clear();
-    panel_normal_cache.clear();
-    panel_surface_area_cache.clear();
-    panel_diameter_cache.clear();
-    doublet_influence_cache.clear();
-    source_influence_cache.clear();
-    source_unit_velocity_cache.clear();
-    vortex_ring_unit_velocity_cache.clear();
-    vortex_ring_ramasamy_leishman_velocity_cache.clear();
+    return vortex_ring_ramasamy_leishman_velocity(other.panel_collocation_point(other_panel, true), this_panel, core_radii, vorticity);
 }

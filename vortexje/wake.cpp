@@ -28,11 +28,9 @@ Wake::Wake(Wing &wing): wing(wing)
 
 /**
    Adds new layer of wake panels.
-  
-   @param[in]   other_meshes    Meshes that mutually influence this mesh.
 */
 void
-Wake::add_layer(vector<Mesh*> &other_meshes)
+Wake::add_layer()
 {
     // Add layer of nodes at trailing edge, and add panels if necessary:
     int trailing_edge_n_nodes = wing.trailing_edge_nodes.size();
@@ -106,19 +104,7 @@ Wake::add_layer(vector<Mesh*> &other_meshes)
         }
     }
         
-    // Invalidate caches:
-    invalidate_cache();
-    
-    for (int k = 0; k < (int) other_meshes.size(); k++) {
-        if (other_meshes[k] == this)
-            continue;
-            
-        other_meshes[k]->doublet_influence_cache.erase(id);
-        other_meshes[k]->source_influence_cache.erase(id);
-        other_meshes[k]->source_unit_velocity_cache.erase(id);
-        other_meshes[k]->vortex_ring_unit_velocity_cache.erase(id);
-        other_meshes[k]->vortex_ring_ramasamy_leishman_velocity_cache.erase(id);
-    }
+    compute_geometry();
 }
 
 /**
@@ -141,7 +127,7 @@ Wake::translate_trailing_edge(const Eigen::Vector3d &translation)
     for (int k = k0; k < n_nodes(); k++)                
         nodes[k] += translation;
         
-    invalidate_cache();
+    compute_geometry();
 }
 
 /**
@@ -164,7 +150,7 @@ Wake::transform_trailing_edge(const Eigen::Matrix3d &transformation)
     for (int k = k0; k < n_nodes(); k++)                
         nodes[k] = transformation * nodes[k];
         
-    invalidate_cache();
+    compute_geometry();
 }
 
 /**

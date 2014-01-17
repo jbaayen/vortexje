@@ -172,7 +172,7 @@ Collection::set_rotational_velocity(const Vector3d &rotational_velocity)
    @return The kinematic velocity.
 */
 Vector3d
-Collection::panel_kinematic_velocity(Mesh &mesh, int panel) const
+Collection::panel_kinematic_velocity(const Mesh &mesh, int panel) const
 {
     Vector3d panel_position = mesh.panel_collocation_point(panel, false);
     Vector3d r = panel_position - position;

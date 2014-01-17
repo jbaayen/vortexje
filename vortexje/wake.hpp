@@ -34,7 +34,7 @@ public:
     */
     Wing &wing;
     
-    void add_layer(std::vector<Mesh*> &other_meshes);
+    void add_layer();
     
     void translate_trailing_edge(const Eigen::Vector3d &translation);
     void transform_trailing_edge(const Eigen::Matrix3d &transformation);

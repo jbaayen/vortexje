@@ -24,7 +24,7 @@ using namespace Vortexje;
 
 // Helper to create folders:
 static void
-mkdir_helper(string folder)
+mkdir_helper(const string folder)
 {
     if (mkdir(folder.c_str(), S_IRWXU) < 0)
         if (errno != EEXIST)
@@ -36,7 +36,7 @@ mkdir_helper(string folder)
    
    @param[in]   log_folder  Logging output folder.
 */
-Solver::Solver(string log_folder) : log_folder(log_folder)
+Solver::Solver(const string log_folder) : log_folder(log_folder)
 { 
     // Initialize wind:
     freestream_velocity = Vector3d(0, 0, 0);
@@ -159,7 +159,7 @@ Solver::set_fluid_density(double value)
 
 // Add doublet influence of wakes to system matrix:
 void
-Solver::wakes_influence(MatrixXd &A, Mesh &mesh, int offset)
+Solver::wakes_influence(MatrixXd &A, Mesh &mesh, int offset) const
 {
     for (int j = 0; j < mesh.n_panels(); j++) {
         int wing_offset = 0;
@@ -194,7 +194,7 @@ Solver::wakes_influence(MatrixXd &A, Mesh &mesh, int offset)
 
 // Compute source coefficient for given mesh and panel:
 double
-Solver::source_coefficient(Mesh &mesh, int panel, const Vector3d &kinematic_velocity, bool include_wake_influence)
+Solver::source_coefficient(const Mesh &mesh, int panel, const Vector3d &kinematic_velocity, bool include_wake_influence) const
 {
     // Main velocity:
     Vector3d velocity = -kinematic_velocity;
@@ -235,7 +235,7 @@ Solver::source_coefficient(Mesh &mesh, int panel, const Vector3d &kinematic_velo
    @returns Surface velocity.
 */
 Eigen::Vector3d
-Solver::surface_velocity(Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field)
+Solver::surface_velocity(const Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field) const
 {
     // Compute disturbance part of surface velocity.
     Vector3d tangential_velocity;
@@ -249,7 +249,7 @@ Solver::surface_velocity(Mesh &mesh, int panel, const Eigen::VectorXd &doublet_c
         tangential_velocity = -mesh.scalar_field_gradient(doublet_coefficient_field, panel);
 
     // Add flow due to kinematic velocity:
-    Collection *collection = mesh_to_collection[&mesh];
+    Collection *collection = mesh_to_collection.find(&mesh)->second;
     Vector3d kinematic_velocity = mesh.panel_deformation_velocity(panel)
                                       + collection->panel_kinematic_velocity(mesh, panel)
                                       - freestream_velocity;
@@ -289,7 +289,7 @@ Solver::reference_velocity(const Collection &collection) const
    @returns Pressure coefficient.
 */
 double
-Solver::pressure_coefficient(Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field, double dphidt, double v_ref)
+Solver::pressure_coefficient(const Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field, double dphidt, double v_ref) const
 {
     double C_p = 1 - (surface_velocity(mesh, panel, doublet_coefficient_field).squaredNorm() + 2 * dphidt) / pow(v_ref, 2);
     if (C_p < Parameters::min_pressure_coefficient)
@@ -306,7 +306,7 @@ Solver::pressure_coefficient(Mesh &mesh, int panel, const Eigen::VectorXd &doubl
    @returns Velocity potential.
 */
 double
-Solver::velocity_potential(const Vector3d &x)
+Solver::velocity_potential(const Vector3d &x) const
 {
     double phi = 0.0;
     
@@ -345,7 +345,7 @@ Solver::velocity_potential(const Vector3d &x)
    @returns Vector of velocity potential values, ordered by panel number.
 */
 Eigen::VectorXd
-Solver::surface_velocity_potentials()
+Solver::surface_velocity_potentials() const
 {
     cout << "Solver: Computing surface potential values." << endl;
     
@@ -384,7 +384,7 @@ Solver::surface_velocity_potentials()
    @returns Disturbance potential gradient.
 */ 
 Eigen::Vector3d
-Solver::disturbance_potential_gradient(const Eigen::Vector3d &x)
+Solver::disturbance_potential_gradient(const Eigen::Vector3d &x) const
 {
     Vector3d gradient(0, 0, 0);
     
@@ -439,7 +439,7 @@ Solver::disturbance_potential_gradient(const Eigen::Vector3d &x)
    @returns Velocity potential time derivative.
 */ 
 double
-Solver::velocity_potential_time_derivative(const Eigen::VectorXd &velocity_potentials, const Eigen::VectorXd &old_velocity_potentials, int offset, int panel, double dt)
+Solver::velocity_potential_time_derivative(const Eigen::VectorXd &velocity_potentials, const Eigen::VectorXd &old_velocity_potentials, int offset, int panel, double dt) const
 {
     double dphidt;
     
@@ -461,7 +461,7 @@ Solver::velocity_potential_time_derivative(const Eigen::VectorXd &velocity_poten
    @returns Stream velocity.
 */
 Eigen::Vector3d
-Solver::velocity(const Eigen::Vector3d &x)
+Solver::velocity(const Eigen::Vector3d &x) const
 {
     // Find closest mesh and panel:
     double distance = numeric_limits<double>::max();
@@ -563,7 +563,7 @@ Solver::initialize_wakes(double dt)
         for (int j = 0; j < (int) collection->wings.size(); j++) {
             Wake *wake = collection->wakes[j];
             
-            wake->add_layer(meshes);
+            wake->add_layer();
             for (int k = 0; k < wake->n_nodes(); k++) {                                  
                 if (Parameters::convect_wake)    
                     wake->nodes[k] -= collection_kinematic_velocity * dt;
@@ -571,7 +571,7 @@ Solver::initialize_wakes(double dt)
                     wake->nodes[k] -= Parameters::static_wake_length * collection_kinematic_velocity / collection_kinematic_velocity.norm();
             }
             
-            wake->add_layer(meshes);
+            wake->add_layer();
         }
     }
 }
@@ -580,7 +580,7 @@ Solver::initialize_wakes(double dt)
 void
 Solver::doublet_coefficient_matrix_block(MatrixXd &doublet_influence_coefficients,
                                          MatrixXd &source_influence_coefficients,
-                                         Mesh &mesh_one, int offset_one, Mesh &mesh_two, int offset_two)
+                                         const Mesh &mesh_one, int offset_one, const Mesh &mesh_two, int offset_two) const
 {
     for (int i = 0; i < mesh_one.n_panels(); i++) {
         for (int j = 0; j < mesh_two.n_panels(); j++) {
@@ -852,7 +852,8 @@ Solver::update_wakes(double dt)
                     wake->update_ramasamy_leishman_vortex_core_radii(k, dt);
 
                 // Add new vertices:
-                wake->add_layer(meshes);
+                // (This call also updates the geometry)
+                wake->add_layer();
             }
         }
         
@@ -876,8 +877,8 @@ Solver::update_wakes(double dt)
                                      - Parameters::static_wake_length * collection_kinematic_velocity / collection_kinematic_velocity.norm();
                 }
                 
-                // Need to update influence coefficients:
-                wake->invalidate_cache();
+                // Need to update geometry:
+                wake->compute_geometry();
             }
         }
     }

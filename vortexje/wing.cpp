@@ -50,6 +50,11 @@ Wing::Wing(Mesh &mesh, const Eigen::Vector3d &location, const Eigen::Vector3d &c
     node_deformation_velocities = mesh.node_deformation_velocities;
     panel_nodes                 = mesh.panel_nodes;
     panel_neighbors             = mesh.panel_neighbors;
+    panel_normals               = mesh.panel_normals;
+    panel_collocation_points[0] = mesh.panel_collocation_points[0];
+    panel_collocation_points[1] = mesh.panel_collocation_points[1];
+    panel_surface_areas         = mesh.panel_surface_areas;
+    panel_diameters             = mesh.panel_diameters;
     
     // Autodetect trailing edge nodes:
     double max_x = numeric_limits<double>::min(), min_x = numeric_limits<double>::max();
@@ -204,7 +209,7 @@ Wing::transform(const Eigen::Matrix3d &transformation, std::vector<Mesh*> &corot
 
 // Find closest panel to given point, returning 'true' if this panel borders the trailing edge:
 bool
-Wing::closest_panel(const Eigen::Vector3d &x, int &panel, double &distance)
+Wing::closest_panel(const Eigen::Vector3d &x, int &panel, double &distance) const
 {
     this->Mesh::closest_panel(x, panel, distance);
     
@@ -234,7 +239,7 @@ Wing::closest_panel(const Eigen::Vector3d &x, int &panel, double &distance)
 
 // Compute out-of-body point close to given node:
 Vector3d
-Wing::close_to_body_point(int node)
+Wing::close_to_body_point(int node) const
 {
     // For the trailing edge, the close to body point is set equal to the trailing edge point. 
     // This is to guarantee wake emission at the correct angle; see

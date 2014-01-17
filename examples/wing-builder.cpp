@@ -61,9 +61,11 @@ main (int argc, char **argv)
             
         prev_airfoil_nodes = airfoil_nodes;
     }
+
+    wing.compute_topology();
+    wing.compute_geometry();
     
     wing.sort_trailing_edge();
-    wing.compute_panel_neighbors();
     
     Vector3d translation(-chord / 3.0, 0.0, -span / 2.0);
     wing.translate(translation);

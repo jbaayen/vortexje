@@ -88,7 +88,7 @@ public:
     void set_velocity(const Eigen::Vector3d &velocity);
     void set_rotational_velocity(const Eigen::Vector3d &rotational_velocity);
     
-    Eigen::Vector3d panel_kinematic_velocity(Mesh &mesh, int panel) const;
+    Eigen::Vector3d panel_kinematic_velocity(const Mesh &mesh, int panel) const;
     
     Eigen::Vector3d node_kinematic_velocity(const Mesh &mesh, int node) const;
     

@@ -75,9 +75,9 @@ public:
     void transform(const Eigen::Matrix3d &transformation);
     void transform(const Eigen::Matrix3d &transformation, std::vector<Mesh*> &corotating_meshes);
     
-    bool closest_panel(const Eigen::Vector3d &x, int &panel, double &distance);
+    bool closest_panel(const Eigen::Vector3d &x, int &panel, double &distance) const;
     
-    Eigen::Vector3d close_to_body_point(int node);
+    Eigen::Vector3d close_to_body_point(int node) const;
 };
 
 };

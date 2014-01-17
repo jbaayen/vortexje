@@ -43,20 +43,21 @@ public:
     
     virtual ~Mesh();
     
-    bool load(std::string file);
-    void save(std::string file,
-              int node_offset = 0, int panel_offset = 0);
-    void save(std::string file,
-              std::vector<std::string> &view_names, std::vector<Eigen::VectorXd> &view_data,
-              int node_offset = 0, int panel_offset = 0);
+    bool load(const std::string file);
+    void save(const std::string file,
+              int node_offset = 0, int panel_offset = 0) const;
+    void save(const std::string file,
+              const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data,
+              int node_offset = 0, int panel_offset = 0) const;
               
     int add_triangle(int node_a, int node_b, int node_c);
     int add_quadrangle(int node_a, int node_b, int node_c, int node_d);
     
-    void compute_panel_neighbors();
+    void compute_topology();
+    void compute_geometry();
     
-    int n_nodes();
-    int n_panels();
+    int n_nodes() const;
+    int n_panels() const;
     
     /**
        Node number to point map.
@@ -83,6 +84,26 @@ public:
     */
     std::vector<std::vector<int> > panel_neighbors;
     
+    /**
+       Panel number to collocation point map.
+    */
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > panel_collocation_points[2];
+    
+    /**
+       Panel number to normal map.
+    */
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > panel_normals;
+    
+    /**
+       Panel number to surface area map.
+    */
+    std::vector<double> panel_surface_areas;
+    
+    /**
+       Panel number to diameter map.
+    */
+    std::vector<double> panel_diameters;
+    
     void rotate(const Eigen::Vector3d &axis, double angle);
     virtual void transform(const Eigen::Matrix3d &transformation);
     virtual void translate(const Eigen::Vector3d &translation);
@@ -91,83 +112,36 @@ public:
     virtual void transform(const Eigen::Matrix3d &transformation, std::vector<Mesh*> &cotransforming_meshes);
     virtual void translate(const Eigen::Vector3d &translation, std::vector<Mesh*> &cotranslating_meshes);
     
-    double distance_to_panel(const Eigen::Vector3d &x, int panel);
-    virtual bool closest_panel(const Eigen::Vector3d &x, int &panel, double &distance);
+    double distance_to_panel(const Eigen::Vector3d &x, int panel) const;
+    virtual bool closest_panel(const Eigen::Vector3d &x, int &panel, double &distance) const;
     
-    Eigen::Vector3d panel_collocation_point(int panel, bool below_surface);
+    Eigen::Vector3d panel_collocation_point(int panel, bool below_surface) const;
     
-    Eigen::Vector3d panel_normal(int panel);
+    Eigen::Vector3d panel_normal(int panel) const;
     
-    double panel_surface_area(int panel);
+    double panel_surface_area(int panel) const;
     
-    double panel_diameter(int panel);
+    double panel_diameter(int panel) const;
     
     Eigen::Vector3d panel_deformation_velocity(int panel) const;
     
-    virtual Eigen::Vector3d close_to_body_point(int node);
+    virtual Eigen::Vector3d close_to_body_point(int node) const;
     
-    Eigen::Vector3d scalar_field_gradient(const Eigen::VectorXd &scalar_field, int this_panel);
+    Eigen::Vector3d scalar_field_gradient(const Eigen::VectorXd &scalar_field, int this_panel) const;
     
-    double doublet_influence(const Eigen::Vector3d &x, int this_panel);
-    double source_influence(const Eigen::Vector3d &x, int this_panel);
+    double doublet_influence(const Eigen::Vector3d &x, int this_panel) const;
+    double source_influence(const Eigen::Vector3d &x, int this_panel) const;
     
-    Eigen::Vector3d source_unit_velocity(const Eigen::Vector3d &x, int this_panel);
-    Eigen::Vector3d vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel);
-    Eigen::Vector3d vortex_ring_ramasamy_leishman_velocity(const Eigen::Vector3d &x, int this_panel, std::vector<double> core_radii, double vorticity);
+    Eigen::Vector3d source_unit_velocity(const Eigen::Vector3d &x, int this_panel) const;
+    Eigen::Vector3d vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) const;
+    Eigen::Vector3d vortex_ring_ramasamy_leishman_velocity(const Eigen::Vector3d &x, int this_panel, const std::vector<double> core_radii, double vorticity) const;
     
-    double doublet_influence(Mesh &other, int other_panel, int this_panel);
-    double source_influence(Mesh &other, int other_panel, int this_panel);
+    double doublet_influence(const Mesh &other, int other_panel, int this_panel) const;
+    double source_influence(const Mesh &other, int other_panel, int this_panel) const;
     
-    Eigen::Vector3d source_unit_velocity(Mesh &other, int other_panel, int this_panel);
-    Eigen::Vector3d vortex_ring_unit_velocity(Mesh &other, int other_panel, int this_panel);
-    Eigen::Vector3d vortex_ring_ramasamy_leishman_velocity(Mesh &other, int other_panel, int this_panel, std::vector<double> core_radii, double vorticity);
-    
-    void invalidate_cache();
-    
-    /**
-       Panel collocation point caches.
-    */
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > panel_collocation_point_cache[2];
-    
-    /**
-       Panel normal vector cache.
-    */
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > panel_normal_cache;
-    
-    /**
-       Panel surface area cache.
-    */
-    std::vector<double> panel_surface_area_cache;
-    
-    /**
-       Panel diameter cache.
-    */
-    std::vector<double> panel_diameter_cache;
-    
-    /**
-       Doublet influence coefficient cache.
-    */
-    std::map<int, std::vector<std::vector<double> > > doublet_influence_cache;
-    
-    /**
-       Source influence coefficient cache.
-    */
-    std::map<int, std::vector<std::vector<double> > > source_influence_cache;
-    
-    /**
-       Unit source panel induced velocity cache.
-    */
-    std::map<int, std::vector<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > > > source_unit_velocity_cache;
-    
-    /**
-       Unit vortex ring induced velocity cache.
-    */
-    std::map<int, std::vector<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > > > vortex_ring_unit_velocity_cache;
-    
-    /**
-       Ramasamy-Leishman vortex ring induced velocity cache.
-    */
-    std::map<int, std::vector<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > > > vortex_ring_ramasamy_leishman_velocity_cache;
+    Eigen::Vector3d source_unit_velocity(const Mesh &other, int other_panel, int this_panel) const;
+    Eigen::Vector3d vortex_ring_unit_velocity(const Mesh &other, int other_panel, int this_panel) const;
+    Eigen::Vector3d vortex_ring_ramasamy_leishman_velocity(const Mesh &other, int other_panel, int this_panel, const std::vector<double> core_radii, double vorticity) const;
 };
 
 };
