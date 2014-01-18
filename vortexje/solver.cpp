@@ -893,11 +893,12 @@ Solver::update_wakes(double dt)
 }
 
 /**
-   Computes the aerodynamic force on a given collection.
+   Returns the pressure coefficient of the given panel.
    
    @param[in]   collection  Reference collection.
+   @param[in]   panel       Reference panel.
   
-   @returns Aerodynamic force.
+   @returns Pressure coefficient.
 */
 double
 Solver::pressure_coefficient(const Mesh &mesh, int panel) const
@@ -919,14 +920,14 @@ Solver::pressure_coefficient(const Mesh &mesh, int panel) const
 }
 
 /**
-   Computes the aerodynamic force on a given collection.
+   Computes the force caused by the pressure distribution on the given collection.
    
    @param[in]   collection  Reference collection.
   
-   @returns Aerodynamic force.
+   @returns Force vector.
 */
 Eigen::Vector3d
-Solver::aerodynamic_force(const Collection &collection) const
+Solver::force(const Collection &collection) const
 {
     double v_ref = reference_velocity(collection);
         
@@ -949,15 +950,15 @@ Solver::aerodynamic_force(const Collection &collection) const
 }
 
 /**
-   Computes the aerodynamic moment on a given point.
+   Computes the moment caused by the pressure distribution on the given collection, relative to the given point.
    
    @param[in]   collection  Reference collection.
    @param[in]   x           Reference point.
   
-   @returns Aerodynamic moment.
+   @returns Moment vector.
 */
 Eigen::Vector3d
-Solver::aerodynamic_moment(const Collection &collection, const Eigen::Vector3d &x) const
+Solver::moment(const Collection &collection, const Eigen::Vector3d &x) const
 {
     double v_ref = reference_velocity(collection);
         

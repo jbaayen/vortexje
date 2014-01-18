@@ -65,8 +65,8 @@ public:
     
     double pressure_coefficient(const Mesh &mesh, int panel) const;
     
-    Eigen::Vector3d aerodynamic_force(const Collection &collection) const;
-    Eigen::Vector3d aerodynamic_moment(const Collection &collection, const Eigen::Vector3d &x) const;
+    Eigen::Vector3d force(const Collection &collection) const;
+    Eigen::Vector3d moment(const Collection &collection, const Eigen::Vector3d &x) const;
     
     void log_coefficients(int step_number) const;
 

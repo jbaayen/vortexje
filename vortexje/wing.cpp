@@ -28,7 +28,7 @@ Wing::Wing() : Mesh()
 }
 
 /**
-   Constructs a wing from a given mesh and aerodynamic interpretation.
+   Constructs a wing from a given mesh and body-fixed reference frame.
   
    @param[in]   mesh                Source mesh containing the wing geometry.
    @param[in]   location            Reference location for new wing 

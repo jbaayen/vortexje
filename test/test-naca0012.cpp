@@ -59,7 +59,7 @@ run_test(double alpha)
     solver.update_coefficients(0);
     
     // Output lift and drag coefficients:
-    Vector3d F_a = solver.aerodynamic_force(collection);
+    Vector3d F_a = solver.force(collection);
     
     double q = 0.5 * fluid_density * freestream_velocity.squaredNorm();
     
