@@ -12,6 +12,10 @@
 
 #include <iostream>
 
+#ifdef _WIN32
+#include <direct.h>
+#endif
+
 #include <Eigen/Geometry>
 #include <Eigen/IterativeLinearSolvers>
 
@@ -26,7 +30,11 @@ using namespace Vortexje;
 static void
 mkdir_helper(const string folder)
 {
+#ifdef _WIN32
+    if (mkdir(folder.c_str()) < 0)
+#else
     if (mkdir(folder.c_str(), S_IRWXU) < 0)
+#endif
         if (errno != EEXIST)
             cerr << "Could not create log folder " << folder << ": " << strerror(errno) << endl;
 }
