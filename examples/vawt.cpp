@@ -10,6 +10,9 @@
 
 #include <vortexje/solver.hpp>
 
+#include <iostream>
+#include <fstream>
+
 using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
@@ -102,12 +105,14 @@ main (int argc, char **argv)
     Mesh tower_mesh;
     Mesh blade_mesh(string("naca0012.msh"));
     
+    Vector3d position(0, 0, 0);
+    
     VAWT vawt(string("mill"),
               tower_mesh,
               blade_mesh,
               MILL_RADIUS,
               N_BLADES,
-              Vector3d(0, 0, 0),
+              position,
               M_PI / 6.0,
               TIP_SPEED_RATIO * WIND_VELOCITY / MILL_RADIUS);
     
@@ -121,6 +126,10 @@ main (int argc, char **argv)
     double fluid_density = 1.2;
     solver.set_fluid_density(fluid_density);
     
+    // Log shaft moments:
+    ofstream f;
+    f.open("vawt-log/shaft_moment.txt");
+    
     // Run simulation:
     double t = 0.0;
     double dt = 0.0033;
@@ -128,16 +137,29 @@ main (int argc, char **argv)
     
     solver.initialize_wakes(dt);
     while (t < 60) {
+        // Solve:
         solver.update_coefficients(dt);
+        
+        // Log coefficients:
         solver.log_coefficients(step_number);
+        
+        // Log shaft moment:
+        Vector3d M = solver.moment(vawt, position);
+        f << M(2) << endl;
 
+        // Update wakes:
         solver.update_wakes(dt);
         
+        // Rotate blades:
         vawt.rotate(dt);
         
+        // Step time:
         t += dt;
         step_number++;
     }
+    
+    // Close shaft log file:
+    f.close();
     
     // Done:
     return 0;
