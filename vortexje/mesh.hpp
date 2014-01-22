@@ -33,8 +33,8 @@ public:
        Export file formats.
     */
     typedef enum {
-        VTK,
-        GMSH
+        VTK,  /*!< The VTK DataFile file format v2.0. */
+        GMSH  /*!< The GMSH mesh file format v2.2. */
     } FileFormat;
     
     /**
