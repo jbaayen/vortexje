@@ -97,6 +97,8 @@ private:
 
     double pressure_coefficient(const Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field, double dphidt, double v_ref) const;
     
+    double surface_velocity_potential(const Mesh &mesh, int offset, int panel) const;
+    
     Eigen::VectorXd surface_velocity_potentials() const;
     
     Eigen::Vector3d disturbance_potential_gradient(const Eigen::Vector3d &x) const;

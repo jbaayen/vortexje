@@ -348,6 +348,23 @@ Solver::velocity_potential(const Vector3d &x) const
 }
 
 /**
+   Returns velocity potential value on the body surface.
+   
+   @returns Surface potential value.
+*/
+double
+Solver::surface_velocity_potential(const Mesh &mesh, int offset, int panel) const
+{
+    if (Parameters::marcov_surface_velocity) {
+        // Since we use N. Marcov's formula for surface velocity, we also compute the surface velocity
+        // potential directly.
+        return velocity_potential(mesh.panel_collocation_point(panel, false));
+        
+    } else
+        return -doublet_coefficients(offset + panel);
+}
+
+/**
    Computes velocity potential values on the body surface.
    
    @returns Vector of velocity potential values, ordered by panel number.
@@ -359,25 +376,23 @@ Solver::surface_velocity_potentials() const
     
     VectorXd surface_velocity_potentials(total_n_panels_without_wakes);
     
-    int surface_velocity_potentials_idx = 0;
-    
-    // The potential functions are not singular on the panel collocation points.  We can
-    // therefoce compute the surface potential values directly.  
+    int offset = 0;  
+ 
     for (int i = 0; i < (int) collections.size(); i++) {
         Collection *collection = collections[i];
         
-        for (int j = 0; j < collection->nolift_mesh.n_panels(); j++) {
-            surface_velocity_potentials(surface_velocity_potentials_idx) = velocity_potential(collection->nolift_mesh.panel_collocation_point(j, false));
-            surface_velocity_potentials_idx++;
-        }
+        for (int j = 0; j < collection->nolift_mesh.n_panels(); j++)
+            surface_velocity_potentials(offset + j) = surface_velocity_potential(collection->nolift_mesh, offset, j);
+
+        offset += collection->nolift_mesh.n_panels();
         
         for (int j = 0; j < (int) collection->wings.size(); j++) {
             Wing *wing = collection->wings[j];
             
-            for (int k = 0; k < wing->n_panels(); k++) {
-                surface_velocity_potentials(surface_velocity_potentials_idx) = velocity_potential(wing->panel_collocation_point(k, false));
-                surface_velocity_potentials_idx++;
-            }
+            for (int k = 0; k < wing->n_panels(); k++)
+                surface_velocity_potentials(offset + k) = surface_velocity_potential(*wing, offset, k);
+            
+            offset += wing->n_panels();
         }
     }
     
