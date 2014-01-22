@@ -1,7 +1,7 @@
 //
 // Vortexje -- Mesh.
 //
-// Copyright (C) 2012 Baayen & Heinz GmbH.
+// Copyright (C) 2012 - 2014 Baayen & Heinz GmbH.
 //
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
@@ -28,7 +28,15 @@ namespace Vortexje
 */
 class Mesh
 {
-public:
+public:        
+    /**
+       Export file formats.
+    */
+    typedef enum {
+        VTK,
+        GMSH
+    } FileFormat;
+    
     /**
        Automatically generated mesh identification number.
     */
@@ -45,8 +53,10 @@ public:
     
     bool load(const std::string file);
     void save(const std::string file,
+              FileFormat format,
               int node_offset = 0, int panel_offset = 0) const;
     void save(const std::string file,
+              FileFormat format,
               const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data,
               int node_offset = 0, int panel_offset = 0) const;
               
@@ -58,7 +68,7 @@ public:
     
     int n_nodes() const;
     int n_panels() const;
-    
+
     /**
        Node number to point map.
     */
@@ -142,6 +152,14 @@ public:
     Eigen::Vector3d source_unit_velocity(const Mesh &other, int other_panel, int this_panel) const;
     Eigen::Vector3d vortex_ring_unit_velocity(const Mesh &other, int other_panel, int this_panel) const;
     Eigen::Vector3d vortex_ring_ramasamy_leishman_velocity(const Mesh &other, int other_panel, int this_panel, const std::vector<double> core_radii, double vorticity) const;
+    
+private:
+    void save_vtk(const std::string file,
+                  const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data) const;
+              
+    void save_gmsh(const std::string file,
+                   const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data,
+                   int node_offset = 0, int panel_offset = 0) const;
 };
 
 };

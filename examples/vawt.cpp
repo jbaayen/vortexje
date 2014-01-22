@@ -141,7 +141,7 @@ main (int argc, char **argv)
         solver.update_coefficients(dt);
         
         // Log coefficients:
-        solver.log_coefficients(step_number);
+        solver.log_coefficients(step_number, Mesh::GMSH);
         
         // Log shaft moment:
         Vector3d M = solver.moment(vawt, position);

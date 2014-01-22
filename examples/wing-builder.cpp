@@ -97,7 +97,7 @@ main (int argc, char **argv)
     solver.initialize_wakes(dt);
     while (t < 60) {
         solver.update_coefficients(dt);
-        solver.log_coefficients(step_number);
+        solver.log_coefficients(step_number, Mesh::GMSH);
         solver.update_wakes(dt);
         
         t += dt;

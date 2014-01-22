@@ -418,6 +418,95 @@ Mesh::compute_geometry()
 }
 
 /**
+   Saves this mesh to a VTK unstructured grid file, including data vectors associating numerical values to each panel -- cell data,
+   in gmsh terminology.
+  
+   @param[in]   file            Destination filename.
+   @param[in]   view_names      List of names of data vectors to be stored.
+   @param[in]   view_data       List of data vectors to be stored.
+   @param[in]   node_offset     Node numbering offset in output file.
+   @param[in]   panel_offset    Panel numbering offset in output file.
+*/
+void
+Mesh::save_vtk(const std::string file, const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data) const
+{  
+    // Save mesh to VTK file:
+    ofstream f;
+    f.open(file.c_str());
+    
+    f << "# vtk DataFile Version 2.0" << endl;
+    f << "FieldData" << endl;
+    f << "ASCII" << endl;
+    f << "DATASET UNSTRUCTURED_GRID" << endl;
+    f << "POINTS " << n_nodes() << " double" << endl;
+    
+    for (int i = 0; i < n_nodes(); i++) {
+        for (int j = 0; j < 3; j++) {
+            if (j > 0)
+                f << ' ';
+            f << nodes[i](j);
+        }
+        f << endl;
+    }
+    
+    f << endl;
+    
+    int size = 0;
+    for (int i = 0; i < n_panels(); i++)
+        size += panel_nodes[i].size() + 1;
+    
+    f << "CELLS " << n_panels() << " " << size << endl;
+    
+    for (int i = 0; i < n_panels(); i++) {
+        f << panel_nodes[i].size();
+
+        for (int j = 0; j < (int) panel_nodes[i].size(); j++) {
+            f << ' ';
+            f << panel_nodes[i][j];
+        }
+        
+        f << endl;
+    }
+    
+    f << endl;
+    
+    f << "CELL_TYPES " << n_panels() << endl;
+    
+    for (int i = 0; i < n_panels(); i++) {
+        int cell_type;
+        switch (panel_nodes[i].size()) {
+        case 3:
+            cell_type = 5;
+            break;
+        case 4:
+            cell_type = 9;
+            break;
+        default:
+            cerr << "Mesh " << id << ": Unknown polygon at panel " << i << "." << endl;
+            continue;
+        }
+        
+        f << cell_type << endl;
+    }
+    
+    f << endl;
+
+    f << "CELL_DATA " << n_panels() << endl;
+    
+    for (int k = 0; k < (int) view_names.size(); k++) {
+        f << "SCALARS " << view_names[k] << " double 1" << endl;
+        f << "LOOKUP_TABLE default" << endl;
+    
+        for (int i = 0; i < n_panels(); i++)        
+            f << view_data[k][i] << endl;
+        
+        f << endl;
+    }
+    
+    f.close();
+}
+
+/**
    Saves this mesh to a gmsh MSH file, including data vectors associating numerical values to each panel -- views,
    in gmsh terminology.
   
@@ -428,10 +517,8 @@ Mesh::compute_geometry()
    @param[in]   panel_offset    Panel numbering offset in output file.
 */
 void
-Mesh::save(const std::string file, const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data, int node_offset, int panel_offset) const
+Mesh::save_gmsh(const std::string file, const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data, int node_offset, int panel_offset) const
 {
-    cout << "Mesh " << id << ": Saving to " << file << "." << endl;
-    
     // Save mesh to gmsh file:
     ofstream f;
     f.open(file.c_str());
@@ -520,19 +607,45 @@ Mesh::save(const std::string file, const std::vector<std::string> &view_names, c
 }
 
 /**
-   Saves this mesh to a gmsh MSH file.
+   Saves this mesh to a file, including data vectors associating numerical values to each panel.
   
    @param[in]   file            Destination filename.
+   @param[in]   format          Destination file format.
+   @param[in]   view_names      List of names of data vectors to be stored.
+   @param[in]   view_data       List of data vectors to be stored.
    @param[in]   node_offset     Node numbering offset in output file.
    @param[in]   panel_offset    Panel numbering offset in output file.
 */
 void
-Mesh::save(const std::string file, int node_offset, int panel_offset) const
+Mesh::save(const std::string file, FileFormat format, const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data, int node_offset, int panel_offset) const
+{
+    cout << "Mesh " << id << ": Saving to " << file << "." << endl;
+    
+    switch (format) {
+    case VTK:
+        save_vtk(file, view_names, view_data);
+        break;
+    case GMSH:
+        save_gmsh(file, view_names, view_data, node_offset, panel_offset);
+        break;
+    }
+}
+
+/**
+   Saves this mesh to a file.
+  
+   @param[in]   file            Destination filename.
+   @param[in]   format          Destination file format.
+   @param[in]   node_offset     Node numbering offset in output file.
+   @param[in]   panel_offset    Panel numbering offset in output file.
+*/
+void
+Mesh::save(const std::string file, FileFormat format, int node_offset, int panel_offset) const
 {
     vector<string> empty_names;
     vector<VectorXd> empty_data;
     
-    save(file, empty_names, empty_data, node_offset, panel_offset);
+    save(file, format, empty_names, empty_data, node_offset, panel_offset);
 }
 
 /**

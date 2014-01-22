@@ -68,7 +68,9 @@ public:
     Eigen::Vector3d force(const Collection &collection) const;
     Eigen::Vector3d moment(const Collection &collection, const Eigen::Vector3d &x) const;
     
-    void log_coefficients(int step_number) const;
+    void log_coefficients(int step_number, Mesh::FileFormat format) const;
+    
+    void log_fields(int step_number, Mesh::FileFormat format, double dx, double dy, double dz, double x_margin, double y_margin, double z_margin) const;
 
 private:
     std::string log_folder;
@@ -104,6 +106,10 @@ private:
     Eigen::Vector3d disturbance_potential_gradient(const Eigen::Vector3d &x) const;
     
     double velocity_potential_time_derivative(const Eigen::VectorXd &velocity_potentials, const Eigen::VectorXd &old_velocity_potentials, int offset, int panel, double dt) const;
+    
+    void log_fields_vtk(int step_number, double dx, double dy, double dz, double x_margin, double y_margin, double z_margin) const;
+    
+    void log_fields_gmsh(int step_number, double dx, double dy, double dz, double x_margin, double y_margin, double z_margin) const;
 };
 
 };
