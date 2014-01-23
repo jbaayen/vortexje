@@ -361,8 +361,25 @@ Solver::surface_velocity_potential(const Mesh &mesh, int offset, int panel) cons
         // potential directly.
         return velocity_potential(mesh.panel_collocation_point(panel, false));
         
-    } else
-        return -doublet_coefficients(offset + panel);
+    } else {
+        double phi = -doublet_coefficients(offset + panel);
+        
+        // Add flow potential due to kinematic velocity:
+        Collection *collection = mesh_to_collection.find(&mesh)->second;
+        Vector3d kinematic_velocity = mesh.panel_deformation_velocity(panel)
+                                          + collection->panel_kinematic_velocity(mesh, panel)
+                                          - freestream_velocity;
+                                              
+        Vector3d tangential_velocity = -kinematic_velocity;
+        
+        // Remove any normal velocity.  This is the (implicit) contribution of the source term.
+        Vector3d normal = mesh.panel_normal(panel);
+        tangential_velocity -= tangential_velocity.dot(normal) * normal;
+        
+        phi += tangential_velocity.dot(mesh.panel_collocation_point(panel, false));
+        
+        return phi;
+    }
 }
 
 /**
