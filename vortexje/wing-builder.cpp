@@ -26,8 +26,7 @@ WingBuilder::WingBuilder(Wing &wing) : wing(wing)
 {
 }
 
-// Return list of vectors representing a NACA airfoil in the (x, y)-plane.  See:
-//    J. Moran, An Introduction to Theoretical and Computational Aerodynamics, Dover, 2010.
+// Cosine rule:
 static double
 cosine_rule(int n_points, int i)
 {
@@ -369,12 +368,11 @@ WingBuilder::add_points(const vector<Vector3d, Eigen::aligned_allocator<Vector3d
    @param[out]  trailing_edge_top_panel_id     Number of newly created panel above and adjacent to trailing edge.
    @param[out]  trailing_edge_bottom_panel_id  Number of newly created panel below and adjacent to trailing edge.
    @param[in]   cyclic                         True if the last nodes in the lists are adjacent to the first nodes in the lists.
-   @param[in]   mode                           The kind of panels to create.
 */
 void
 WingBuilder::connect_nodes(const vector<int> &first_nodes, const vector<int> &second_nodes,
                            int trailing_edge_point_id, int &trailing_edge_top_panel_id, int &trailing_edge_bottom_panel_id,
-                           bool cyclic, ConnectNodesMode mode)
+                           bool cyclic)
 {
     for (int i = 0; i < (int) first_nodes.size(); i++) {
         int next_i;
@@ -385,138 +383,67 @@ WingBuilder::connect_nodes(const vector<int> &first_nodes, const vector<int> &se
                 break;
         } else
             next_i = i + 1;
-            
-        // Create panel(s)
-        int panel_id, middle_node_id;
-        Vector3d middle_point;
-        Vector3d middle_deformation_velocity;
+
+        // Add a planar trapezoidal panel, following
+        //    T. Cebeci, An Engineering Approach to the Calculation of Aerodynamic Flows, Springer, 1999.
         vector<int> original_nodes;
-        vector<int> *empty_vector;
-        Vector3d vertices[4];
-        Vector3d vertex_deformation_velocities[4];
-        int new_nodes[4];
-        switch (mode) {
-        case TRIANGLES_A:            
-            panel_id = wing.add_triangle(first_nodes[i], second_nodes[i], second_nodes[next_i]);
-            
-            // Mark as trailing edge panel if bordering trailing edge node.
-            if (i == trailing_edge_point_id)
-                trailing_edge_bottom_panel_id = panel_id;
-                
-            panel_id = wing.add_triangle(first_nodes[i], second_nodes[next_i], first_nodes[next_i]);
-            
-            // Mark as trailing edge panel if bordering trailing edge node.
-            if (i == trailing_edge_point_id - 1)
-                trailing_edge_top_panel_id = panel_id;
-
-            break;
-            
-        case TRIANGLES_B:       
-            panel_id = wing.add_triangle(first_nodes[i], second_nodes[i], first_nodes[next_i]);
-            
-            // Mark as trailing edge panel if bordering trailing edge node.
-            if (i == trailing_edge_point_id)
-                trailing_edge_bottom_panel_id = panel_id;
-                
-            panel_id = wing.add_triangle(second_nodes[i], second_nodes[next_i], first_nodes[next_i]);
-            
-            // Mark as trailing edge panel if bordering trailing edge node.
-            if (i == trailing_edge_point_id - 1)
-                trailing_edge_top_panel_id = panel_id;   
+        original_nodes.push_back(first_nodes[i]);
+        original_nodes.push_back(first_nodes[next_i]);
+        original_nodes.push_back(second_nodes[i]);
+        original_nodes.push_back(second_nodes[next_i]);
         
-            break;
-            
-        case TRIANGLES_X:
-            // Add node in the middle of the would-be quadrangle:
-            middle_node_id = wing.nodes.size();
-
-            middle_point = (wing.nodes[first_nodes[i]] + wing.nodes[first_nodes[next_i]] + wing.nodes[second_nodes[i]] + wing.nodes[second_nodes[next_i]]) / 4.0;
-            wing.nodes.push_back(middle_point);
-            
-            middle_deformation_velocity = (wing.node_deformation_velocities[first_nodes[i]] + wing.node_deformation_velocities[first_nodes[next_i]] + wing.node_deformation_velocities[second_nodes[i]] + wing.node_deformation_velocities[second_nodes[next_i]]) / 4.0;
-            wing.node_deformation_velocities.push_back(middle_deformation_velocity);
-            
-            empty_vector = new vector<int>;
-            wing.node_panel_neighbors.push_back(empty_vector);
-            
-            // Add four triangles:
-            panel_id = wing.add_triangle(first_nodes[i], second_nodes[i], middle_node_id);
-            
-            // Mark as trailing edge panel if bordering trailing edge node.
-            if (i == trailing_edge_point_id)
-                trailing_edge_bottom_panel_id = panel_id;
+        Vector3d first_line  = wing.nodes[first_nodes[next_i]] - wing.nodes[first_nodes[i]];
+        Vector3d second_line = wing.nodes[second_nodes[next_i]] - wing.nodes[second_nodes[i]];
+        
+        Vector3d first_line_deformation_velocity = wing.node_deformation_velocities[first_nodes[next_i]] - wing.node_deformation_velocities[first_nodes[i]];
+        Vector3d second_line_deformation_velocity = wing.node_deformation_velocities[second_nodes[next_i]] - wing.node_deformation_velocities[second_nodes[i]];
+        
+        Vector3d line_direction = first_line + second_line;
+        line_direction.normalize();
+        
+        Vector3d line_direction_deformation_velocity = (first_line_deformation_velocity + second_line_deformation_velocity) / (first_line + second_line).norm() - (first_line + second_line) * (first_line + second_line).dot(first_line_deformation_velocity + second_line_deformation_velocity) / pow((first_line + second_line).norm(), 3);
+        
+        Vector3d first_mid  = 0.5 * (wing.nodes[first_nodes[i]] + wing.nodes[first_nodes[next_i]]);
+        Vector3d second_mid = 0.5 * (wing.nodes[second_nodes[i]] + wing.nodes[second_nodes[next_i]]);
+        
+        Vector3d first_mid_deformation_velocity = 0.5 * (wing.node_deformation_velocities[first_nodes[i]] + wing.node_deformation_velocities[first_nodes[next_i]]);
+        Vector3d second_mid_deformation_velocity = 0.5 * (wing.node_deformation_velocities[second_nodes[i]] + wing.node_deformation_velocities[second_nodes[next_i]]);
+        
+        Vector3d vertices[4];
+        vertices[0] = first_mid - 0.5 * first_line.norm() * line_direction;
+        vertices[1] = first_mid + 0.5 * first_line.norm() * line_direction;
+        vertices[2] = second_mid - 0.5 * second_line.norm() * line_direction;
+        vertices[3] = second_mid + 0.5 * second_line.norm() * line_direction;
+        
+        Vector3d vertex_deformation_velocities[4];
+        vertex_deformation_velocities[0] = first_mid_deformation_velocity - 0.5 * (first_line.dot(first_line_deformation_velocity) / first_line.norm() * line_direction + first_line.norm() * line_direction_deformation_velocity);
+        vertex_deformation_velocities[1] = first_mid_deformation_velocity + 0.5 * (first_line.dot(first_line_deformation_velocity) / first_line.norm() * line_direction + first_line.norm() * line_direction_deformation_velocity);
+        vertex_deformation_velocities[2] = second_mid_deformation_velocity - 0.5 * (second_line.dot(second_line_deformation_velocity) / second_line.norm() * line_direction + second_line.norm() * line_direction_deformation_velocity);
+        vertex_deformation_velocities[3] = second_mid_deformation_velocity + 0.5 * (second_line.dot(second_line_deformation_velocity) / second_line.norm() * line_direction + second_line.norm() * line_direction_deformation_velocity);
+        
+        int new_nodes[4];
+        for (int j = 0; j < 4; j++) {
+            // If the new points don't match the original ones, create new nodes:
+            if ((vertices[j] - wing.nodes[original_nodes[j]]).norm() < Parameters::inversion_tolerance) {
+                new_nodes[j] = original_nodes[j];
+            } else {         
+                new_nodes[j] = wing.nodes.size();
                 
-            panel_id = wing.add_triangle(second_nodes[next_i], first_nodes[next_i], middle_node_id);
-            
-            // Mark as trailing edge panel if bordering trailing edge node.
-            if (i == trailing_edge_point_id - 1)
-                trailing_edge_top_panel_id = panel_id;
+                wing.nodes.push_back(vertices[j]);
                 
-            panel_id = wing.add_triangle(first_nodes[i], middle_node_id, first_nodes[next_i]);
-            panel_id = wing.add_triangle(second_nodes[i], second_nodes[next_i], middle_node_id);
-            
-            break;
-            
-        case QUADRANGLES:
-            // Add a planar trapezoidal panel, following
-            //    T. Cebeci, An Engineering Approach to the Calculation of Aerodynamic Flows, Springer, 1999.
-            original_nodes.push_back(first_nodes[i]);
-            original_nodes.push_back(first_nodes[next_i]);
-            original_nodes.push_back(second_nodes[i]);
-            original_nodes.push_back(second_nodes[next_i]);
-            
-            Vector3d first_line  = wing.nodes[first_nodes[next_i]] - wing.nodes[first_nodes[i]];
-            Vector3d second_line = wing.nodes[second_nodes[next_i]] - wing.nodes[second_nodes[i]];
-            
-            Vector3d first_line_deformation_velocity = wing.node_deformation_velocities[first_nodes[next_i]] - wing.node_deformation_velocities[first_nodes[i]];
-            Vector3d second_line_deformation_velocity = wing.node_deformation_velocities[second_nodes[next_i]] - wing.node_deformation_velocities[second_nodes[i]];
-            
-            Vector3d line_direction = first_line + second_line;
-            line_direction.normalize();
-            
-            Vector3d line_direction_deformation_velocity = (first_line_deformation_velocity + second_line_deformation_velocity) / (first_line + second_line).norm() - (first_line + second_line) * (first_line + second_line).dot(first_line_deformation_velocity + second_line_deformation_velocity) / pow((first_line + second_line).norm(), 3);
-            
-            Vector3d first_mid  = 0.5 * (wing.nodes[first_nodes[i]] + wing.nodes[first_nodes[next_i]]);
-            Vector3d second_mid = 0.5 * (wing.nodes[second_nodes[i]] + wing.nodes[second_nodes[next_i]]);
-            
-            Vector3d first_mid_deformation_velocity = 0.5 * (wing.node_deformation_velocities[first_nodes[i]] + wing.node_deformation_velocities[first_nodes[next_i]]);
-            Vector3d second_mid_deformation_velocity = 0.5 * (wing.node_deformation_velocities[second_nodes[i]] + wing.node_deformation_velocities[second_nodes[next_i]]);
-            
-            vertices[0] = first_mid - 0.5 * first_line.norm() * line_direction;
-            vertices[1] = first_mid + 0.5 * first_line.norm() * line_direction;
-            vertices[2] = second_mid - 0.5 * second_line.norm() * line_direction;
-            vertices[3] = second_mid + 0.5 * second_line.norm() * line_direction;
-            
-            vertex_deformation_velocities[0] = first_mid_deformation_velocity - 0.5 * (first_line.dot(first_line_deformation_velocity) / first_line.norm() * line_direction + first_line.norm() * line_direction_deformation_velocity);
-            vertex_deformation_velocities[1] = first_mid_deformation_velocity + 0.5 * (first_line.dot(first_line_deformation_velocity) / first_line.norm() * line_direction + first_line.norm() * line_direction_deformation_velocity);
-            vertex_deformation_velocities[2] = second_mid_deformation_velocity - 0.5 * (second_line.dot(second_line_deformation_velocity) / second_line.norm() * line_direction + second_line.norm() * line_direction_deformation_velocity);
-            vertex_deformation_velocities[3] = second_mid_deformation_velocity + 0.5 * (second_line.dot(second_line_deformation_velocity) / second_line.norm() * line_direction + second_line.norm() * line_direction_deformation_velocity);
-            
-            for (int j = 0; j < 4; j++) {
-                // If the new points don't match the original ones, create new nodes:
-                if ((vertices[j] - wing.nodes[original_nodes[j]]).norm() < Parameters::inversion_tolerance) {
-                    new_nodes[j] = original_nodes[j];
-                } else {         
-                    new_nodes[j] = wing.nodes.size();
-                    
-                    wing.nodes.push_back(vertices[j]);
-                    
-                    wing.node_deformation_velocities.push_back(vertex_deformation_velocities[j]);
-                    
-                    wing.node_panel_neighbors.push_back(wing.node_panel_neighbors[original_nodes[j]]);
-                }
+                wing.node_deformation_velocities.push_back(vertex_deformation_velocities[j]);
+                
+                wing.node_panel_neighbors.push_back(wing.node_panel_neighbors[original_nodes[j]]);
             }
-            
-            panel_id = wing.add_quadrangle(new_nodes[0], new_nodes[2], new_nodes[3], new_nodes[1]);
-            
-            // Mark as trailing edge panel if bordering trailing edge node.
-            if (i == trailing_edge_point_id - 1)
-                trailing_edge_top_panel_id = panel_id;
-            else if (i == trailing_edge_point_id)
-                trailing_edge_bottom_panel_id = panel_id;
-                
-            break;
         }
+        
+        int panel_id = wing.add_quadrangle(new_nodes[0], new_nodes[2], new_nodes[3], new_nodes[1]);
+        
+        // Mark as trailing edge panel if bordering trailing edge node.
+        if (i == trailing_edge_point_id - 1)
+            trailing_edge_top_panel_id = panel_id;
+        else if (i == trailing_edge_point_id)
+            trailing_edge_bottom_panel_id = panel_id;
     }
 }
 
@@ -566,11 +493,11 @@ WingBuilder::fill_airfoil(const vector<int> &airfoil_nodes, int trailing_edge_po
     // Close middle part with panels:
     int empty;
     if (z_sign == 1) {
-        connect_nodes(middle_nodes, top_nodes, -1, empty, empty, false, QUADRANGLES);
-        connect_nodes(bottom_nodes, middle_nodes, -1, empty, empty, false, QUADRANGLES);
+        connect_nodes(middle_nodes, top_nodes, -1, empty, empty, false);
+        connect_nodes(bottom_nodes, middle_nodes, -1, empty, empty, false);
     } else { 
-        connect_nodes(top_nodes, middle_nodes, -1, empty, empty, false, QUADRANGLES);
-        connect_nodes(middle_nodes, bottom_nodes, -1, empty, empty, false, QUADRANGLES);
+        connect_nodes(top_nodes, middle_nodes, -1, empty, empty, false);
+        connect_nodes(middle_nodes, bottom_nodes, -1, empty, empty, false);
     }
     
     // Create triangle for leading and trailing edges:

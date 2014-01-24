@@ -40,19 +40,9 @@ public:
     
     std::vector<int> add_points(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > &points, int trailing_edge_point_id);
     
-    /**
-       Node connection mode. 
-    */
-    typedef enum {
-        TRIANGLES_A,  /**< Two triangles per quadrangle, diagonal direction A. */
-        TRIANGLES_B,  /**< Two triangles per quadrangle, diagonal direction B. */
-        TRIANGLES_X,  /**< Four triangles per quadrangle. */
-        QUADRANGLES   /**< Quadrangles only. */
-    } ConnectNodesMode;
-    
     void connect_nodes(const std::vector<int> &first_nodes, const std::vector<int> &second_nodes,
                        int trailing_edge_point_id, int &trailing_edge_top_panel_id, int &trailing_edge_bottom_panel_id,
-                       bool cyclic, ConnectNodesMode mode);
+                       bool cyclic);
     
     std::vector<int> fill_airfoil(const std::vector<int> &airfoil_nodes, int trailing_edge_point_id, int z_sign);
 };
