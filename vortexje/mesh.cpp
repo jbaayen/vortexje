@@ -296,6 +296,7 @@ Mesh::compute_topology()
                     }
                 }
                 
+                // Must have two nodes in common.
                 if (found)
                     single_panel_neighbors.push_back(potential_neighbor);
                 else
