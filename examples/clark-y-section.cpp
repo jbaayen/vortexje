@@ -23,12 +23,14 @@ main (int argc, char **argv)
     // Enable wake convection:
     Parameters::convect_wake = true;
     
-    // Create wing:
+    // Create lifting surface object:
     LiftingSurface wing;
   
+    // Set up local coordinate system:
     wing.chord_direction = Vector3d(1, 0, 0);
     wing.span_direction  = Vector3d(0, 0, 1);
     
+    // Construct wing section:
     LiftingSurfaceBuilder surface_builder(wing);
     
     int trailing_edge_point_id;
@@ -58,6 +60,7 @@ main (int argc, char **argv)
     
     wing.sort_strips();
     
+    // Translate into the canonical coordinate system:
     Vector3d translation(-chord / 3.0, 0.0, -span / 2.0);
     wing.translate(translation);
     

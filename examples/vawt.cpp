@@ -24,6 +24,55 @@ using namespace Vortexje;
 #define TIP_SPEED_RATIO 5
 #define WIND_VELOCITY   6
 
+class Blade : public LiftingSurface
+{
+public:
+    // Constructor:
+    Blade()
+    {
+        // Set up local coordinate system:
+        chord_direction = Vector3d(1, 0, 0);
+        span_direction  = Vector3d(0, 0, 1);
+        
+        // Create blade:
+        LiftingSurfaceBuilder surface_builder(*this);
+        
+        int trailing_edge_point_id;
+        vector<int> prev_airfoil_nodes;
+        
+        const int n_points_per_airfoil = 32;
+        const int n_airfoils = 21;
+        
+        const double chord = 0.75;
+        const double span = 4.5;
+        
+        for (int j = 0; j < n_airfoils; j++) {
+            vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points =
+                Airfoils::NACA4::generate(0, 0, 0.12, true, chord, n_points_per_airfoil, trailing_edge_point_id);
+            for (int k = 0; k < (int) airfoil_points.size(); k++)
+                airfoil_points[k](2) += j * span / (double) (n_airfoils - 1);
+                
+            vector<int> airfoil_nodes = surface_builder.create_nodes(airfoil_points, trailing_edge_point_id);
+            
+            if (j > 0)
+                surface_builder.create_panels_between(airfoil_nodes, prev_airfoil_nodes, trailing_edge_point_id);
+                
+            prev_airfoil_nodes = airfoil_nodes;
+        }
+
+        compute_topology();
+        compute_geometry();
+        
+        sort_strips();
+        
+        // Translate and rotate into the canonical coordinate system:
+        Vector3d translation(-chord / 3.0, 0.0, -span / 2.0);
+        translate(translation);
+        
+        rotate(Vector3d::UnitZ(), -M_PI / 2.0);
+    }
+};
+
 class VAWT : public Body
 {
 public:
@@ -45,53 +94,14 @@ public:
         this->rotational_velocity = Vector3d(0, 0, dthetadt);
         
         // Initialize blades:
-        Vector3d unit_z = Vector3d::UnitZ();
         for (int i = 0; i < n_blades; i++) {
-            LiftingSurface *blade = new LiftingSurface();
-    
-            blade->chord_direction = Vector3d(1, 0, 0);
-            blade->span_direction  = Vector3d(0, 0, 1);
+            Blade *blade = new Blade();
             
-            LiftingSurfaceBuilder surface_builder(*blade);
-            
-            int trailing_edge_point_id;
-            vector<int> prev_airfoil_nodes;
-            
-            const int n_points_per_airfoil = 32;
-            const int n_airfoils = 21;
-            
-            const double chord = 0.75;
-            const double span = 4.5;
-            
-            for (int j = 0; j < n_airfoils; j++) {
-                vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points =
-                    Airfoils::NACA4::generate(0, 0, 0.12, true, chord, n_points_per_airfoil, trailing_edge_point_id);
-                for (int k = 0; k < (int) airfoil_points.size(); k++)
-                    airfoil_points[k](2) += j * span / (double) (n_airfoils - 1);
-                    
-                vector<int> airfoil_nodes = surface_builder.create_nodes(airfoil_points, trailing_edge_point_id);
-                
-                if (j > 0)
-                    surface_builder.create_panels_between(airfoil_nodes, prev_airfoil_nodes, trailing_edge_point_id);
-                    
-                prev_airfoil_nodes = airfoil_nodes;
-            }
-
-            blade->compute_topology();
-            blade->compute_geometry();
-            
-            blade->sort_strips();
-            
-            Vector3d translation(-chord / 3.0, 0.0, -span / 2.0);
+            Vector3d translation(rotor_radius, 0, 0);
             blade->translate(translation);
             
-            blade->rotate(unit_z, -M_PI / 2.0);
-            
-            Vector3d translation2(rotor_radius, 0, 0);
-            blade->translate(translation2);
-            
             double theta_blade = theta_0 + 2 * M_PI / n_blades * i;
-            blade->rotate(unit_z, theta_blade);
+            blade->rotate(Vector3d::UnitZ(), theta_blade);
             
             blade->translate(position);
             
