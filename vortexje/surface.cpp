@@ -169,7 +169,7 @@ Surface::load(const string file)
         getline(f, line);
         
         if (line[0] == '$') {
-            if        (line == "$SurfaceFormat"   ) {
+            if        (line == "$MeshFormat"   ) {
                 getline(f, line);
                 
                 istringstream tokens(line);
@@ -524,9 +524,9 @@ Surface::save_gmsh(const std::string file, const std::vector<std::string> &view_
     ofstream f;
     f.open(file.c_str());
     
-    f << "$SurfaceFormat" << endl;
+    f << "$MeshFormat" << endl;
     f << "2.2 0 8" << endl; 
-    f << "$EndSurfaceFormat" << endl;
+    f << "$EndMeshFormat" << endl;
     
     f << "$Nodes" << endl;
     f << n_nodes() << endl;
