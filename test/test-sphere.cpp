@@ -20,15 +20,16 @@ using namespace Vortexje;
 int
 main (int argc, char **argv)
 {
-    // Load sphere mesh:
-    Mesh sphere(string("sphere.msh"));
+    // Load sphere surface:
+    Surface sphere(string("sphere.msh"));
    
-    // Create mesh collection:
-    Collection collection(string("test-sphere"), sphere);
+    // Create surface body:
+    Body body(string("test-sphere"));
+    body.add_non_lifting_surface(&sphere);
     
     // Set up solver:
     Solver solver("test-sphere-log");
-    solver.add_collection(collection);
+    solver.add_body(body);
     
     Vector3d freestream_velocity(30.0, 0, 0);
     solver.set_freestream_velocity(freestream_velocity);

@@ -1,13 +1,13 @@
 //
-// Vortexje -- Mesh.
+// Vortexje -- Surface.
 //
 // Copyright (C) 2012 - 2014 Baayen & Heinz GmbH.
 //
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
-#ifndef __MESH_HPP__
-#define __MESH_HPP__
+#ifndef __SURFACE_HPP__
+#define __SURFACE_HPP__
 
 #include <map>
 #include <string>
@@ -21,12 +21,12 @@ namespace Vortexje
 {
 
 /**
-   Mesh representation using node-panel, panel-node, and panel-panel data structures,
-   and implements geometrical and singularity panel influence operations.
+   Surface representation using node-panel, panel-node, and panel-panel data structures.
+   Implements geometrical and singularity panel influence operations.
    
-   @brief Mesh representation.
+   @brief Surface representation.
 */
-class Mesh
+class Surface
 {
 public:        
     /**
@@ -34,22 +34,22 @@ public:
     */
     typedef enum {
         VTK,  /*!< The VTK DataFile file format v2.0. */
-        GMSH  /*!< The GMSH mesh file format v2.2. */
+        GMSH  /*!< The Gmsh MSH file format v2.2. */
     } FileFormat;
     
     /**
-       Automatically generated mesh identification number.
+       Automatically generated surface identification number.
     */
     int id;
     
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     
-    Mesh();
-    Mesh(std::string file);
+    Surface();
+    Surface(std::string file);
     
     void clear_node_panel_neighbors();
     
-    virtual ~Mesh();
+    virtual ~Surface();
     
     bool load(const std::string file);
     void save(const std::string file,
@@ -118,10 +118,6 @@ public:
     virtual void transform(const Eigen::Matrix3d &transformation);
     virtual void translate(const Eigen::Vector3d &translation);
     
-    void rotate(const Eigen::Vector3d &axis, double angle, std::vector<Mesh*> &corotating_meshes);
-    virtual void transform(const Eigen::Matrix3d &transformation, std::vector<Mesh*> &cotransforming_meshes);
-    virtual void translate(const Eigen::Vector3d &translation, std::vector<Mesh*> &cotranslating_meshes);
-    
     double distance_to_panel(const Eigen::Vector3d &x, int panel) const;
     virtual bool closest_panel(const Eigen::Vector3d &x, int &panel, double &distance) const;
     
@@ -146,12 +142,12 @@ public:
     Eigen::Vector3d vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) const;
     Eigen::Vector3d vortex_ring_ramasamy_leishman_velocity(const Eigen::Vector3d &x, int this_panel, const std::vector<double> core_radii, double vorticity) const;
     
-    double doublet_influence(const Mesh &other, int other_panel, int this_panel) const;
-    double source_influence(const Mesh &other, int other_panel, int this_panel) const;
+    double doublet_influence(const Surface &other, int other_panel, int this_panel) const;
+    double source_influence(const Surface &other, int other_panel, int this_panel) const;
     
-    Eigen::Vector3d source_unit_velocity(const Mesh &other, int other_panel, int this_panel) const;
-    Eigen::Vector3d vortex_ring_unit_velocity(const Mesh &other, int other_panel, int this_panel) const;
-    Eigen::Vector3d vortex_ring_ramasamy_leishman_velocity(const Mesh &other, int other_panel, int this_panel, const std::vector<double> core_radii, double vorticity) const;
+    Eigen::Vector3d source_unit_velocity(const Surface &other, int other_panel, int this_panel) const;
+    Eigen::Vector3d vortex_ring_unit_velocity(const Surface &other, int other_panel, int this_panel) const;
+    Eigen::Vector3d vortex_ring_ramasamy_leishman_velocity(const Surface &other, int other_panel, int this_panel, const std::vector<double> core_radii, double vorticity) const;
     
 private:
     void save_vtk(const std::string file,
@@ -164,4 +160,4 @@ private:
 
 };
 
-#endif // __MESH_HPP__
+#endif // __SURFACE_HPP__

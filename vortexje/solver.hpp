@@ -15,7 +15,7 @@
 #include <Eigen/Core>
 #include <Eigen/StdVector>
 
-#include <vortexje/collection.hpp>
+#include <vortexje/body.hpp>
 
 namespace Vortexje
 {
@@ -35,11 +35,11 @@ public:
     ~Solver();
 
     /**
-       List of mesh collections.
+       List of surface bodies.
     */
-    std::vector<Collection*> collections;
+    std::vector<Body*> bodies;
     
-    void add_collection(Collection &collection);
+    void add_body(Body &body);
     
     /**
        Freestream velocity.
@@ -63,22 +63,22 @@ public:
     
     Eigen::Vector3d velocity(const Eigen::Vector3d &x) const;
     
-    double pressure_coefficient(const Mesh &mesh, int panel) const;
+    double pressure_coefficient(const Surface &surface, int panel) const;
     
-    Eigen::Vector3d force(const Collection &collection) const;
-    Eigen::Vector3d moment(const Collection &collection, const Eigen::Vector3d &x) const;
+    Eigen::Vector3d force(const Body &body) const;
+    Eigen::Vector3d moment(const Body &body, const Eigen::Vector3d &x) const;
     
-    void log_coefficients(int step_number, Mesh::FileFormat format) const;
+    void log_coefficients(int step_number, Surface::FileFormat format) const;
     
-    void log_fields(int step_number, Mesh::FileFormat format, double dx, double dy, double dz, double x_margin, double y_margin, double z_margin) const;
+    void log_fields(int step_number, Surface::FileFormat format, double dx, double dy, double dz, double x_margin, double y_margin, double z_margin) const;
 
 private:
     std::string log_folder;
-    std::vector<Mesh*> meshes;
-    std::vector<Mesh*> meshes_without_wakes;
-    int total_n_panels_without_wakes;
+    std::vector<Surface*> surfaces;
+    std::vector<Surface*> non_wake_surfaces;
+    int n_non_wake_panels;
     
-    std::map<const Mesh*, Collection*> mesh_to_collection;
+    std::map<const Surface*, Body*> surface_to_body;
     
     Eigen::VectorXd source_coefficients;   
     Eigen::VectorXd doublet_coefficients;
@@ -87,19 +87,19 @@ private:
     
     void doublet_coefficient_matrix_block(Eigen::MatrixXd &doublet_influence_coefficients, 
                                           Eigen::MatrixXd &source_influence_coefficients,
-                                          const Mesh &mesh_one, int offset_one, const Mesh &mesh_two, int offset_two) const;
+                                          const Surface &surface_one, int offset_one, const Surface &surface_two, int offset_two) const;
                                           
-    void wakes_influence(Eigen::MatrixXd &A, Mesh &mesh, int offset) const;
+    void wakes_influence(Eigen::MatrixXd &A, Surface &surface, int offset) const;
                                           
-    double source_coefficient(const Mesh &mesh, int panel, const Eigen::Vector3d &kinematic_velocity, bool include_wake_influence) const;
+    double source_coefficient(const Surface &surface, int panel, const Eigen::Vector3d &kinematic_velocity, bool include_wake_influence) const;
     
-    Eigen::Vector3d surface_velocity(const Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field) const;
+    Eigen::Vector3d surface_velocity(const Surface &surface, int panel, const Eigen::VectorXd &doublet_coefficient_field) const;
     
-    double reference_velocity(const Collection &collection) const;
+    double reference_velocity(const Body &body) const;
 
-    double pressure_coefficient(const Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field, double dphidt, double v_ref) const;
+    double pressure_coefficient(const Surface &surface, int panel, const Eigen::VectorXd &doublet_coefficient_field, double dphidt, double v_ref) const;
     
-    double surface_velocity_potential(const Mesh &mesh, int offset, int panel) const;
+    double surface_velocity_potential(const Surface &surface, int offset, int panel) const;
     
     Eigen::VectorXd surface_velocity_potentials() const;
     

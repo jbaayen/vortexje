@@ -114,13 +114,6 @@ public:
     static double inversion_tolerance;
     
     /**
-       If the inner product of normals of neighbouring panels is more than sharp_edge_tolerance in absolute value,
-       then the edge shared by the two panels is considered "sharp" and treated accordingly.
-       (e.g., for trailing edge detection).
-    */
-    static double sharp_edge_threshold;
-    
-    /**
        Distance to below-surface collocation points (along normal).
     */
     static double collocation_point_delta;

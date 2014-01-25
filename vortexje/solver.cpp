@@ -54,14 +54,14 @@ Solver::Solver(const string log_folder) : log_folder(log_folder)
     fluid_density = 0.0;
     
     // Total number of panels:
-    total_n_panels_without_wakes = 0;
+    n_non_wake_panels = 0;
     
     // Properly size and zero doublet coefficient vector:
-    doublet_coefficients.resize(total_n_panels_without_wakes);
-    source_coefficients.resize(total_n_panels_without_wakes);
-    pressure_coefficients.resize(total_n_panels_without_wakes);
-    velocity_potentials.resize(total_n_panels_without_wakes);
-    for (int i = 0; i < total_n_panels_without_wakes; i++) {
+    doublet_coefficients.resize(n_non_wake_panels);
+    source_coefficients.resize(n_non_wake_panels);
+    pressure_coefficients.resize(n_non_wake_panels);
+    velocity_potentials.resize(n_non_wake_panels);
+    for (int i = 0; i < n_non_wake_panels; i++) {
         doublet_coefficients(i) = 0.0;
         source_coefficients(i) = 0.0;
         pressure_coefficients(i) = 0.0;
@@ -80,38 +80,40 @@ Solver::~Solver()
 }
 
 /**
-   Adds a mesh collection to this solver.
+   Adds a surface body to this solver.
    
-   @param[in]   collection  Collection to be added.
+   @param[in]   body  Body to be added.
 */
 void
-Solver::add_collection(Collection &collection)
+Solver::add_body(Body &body)
 {
-    collections.push_back(&collection);
+    bodies.push_back(&body);
     
-    meshes.push_back(&collection.nolift_mesh);
-    meshes_without_wakes.push_back(&collection.nolift_mesh);
-    
-    mesh_to_collection[&collection.nolift_mesh] = &collection;
- 
-    total_n_panels_without_wakes = total_n_panels_without_wakes + collection.nolift_mesh.n_panels();
-    
-    for (int i = 0; i < (int) collection.wings.size(); i++) {
-        meshes.push_back(collection.wings[i]);
-        meshes.push_back(collection.wakes[i]);
-        meshes_without_wakes.push_back(collection.wings[i]);
+    for (int i = 0; i < (int) body.non_lifting_surfaces.size(); i++) {
+        surfaces.push_back(body.non_lifting_surfaces[i]);
+        non_wake_surfaces.push_back(body.non_lifting_surfaces[i]);
            
-        mesh_to_collection[collection.wings[i]] = &collection;
-        mesh_to_collection[collection.wakes[i]] = &collection;
+        surface_to_body[body.non_lifting_surfaces[i]] = &body;
         
-        total_n_panels_without_wakes = total_n_panels_without_wakes + collection.wings[i]->n_panels();
+        n_non_wake_panels = n_non_wake_panels + body.non_lifting_surfaces[i]->n_panels();
     }
     
-    doublet_coefficients.resize(total_n_panels_without_wakes);
-    source_coefficients.resize(total_n_panels_without_wakes);
-    pressure_coefficients.resize(total_n_panels_without_wakes);
-    velocity_potentials.resize(total_n_panels_without_wakes);
-    for (int i = 0; i < total_n_panels_without_wakes; i++) {
+    for (int i = 0; i < (int) body.lifting_surfaces.size(); i++) {
+        surfaces.push_back(body.lifting_surfaces[i]);
+        surfaces.push_back(body.wakes[i]);
+        non_wake_surfaces.push_back(body.lifting_surfaces[i]);
+           
+        surface_to_body[body.lifting_surfaces[i]] = &body;
+        surface_to_body[body.wakes[i]] = &body;
+        
+        n_non_wake_panels = n_non_wake_panels + body.lifting_surfaces[i]->n_panels();
+    }
+    
+    doublet_coefficients.resize(n_non_wake_panels);
+    source_coefficients.resize(n_non_wake_panels);
+    pressure_coefficients.resize(n_non_wake_panels);
+    velocity_potentials.resize(n_non_wake_panels);
+    for (int i = 0; i < n_non_wake_panels; i++) {
         doublet_coefficients(i) = 0.0;
         source_coefficients(i) = 0.0;
         pressure_coefficients(i) = 0.0;
@@ -119,28 +121,30 @@ Solver::add_collection(Collection &collection)
     }
         
     // Open logs:
-    string collection_log_folder = log_folder + "/" + collection.id;
+    string body_log_folder = log_folder + "/" + body.id;
     
-    mkdir_helper(collection_log_folder);
+    mkdir_helper(body_log_folder);
     
-    stringstream ss;
-    ss << collection_log_folder << "/nolift_mesh";
-   
-    string s = ss.str();
-    mkdir_helper(s);
-    
-    for (int i = 0; i < (int) collection.wings.size(); i++) {
+    for (int i = 0; i < (int) body.non_lifting_surfaces.size(); i++) {
         stringstream ss;
-        ss << collection_log_folder << "/wake_" << i;
+        ss << body_log_folder << "/non_lifting_surface_" << i;
+        
+        string s = ss.str();
+        mkdir_helper(s);
+    }
+    
+    for (int i = 0; i < (int) body.lifting_surfaces.size(); i++) {
+        stringstream ss;
+        ss << body_log_folder << "/lifting_surface_" << i;
         
         string s = ss.str();
         mkdir_helper(s);
         
         stringstream ss2;
-        ss2 << collection_log_folder << "/wing_" << i;
+        ss2 << body_log_folder << "/wake_" << i;
         
         s = ss2.str();
-        mkdir_helper(s);
+        mkdir_helper(s);      
     }
 }
 
@@ -168,105 +172,106 @@ Solver::set_fluid_density(double value)
 
 // Add doublet influence of wakes to system matrix:
 void
-Solver::wakes_influence(MatrixXd &A, Mesh &mesh, int offset) const
+Solver::wakes_influence(MatrixXd &A, Surface &surface, int offset) const
 {
-    for (int j = 0; j < mesh.n_panels(); j++) {
-        int wing_offset = 0;
+    for (int j = 0; j < surface.n_panels(); j++) {
+        int lifting_surface_offset = 0;
         
-        for (int k = 0; k < (int) collections.size(); k++) {
-            Collection *collection = collections[k];
+        for (int k = 0; k < (int) bodies.size(); k++) {
+            Body *body = bodies[k];
             
-            wing_offset += collection->nolift_mesh.n_panels();
+            for (int l = 0; l < (int) body->non_lifting_surfaces.size(); l++)
+                lifting_surface_offset += body->non_lifting_surfaces[l]->n_panels();
             
-            for (int l = 0; l < (int) collection->wakes.size(); l++) {
-                Wing *wing = collection->wings[l];
-                Wake *wake = collection->wakes[l];
+            for (int l = 0; l < (int) body->lifting_surfaces.size(); l++) {
+                LiftingSurface *lifting_surface = body->lifting_surfaces[l];
+                Wake *wake = body->wakes[l];
                     
                 int idx = 0;
-                for (int m = wake->n_panels() - (int) wing->trailing_edge_top_panels.size(); m < (int) wake->n_panels(); m++) {
-                    int pa = wing->trailing_edge_top_panels[idx];
-                    int pb = wing->trailing_edge_bottom_panels[idx];
+                for (int m = wake->n_panels() - (int) lifting_surface->upper_trailing_edge_panels.size(); m < (int) wake->n_panels(); m++) {
+                    int pa = lifting_surface->upper_trailing_edge_panels[idx];
+                    int pb = lifting_surface->lower_trailing_edge_panels[idx];
                     
                     // Account for the influence of the new wake panels.  The doublet strength of these panels
                     // is set according to the Kutta condition;  see below.
-                    A(offset + j, wing_offset + pa) += wake->doublet_influence(mesh, j, m);
-                    A(offset + j, wing_offset + pb) -= wake->doublet_influence(mesh, j, m);
+                    A(offset + j, lifting_surface_offset + pa) += wake->doublet_influence(surface, j, m);
+                    A(offset + j, lifting_surface_offset + pb) -= wake->doublet_influence(surface, j, m);
                     
                     idx++;
                 }
                 
-                wing_offset += wing->n_panels();
+                lifting_surface_offset += lifting_surface->n_panels();
             }
         }
     }
 }
 
-// Compute source coefficient for given mesh and panel:
+// Compute source coefficient for given surface and panel:
 double
-Solver::source_coefficient(const Mesh &mesh, int panel, const Vector3d &kinematic_velocity, bool include_wake_influence) const
+Solver::source_coefficient(const Surface &surface, int panel, const Vector3d &kinematic_velocity, bool include_wake_influence) const
 {
     // Main velocity:
     Vector3d velocity = -kinematic_velocity;
     
     // Wake contribution:
     if (Parameters::convect_wake && include_wake_influence) {
-        for (int i = 0; i < (int) collections.size(); i++) {
-            Collection *collection = collections[i];
+        for (int i = 0; i < (int) bodies.size(); i++) {
+            Body *body = bodies[i];
             
-            for (int j = 0; j < (int) collection->wakes.size(); j++) {
-                Wake *wake = collection->wakes[j];
+            for (int j = 0; j < (int) body->wakes.size(); j++) {
+                Wake *wake = body->wakes[j];
                 
                 for (int k = 0; k < wake->n_panels(); k++) {
                     // Use doublet panel - vortex ring equivalence.  Any new wake panels have zero doublet
                     // coefficient, and are therefore not accounted for here.
                     if (Parameters::use_ramasamy_leishman_vortex_sheet)
                         velocity += wake->vortex_ring_ramasamy_leishman_velocity
-                            (mesh, panel, k, wake->vortex_core_radii[k], wake->doublet_coefficients[k]);
+                            (surface, panel, k, wake->vortex_core_radii[k], wake->doublet_coefficients[k]);
                     else
-                        velocity += wake->vortex_ring_unit_velocity(mesh, panel, k) * wake->doublet_coefficients[k];
+                        velocity += wake->vortex_ring_unit_velocity(surface, panel, k) * wake->doublet_coefficients[k];
                 }
             }
         }
     }
     
     // Take normal component:
-    Vector3d normal = mesh.panel_normal(panel);
+    Vector3d normal = surface.panel_normal(panel);
     return -velocity.dot(normal);
 }
 
 /**
    Computes the surface velocity for the given panel.
    
-   @param[in]   mesh                        Reference mesh.
+   @param[in]   surface                        Reference surface.
    @param[in]   panel                       Reference panel.
-   @param[in]   doublet_coefficient_field   Doublet coefficient distribution on given mesh.
+   @param[in]   doublet_coefficient_field   Doublet coefficient distribution on given surface.
    
    @returns Surface velocity.
 */
 Eigen::Vector3d
-Solver::surface_velocity(const Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field) const
+Solver::surface_velocity(const Surface &surface, int panel, const Eigen::VectorXd &doublet_coefficient_field) const
 {
     // Compute disturbance part of surface velocity.
     Vector3d tangential_velocity;
     if (Parameters::marcov_surface_velocity) {
-        Vector3d x = mesh.panel_collocation_point(panel, false);
+        Vector3d x = surface.panel_collocation_point(panel, false);
         
         // Use N. Marcov's formula for surface velocity, see L. Dragoş, Mathematical Methods in Aerodynamics, Springer, 2003.
         Vector3d tangential_velocity = disturbance_potential_gradient(x);
-        tangential_velocity -= 0.5 * mesh.scalar_field_gradient(doublet_coefficient_field, panel);
+        tangential_velocity -= 0.5 * surface.scalar_field_gradient(doublet_coefficient_field, panel);
     } else
-        tangential_velocity = -mesh.scalar_field_gradient(doublet_coefficient_field, panel);
+        tangential_velocity = -surface.scalar_field_gradient(doublet_coefficient_field, panel);
 
     // Add flow due to kinematic velocity:
-    Collection *collection = mesh_to_collection.find(&mesh)->second;
-    Vector3d kinematic_velocity = mesh.panel_deformation_velocity(panel)
-                                      + collection->panel_kinematic_velocity(mesh, panel)
+    Body *body = surface_to_body.find(&surface)->second;
+    Vector3d kinematic_velocity = surface.panel_deformation_velocity(panel)
+                                      + body->panel_kinematic_velocity(surface, panel)
                                       - freestream_velocity;
                                           
     tangential_velocity -= kinematic_velocity;
     
     // Remove any normal velocity.  This is the (implicit) contribution of the source term.
-    Vector3d normal = mesh.panel_normal(panel);
+    Vector3d normal = surface.panel_normal(panel);
     tangential_velocity -= tangential_velocity.dot(normal) * normal;
     
     // Done:
@@ -274,35 +279,35 @@ Solver::surface_velocity(const Mesh &mesh, int panel, const Eigen::VectorXd &dou
 }
 
 /**
-   Establishes the reference velocity the given collection.
+   Establishes the reference velocity the given body.
    
-   @param[in]   collection   Collection to establish reference velocity for.
+   @param[in]   body   Body to establish reference velocity for.
    
    @returns Reference velocity.
 */
 double
-Solver::reference_velocity(const Collection &collection) const
+Solver::reference_velocity(const Body &body) const
 {
-    return (collection.velocity - freestream_velocity).norm();
+    return (body.velocity - freestream_velocity).norm();
 }
 
 /**
    Computes the pressure coefficient for the given panel.
    
-   @param[in]   mesh                        Reference Mesh.
+   @param[in]   surface                        Reference Surface.
    @param[in]   panel                       Reference panel.
-   @param[in]   doublet_coefficient_field   Doublet coefficient distribution on given mesh.
+   @param[in]   doublet_coefficient_field   Doublet coefficient distribution on given surface.
    @param[in]   dphidt                      Time-derivative of the velocity potential of the reference panel.
    @param[in]   v_ref                       Reference velocity for unit removal.
    
    @returns Pressure coefficient.
 */
 double
-Solver::pressure_coefficient(const Mesh &mesh, int panel, const Eigen::VectorXd &doublet_coefficient_field, double dphidt, double v_ref) const
+Solver::pressure_coefficient(const Surface &surface, int panel, const Eigen::VectorXd &doublet_coefficient_field, double dphidt, double v_ref) const
 {
-    double C_p = 1 - (surface_velocity(mesh, panel, doublet_coefficient_field).squaredNorm() + 2 * dphidt) / pow(v_ref, 2);
+    double C_p = 1 - (surface_velocity(surface, panel, doublet_coefficient_field).squaredNorm() + 2 * dphidt) / pow(v_ref, 2);
     if (C_p < Parameters::min_pressure_coefficient)
-        cerr << "Solver: Pressure coefficient on mesh " << mesh.id << ", panel " << panel << " is less than minimum." << endl;
+        cerr << "Solver: Pressure coefficient on surface " << surface.id << ", panel " << panel << " is less than minimum." << endl;
     
     return C_p;
 }
@@ -319,25 +324,25 @@ Solver::velocity_potential(const Vector3d &x) const
 {
     double phi = 0.0;
     
-    // Iterate all non-wake meshes:
+    // Iterate all non-wake surfaces:
     int offset = 0;
-    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
-        Mesh *other_mesh = meshes_without_wakes[i];
+    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
+        Surface *other_surface = non_wake_surfaces[i];
 
-        for (int j = 0; j < other_mesh->n_panels(); j++) {
-            phi += other_mesh->doublet_influence(x, j) * doublet_coefficients(offset + j);
-            phi += other_mesh->source_influence(x, j) * source_coefficients(offset + j);
+        for (int j = 0; j < other_surface->n_panels(); j++) {
+            phi += other_surface->doublet_influence(x, j) * doublet_coefficients(offset + j);
+            phi += other_surface->source_influence(x, j) * source_coefficients(offset + j);
         }
         
-        offset += other_mesh->n_panels();
+        offset += other_surface->n_panels();
     }
     
     // Iterate wakes:
-    for (int i = 0; i < (int) collections.size(); i++) {
-        Collection *collection = collections[i];
+    for (int i = 0; i < (int) bodies.size(); i++) {
+        Body *body = bodies[i];
         
-        for (int j = 0; j < (int) collection->wings.size(); j++) {
-            Wake *wake = collection->wakes[j];
+        for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
+            Wake *wake = body->wakes[j];
             
             for (int k = 0; k < wake->n_panels(); k++)
                 phi += wake->doublet_influence(x, k) * wake->doublet_coefficients[k];
@@ -354,29 +359,29 @@ Solver::velocity_potential(const Vector3d &x) const
    @returns Surface potential value.
 */
 double
-Solver::surface_velocity_potential(const Mesh &mesh, int offset, int panel) const
+Solver::surface_velocity_potential(const Surface &surface, int offset, int panel) const
 {
     if (Parameters::marcov_surface_velocity) {
         // Since we use N. Marcov's formula for surface velocity, we also compute the surface velocity
         // potential directly.
-        return velocity_potential(mesh.panel_collocation_point(panel, false));
+        return velocity_potential(surface.panel_collocation_point(panel, false));
         
     } else {
         double phi = -doublet_coefficients(offset + panel);
         
         // Add flow potential due to kinematic velocity:
-        Collection *collection = mesh_to_collection.find(&mesh)->second;
-        Vector3d kinematic_velocity = mesh.panel_deformation_velocity(panel)
-                                          + collection->panel_kinematic_velocity(mesh, panel)
+        Body *body = surface_to_body.find(&surface)->second;
+        Vector3d kinematic_velocity = surface.panel_deformation_velocity(panel)
+                                          + body->panel_kinematic_velocity(surface, panel)
                                           - freestream_velocity;
                                               
         Vector3d tangential_velocity = -kinematic_velocity;
         
         // Remove any normal velocity.  This is the (implicit) contribution of the source term.
-        Vector3d normal = mesh.panel_normal(panel);
+        Vector3d normal = surface.panel_normal(panel);
         tangential_velocity -= tangential_velocity.dot(normal) * normal;
         
-        phi += tangential_velocity.dot(mesh.panel_collocation_point(panel, false));
+        phi += tangential_velocity.dot(surface.panel_collocation_point(panel, false));
         
         return phi;
     }
@@ -392,25 +397,29 @@ Solver::surface_velocity_potentials() const
 {
     cout << "Solver: Computing surface potential values." << endl;
     
-    VectorXd surface_velocity_potentials(total_n_panels_without_wakes);
+    VectorXd surface_velocity_potentials(n_non_wake_panels);
     
     int offset = 0;  
  
-    for (int i = 0; i < (int) collections.size(); i++) {
-        Collection *collection = collections[i];
+    for (int i = 0; i < (int) bodies.size(); i++) {
+        Body *body = bodies[i];
         
-        for (int j = 0; j < collection->nolift_mesh.n_panels(); j++)
-            surface_velocity_potentials(offset + j) = surface_velocity_potential(collection->nolift_mesh, offset, j);
-
-        offset += collection->nolift_mesh.n_panels();
+        for (int j = 0; j < (int) body->non_lifting_surfaces.size(); j++) {
+            Surface *non_lifting_surface = body->non_lifting_surfaces[j];
+            
+            for (int k = 0; k < non_lifting_surface->n_panels(); k++)
+                surface_velocity_potentials(offset + k) = surface_velocity_potential(*non_lifting_surface, offset, k);
+            
+            offset += non_lifting_surface->n_panels();
+        }
         
-        for (int j = 0; j < (int) collection->wings.size(); j++) {
-            Wing *wing = collection->wings[j];
+        for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
+            LiftingSurface *lifting_surface = body->lifting_surfaces[j];
             
-            for (int k = 0; k < wing->n_panels(); k++)
-                surface_velocity_potentials(offset + k) = surface_velocity_potential(*wing, offset, k);
+            for (int k = 0; k < lifting_surface->n_panels(); k++)
+                surface_velocity_potentials(offset + k) = surface_velocity_potential(*lifting_surface, offset, k);
             
-            offset += wing->n_panels();
+            offset += lifting_surface->n_panels();
         }
     }
     
@@ -429,32 +438,32 @@ Solver::disturbance_potential_gradient(const Eigen::Vector3d &x) const
 {
     Vector3d gradient(0, 0, 0);
     
-    // Iterate all non-wake meshes:
+    // Iterate all non-wake surfaces:
     int offset = 0;
-    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
-        Mesh *other_mesh = meshes_without_wakes[i];
+    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
+        Surface *other_surface = non_wake_surfaces[i];
 
-        for (int j = 0; j < other_mesh->n_panels(); j++) {
-            gradient += other_mesh->vortex_ring_unit_velocity(x, j) * doublet_coefficients(offset + j);
-            gradient += other_mesh->source_unit_velocity(x, j) * source_coefficients(offset + j);
+        for (int j = 0; j < other_surface->n_panels(); j++) {
+            gradient += other_surface->vortex_ring_unit_velocity(x, j) * doublet_coefficients(offset + j);
+            gradient += other_surface->source_unit_velocity(x, j) * source_coefficients(offset + j);
         }
         
-        offset += other_mesh->n_panels();
+        offset += other_surface->n_panels();
     }
     
     // Iterate wakes:
-    for (int i = 0; i < (int) collections.size(); i++) {
-        Collection *collection = collections[i];
+    for (int i = 0; i < (int) bodies.size(); i++) {
+        Body *body = bodies[i];
         
-        for (int j = 0; j < (int) collection->wings.size(); j++) {
-            Wake *wake = collection->wakes[j];
-            Wing *wing = collection->wings[j];
+        for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
+            Wake *wake = body->wakes[j];
+            LiftingSurface *lifting_surface = body->lifting_surfaces[j];
             
-            if (wake->n_panels() >= (int) wing->trailing_edge_top_panels.size()) {
-                for (int k = wake->n_panels() - (int) wing->trailing_edge_top_panels.size(); k < wake->n_panels(); k++)
+            if (wake->n_panels() >= (int) lifting_surface->upper_trailing_edge_panels.size()) {
+                for (int k = wake->n_panels() - (int) lifting_surface->upper_trailing_edge_panels.size(); k < wake->n_panels(); k++)
                     gradient += wake->vortex_ring_unit_velocity(x, k) * wake->doublet_coefficients[k];
 
-                for (int k = 0; k < wake->n_panels() - (int) wing->trailing_edge_top_panels.size(); k++) {
+                for (int k = 0; k < wake->n_panels() - (int) lifting_surface->upper_trailing_edge_panels.size(); k++) {
                     if (Parameters::use_ramasamy_leishman_vortex_sheet)
                         gradient += wake->vortex_ring_ramasamy_leishman_velocity(x, k, wake->vortex_core_radii[k], wake->doublet_coefficients[k]);
                     else
@@ -473,7 +482,7 @@ Solver::disturbance_potential_gradient(const Eigen::Vector3d &x) const
    
    @param[in]  velocity_potentials         Current potential values.
    @param[in]  old_velocity_potentials     Previous potential values
-   @param[in]  offset                      Offset to requested Mesh
+   @param[in]  offset                      Offset to requested Surface
    @param[in]  panel                       Panel number.
    @param[in]  dt                          Time step.
    
@@ -504,38 +513,38 @@ Solver::velocity_potential_time_derivative(const Eigen::VectorXd &velocity_poten
 Eigen::Vector3d
 Solver::velocity(const Eigen::Vector3d &x) const
 {
-    // Find closest mesh and panel:
+    // Find closest surface and panel:
     double distance = numeric_limits<double>::max();
-    Mesh *close_mesh = NULL;
+    Surface *close_surface = NULL;
     int close_panel = -1;
     int close_offset = - 1;
-    bool close_near_sharp_edge = false;
+    bool close_near_trailing_edge = false;
     int offset = 0;
     
-    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
-        Mesh *mesh_candidate = meshes_without_wakes[i];
+    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
+        Surface *surface_candidate = non_wake_surfaces[i];
         
         int panel_candidate;
         double distance_candidate;
-        bool near_sharp_edge = mesh_candidate->closest_panel(x, panel_candidate, distance_candidate);
+        bool near_trailing_edge = surface_candidate->closest_panel(x, panel_candidate, distance_candidate);
         
         if (distance_candidate < distance) {
-            distance              = distance_candidate;
-            close_mesh            = mesh_candidate;
-            close_panel           = panel_candidate;
-            close_offset          = offset;
-            close_near_sharp_edge = near_sharp_edge;
+            distance                 = distance_candidate;
+            close_surface               = surface_candidate;
+            close_panel              = panel_candidate;
+            close_offset             = offset;
+            close_near_trailing_edge = near_trailing_edge;
         }
         
-        offset += meshes_without_wakes[i]->n_panels();
+        offset += non_wake_surfaces[i]->n_panels();
     }
  
     // Compute velocity potential gradients near the body:
     vector<Vector3d> disturbance_potential_gradients;
     vector<Vector3d> close_to_body_points;
-    if (distance < Parameters::interpolation_layer_thickness && !close_near_sharp_edge) {   
-        for (int i = 0; i < (int) close_mesh->panel_nodes[close_panel].size(); i++) {
-            Vector3d close_to_body_point = close_mesh->close_to_body_point(close_mesh->panel_nodes[close_panel][i]);
+    if (distance < Parameters::interpolation_layer_thickness && !close_near_trailing_edge) {   
+        for (int i = 0; i < (int) close_surface->panel_nodes[close_panel].size(); i++) {
+            Vector3d close_to_body_point = close_surface->close_to_body_point(close_surface->panel_nodes[close_panel][i]);
             close_to_body_points.push_back(close_to_body_point);
             
             disturbance_potential_gradients.push_back(disturbance_potential_gradient(close_to_body_point));
@@ -544,22 +553,22 @@ Solver::velocity(const Eigen::Vector3d &x) const
     } else {
         disturbance_potential_gradients.push_back(disturbance_potential_gradient(x));
         
-        close_mesh  = NULL;
+        close_surface  = NULL;
         close_panel = -1;
     }
     
     Vector3d velocity(0, 0, 0);
-    if (close_mesh != NULL) { 
+    if (close_surface != NULL) { 
         // Compute stream velocity near the boundary using interpolation, see
         //   K. Dixon, C. S. Ferreira, C. Hofemann, G. van Brussel, G. van Kuik,
         //   A 3D Unsteady Panel Method for Vertical Axis Wind Turbines, DUWIND, 2008.
-        Vector3d x = close_mesh->panel_collocation_point(close_panel, false);
+        Vector3d x = close_surface->panel_collocation_point(close_panel, false);
         
-        VectorXd doublet_coefficient_field(close_mesh->n_panels());
-        for (int i = 0; i < close_mesh->n_panels(); i++)
+        VectorXd doublet_coefficient_field(close_surface->n_panels());
+        for (int i = 0; i < close_surface->n_panels(); i++)
             doublet_coefficient_field(i) = doublet_coefficients(close_offset + i);
         
-        Vector3d normal = close_mesh->panel_normal(close_panel);
+        Vector3d normal = close_surface->panel_normal(close_panel);
         
         double total_weight = 0.0;
         
@@ -567,14 +576,14 @@ Solver::velocity(const Eigen::Vector3d &x) const
             Vector3d layer_point_distance = x - close_to_body_points[i];
             layer_point_distance = layer_point_distance - layer_point_distance.dot(normal) * normal;
             
-            double weight = distance * (close_mesh->panel_diameter(close_panel) - layer_point_distance.norm());
+            double weight = distance * (close_surface->panel_diameter(close_panel) - layer_point_distance.norm());
                  
             velocity += weight * (disturbance_potential_gradients[i] + freestream_velocity);
             total_weight += weight;
         }
         
         double weight = Parameters::interpolation_layer_thickness - distance;
-        velocity += weight * surface_velocity(*close_mesh, close_panel, doublet_coefficient_field);
+        velocity += weight * surface_velocity(*close_surface, close_panel, doublet_coefficient_field);
         total_weight += weight;
         
         velocity /= total_weight;
@@ -596,20 +605,20 @@ void
 Solver::initialize_wakes(double dt)
 {
     // Add initial wake layers:
-    for (int i = 0; i < (int) collections.size(); i++) {
-        Collection *collection = collections[i];
+    for (int i = 0; i < (int) bodies.size(); i++) {
+        Body *body = bodies[i];
         
-        Vector3d collection_kinematic_velocity = collection->velocity - freestream_velocity;
+        Vector3d body_kinematic_velocity = body->velocity - freestream_velocity;
         
-        for (int j = 0; j < (int) collection->wings.size(); j++) {
-            Wake *wake = collection->wakes[j];
+        for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
+            Wake *wake = body->wakes[j];
             
             wake->add_layer();
             for (int k = 0; k < wake->n_nodes(); k++) {                                  
                 if (Parameters::convect_wake)    
-                    wake->nodes[k] -= collection_kinematic_velocity * dt;
+                    wake->nodes[k] -= body_kinematic_velocity * dt;
                 else
-                    wake->nodes[k] -= Parameters::static_wake_length * collection_kinematic_velocity / collection_kinematic_velocity.norm();
+                    wake->nodes[k] -= Parameters::static_wake_length * body_kinematic_velocity / body_kinematic_velocity.norm();
             }
             
             wake->add_layer();
@@ -621,16 +630,16 @@ Solver::initialize_wakes(double dt)
 void
 Solver::doublet_coefficient_matrix_block(MatrixXd &doublet_influence_coefficients,
                                          MatrixXd &source_influence_coefficients,
-                                         const Mesh &mesh_one, int offset_one, const Mesh &mesh_two, int offset_two) const
+                                         const Surface &surface_one, int offset_one, const Surface &surface_two, int offset_two) const
 {
-    for (int i = 0; i < mesh_one.n_panels(); i++) {
-        for (int j = 0; j < mesh_two.n_panels(); j++) {
-            if ((&mesh_one == &mesh_two) && (i == j))
+    for (int i = 0; i < surface_one.n_panels(); i++) {
+        for (int j = 0; j < surface_two.n_panels(); j++) {
+            if ((&surface_one == &surface_two) && (i == j))
                 doublet_influence_coefficients(offset_one + i, offset_two + j) = -0.5;
             else
-                doublet_influence_coefficients(offset_one + i, offset_two + j) = mesh_two.doublet_influence(mesh_one, i, j);
+                doublet_influence_coefficients(offset_one + i, offset_two + j) = surface_two.doublet_influence(surface_one, i, j);
             
-            source_influence_coefficients(offset_one + i, offset_two + j) = mesh_two.source_influence(mesh_one, i, j);
+            source_influence_coefficients(offset_one + i, offset_two + j) = surface_two.source_influence(surface_one, i, j);
         }
     }
 }
@@ -648,50 +657,54 @@ Solver::update_coefficients(double dt)
     
     int source_coefficients_idx = 0;
     
-    for (int i = 0; i < (int) collections.size(); i++) {
-        Collection *collection = collections[i];
+    for (int i = 0; i < (int) bodies.size(); i++) {
+        Body *body = bodies[i];
         
-        for (int j = 0; j < collection->nolift_mesh.n_panels(); j++) {
-            Vector3d kinematic_velocity = collection->nolift_mesh.panel_deformation_velocity(j)
-                                          + collection->panel_kinematic_velocity(collection->nolift_mesh, j)
-                                          - freestream_velocity;
+        for (int j = 0; j < (int) body->non_lifting_surfaces.size(); j++) {
+            Surface *non_lifting_surface = body->non_lifting_surfaces[j];
             
-            source_coefficients(source_coefficients_idx) = source_coefficient(collection->nolift_mesh, j, kinematic_velocity, true);
-            source_coefficients_idx++;
-        }
-        
-        for (int j = 0; j < (int) collection->wings.size(); j++) {
-            Wing *wing = collection->wings[j];
-            
-            for (int k = 0; k < wing->n_panels(); k++) {
-                Vector3d kinematic_velocity = wing->panel_deformation_velocity(k)
-                                              + collection->panel_kinematic_velocity(*wing, k) 
+            for (int k = 0; k < non_lifting_surface->n_panels(); k++) {
+                Vector3d kinematic_velocity = non_lifting_surface->panel_deformation_velocity(k)
+                                              + body->panel_kinematic_velocity(*non_lifting_surface, k) 
                                               - freestream_velocity;
             
-                source_coefficients(source_coefficients_idx) = source_coefficient(*wing, k, kinematic_velocity, true);
+                source_coefficients(source_coefficients_idx) = source_coefficient(*non_lifting_surface, k, kinematic_velocity, true);
+                source_coefficients_idx++;
+            }
+        }
+        
+        for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
+            LiftingSurface *lifting_surface = body->lifting_surfaces[j];
+            
+            for (int k = 0; k < lifting_surface->n_panels(); k++) {
+                Vector3d kinematic_velocity = lifting_surface->panel_deformation_velocity(k)
+                                              + body->panel_kinematic_velocity(*lifting_surface, k) 
+                                              - freestream_velocity;
+            
+                source_coefficients(source_coefficients_idx) = source_coefficient(*lifting_surface, k, kinematic_velocity, true);
                 source_coefficients_idx++;
             }
         }
     }
   
     // Compute doublet distribution:
-    MatrixXd A(total_n_panels_without_wakes, total_n_panels_without_wakes);
-    MatrixXd source_influence_coefficients(total_n_panels_without_wakes, total_n_panels_without_wakes);
+    MatrixXd A(n_non_wake_panels, n_non_wake_panels);
+    MatrixXd source_influence_coefficients(n_non_wake_panels, n_non_wake_panels);
     
     int offset_one = 0, offset_two = 0;
-    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
+    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
         offset_two = 0;
-        for (int j = 0; j < (int) meshes_without_wakes.size(); j++) {
+        for (int j = 0; j < (int) non_wake_surfaces.size(); j++) {
             doublet_coefficient_matrix_block(A,
                                              source_influence_coefficients,
-                                             *meshes_without_wakes[i], offset_one, *meshes_without_wakes[j], offset_two);
+                                             *non_wake_surfaces[i], offset_one, *non_wake_surfaces[j], offset_two);
             
-            offset_two = offset_two + meshes_without_wakes[j]->n_panels();
+            offset_two = offset_two + non_wake_surfaces[j]->n_panels();
         }
         
-        wakes_influence(A, *meshes_without_wakes[i], offset_one);
+        wakes_influence(A, *non_wake_surfaces[i], offset_one);
         
-        offset_one = offset_one + meshes_without_wakes[i]->n_panels();
+        offset_one = offset_one + non_wake_surfaces[i]->n_panels();
     }
     
     VectorXd b = source_influence_coefficients * source_coefficients;
@@ -714,21 +727,22 @@ Solver::update_coefficients(double dt)
     
     // Set new wake panel doublet coefficients:
     int offset = 0;
-    for (int i = 0; i < (int) collections.size(); i++) {
-        Collection *collection = collections[i];
+    for (int i = 0; i < (int) bodies.size(); i++) {
+        Body *body = bodies[i];
         
-        offset += collection->nolift_mesh.n_panels();
+        for (int j = 0; j < (int) body->non_lifting_surfaces.size(); j++)
+            offset += body->non_lifting_surfaces[j]->n_panels();
         
-        for (int j = 0; j < (int) collection->wings.size(); j++) {
-            Wing *wing = collection->wings[j];
-            Wake *wake = collection->wakes[j];
+        for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
+            LiftingSurface *lifting_surface = body->lifting_surfaces[j];
+            Wake *wake = body->wakes[j];
                      
             // Set panel doublet coefficient:
-            int trailing_edge_n_nodes = wing->trailing_edge_nodes.size();
+            int trailing_edge_n_nodes = lifting_surface->trailing_edge_nodes.size();
             int trailing_edge_n_panels = trailing_edge_n_nodes - 1;
             for (int k = 0; k < trailing_edge_n_panels; k++) {
-                double doublet_coefficient_top    = doublet_coefficients(offset + wing->trailing_edge_top_panels[k]);
-                double doublet_coefficient_bottom = doublet_coefficients(offset + wing->trailing_edge_bottom_panels[k]);
+                double doublet_coefficient_top    = doublet_coefficients(offset + lifting_surface->upper_trailing_edge_panels[k]);
+                double doublet_coefficient_bottom = doublet_coefficients(offset + lifting_surface->lower_trailing_edge_panels[k]);
                 
                 // Use the trailing-edge Kutta condition to compute the doublet coefficients of the new wake panels.
                 double doublet_coefficient = doublet_coefficient_top - doublet_coefficient_bottom;
@@ -738,7 +752,7 @@ Solver::update_coefficients(double dt)
             }
             
             // Update offset:
-            offset += wing->n_panels();
+            offset += lifting_surface->n_panels();
         }
     }
 
@@ -748,27 +762,31 @@ Solver::update_coefficients(double dt)
         
         source_coefficients_idx = 0;
         
-        for (int i = 0; i < (int) collections.size(); i++) {
-            Collection *collection = collections[i];
+        for (int i = 0; i < (int) bodies.size(); i++) {
+            Body *body = bodies[i];
             
-            for (int j = 0; j < collection->nolift_mesh.n_panels(); j++) {
-                Vector3d kinematic_velocity = collection->nolift_mesh.panel_deformation_velocity(j)
-                                              + collection->panel_kinematic_velocity(collection->nolift_mesh, j) 
-                                              - freestream_velocity;
+            for (int j = 0; j < (int) body->non_lifting_surfaces.size(); j++) {
+                Surface *non_lifting_surface = body->non_lifting_surfaces[j];
                 
-                source_coefficients(source_coefficients_idx) = source_coefficient(collection->nolift_mesh, j, kinematic_velocity, false);
-                source_coefficients_idx++;
-            }
-            
-            for (int j = 0; j < (int) collection->wings.size(); j++) {
-                Wing *wing = collection->wings[j];
-                
-                for (int k = 0; k < wing->n_panels(); k++) {
-                    Vector3d kinematic_velocity = wing->panel_deformation_velocity(k)
-                                                  + collection->panel_kinematic_velocity(*wing, k) 
+                for (int k = 0; k < non_lifting_surface->n_panels(); k++) {
+                    Vector3d kinematic_velocity = non_lifting_surface->panel_deformation_velocity(k)
+                                                  + body->panel_kinematic_velocity(*non_lifting_surface, k) 
                                                   - freestream_velocity;
                 
-                    source_coefficients(source_coefficients_idx) = source_coefficient(*wing, k, kinematic_velocity, false);
+                    source_coefficients(source_coefficients_idx) = source_coefficient(*non_lifting_surface, k, kinematic_velocity, false);
+                    source_coefficients_idx++;
+                }
+            }
+            
+            for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
+                LiftingSurface *lifting_surface = body->lifting_surfaces[j];
+                
+                for (int k = 0; k < lifting_surface->n_panels(); k++) {
+                    Vector3d kinematic_velocity = lifting_surface->panel_deformation_velocity(k)
+                                                  + body->panel_kinematic_velocity(*lifting_surface, k) 
+                                                  - freestream_velocity;
+                
+                    source_coefficients(source_coefficients_idx) = source_coefficient(*lifting_surface, k, kinematic_velocity, false);
                     source_coefficients_idx++;
                 }
             }
@@ -787,46 +805,49 @@ Solver::update_coefficients(double dt)
     
     offset = 0;
 
-    for (int i = 0; i < (int) collections.size(); i++) {
-        const Collection *collection = collections[i];
+    for (int i = 0; i < (int) bodies.size(); i++) {
+        const Body *body = bodies[i];
         
-        double v_ref = reference_velocity(*collection);
+        double v_ref = reference_velocity(*body);
         
-        VectorXd doublet_coefficient_field(collection->nolift_mesh.n_panels());
-        for (int j = 0; j < collection->nolift_mesh.n_panels(); j++)
-            doublet_coefficient_field(j) = doublet_coefficients(offset + j); 
+        for (int j = 0; j < (int) body->non_lifting_surfaces.size(); j++) {
+            Surface *non_lifting_surface = body->non_lifting_surfaces[j];
             
-        for (int j = 0; j < collection->nolift_mesh.n_panels(); j++) {                          
-            double dphidt = velocity_potential_time_derivative(velocity_potentials, old_velocity_potentials, offset, j, dt);
-                                                 
-            pressure_coefficients(pressure_coefficients_idx) = pressure_coefficient(collection->nolift_mesh, j,
-                                                                                    doublet_coefficient_field,
-                                                                                    dphidt, v_ref);
-            pressure_coefficients_idx++;
-        }
-        
-        offset += collection->nolift_mesh.n_panels();
-        
-        for (int j = 0; j < (int) collection->wings.size(); j++) {
-            Wing *wing = collection->wings[j];
-            
-            VectorXd doublet_coefficient_field(wing->n_panels());
-            for (int k = 0; k < wing->n_panels(); k++)
+            VectorXd doublet_coefficient_field(non_lifting_surface->n_panels());
+            for (int k = 0; k < non_lifting_surface->n_panels(); k++)
                 doublet_coefficient_field(k) = doublet_coefficients(offset + k); 
                 
-            Vector3d wing_force(0, 0, 0);
-                
-            for (int k = 0; k < wing->n_panels(); k++) {
+            for (int k = 0; k < non_lifting_surface->n_panels(); k++) {
                 double dphidt = velocity_potential_time_derivative(velocity_potentials, old_velocity_potentials, offset, k, dt);
  
-                pressure_coefficients(pressure_coefficients_idx) = pressure_coefficient(*wing, k,
+                pressure_coefficients(pressure_coefficients_idx) = pressure_coefficient(*non_lifting_surface, k,
                                                                                         doublet_coefficient_field,
                                                                                         dphidt, v_ref);
                 
                 pressure_coefficients_idx++;
             }   
             
-            offset += wing->n_panels();      
+            offset += non_lifting_surface->n_panels();      
+        }
+        
+        for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
+            LiftingSurface *lifting_surface = body->lifting_surfaces[j];
+            
+            VectorXd doublet_coefficient_field(lifting_surface->n_panels());
+            for (int k = 0; k < lifting_surface->n_panels(); k++)
+                doublet_coefficient_field(k) = doublet_coefficients(offset + k); 
+                
+            for (int k = 0; k < lifting_surface->n_panels(); k++) {
+                double dphidt = velocity_potential_time_derivative(velocity_potentials, old_velocity_potentials, offset, k, dt);
+ 
+                pressure_coefficients(pressure_coefficients_idx) = pressure_coefficient(*lifting_surface, k,
+                                                                                        doublet_coefficient_field,
+                                                                                        dphidt, v_ref);
+                
+                pressure_coefficients_idx++;
+            }   
+            
+            offset += lifting_surface->n_panels();      
         }
     }
 }
@@ -844,11 +865,11 @@ Solver::update_wakes(double dt)
         // Compute velocity values at wake nodes;
         std::vector<std::vector<Vector3d> > wake_velocities;
         
-        for (int i = 0; i < (int) collections.size(); i++) {
-            Collection *collection = collections[i];
+        for (int i = 0; i < (int) bodies.size(); i++) {
+            Body *body = bodies[i];
                  
-            for (int j = 0; j < (int) collection->wings.size(); j++) {
-                Wake *wake = collection->wakes[j];
+            for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
+                Wake *wake = body->wakes[j];
                 
                 std::vector<Vector3d> local_wake_velocities;
                 
@@ -862,30 +883,30 @@ Solver::update_wakes(double dt)
         // Add new wake panels at trailing edges, and convect all vertices:
         int idx = 0;
         
-        for (int i = 0; i < (int) collections.size(); i++) {
-            Collection *collection = collections[i];
+        for (int i = 0; i < (int) bodies.size(); i++) {
+            Body *body = bodies[i];
             
-            for (int j = 0; j < (int) collection->wings.size(); j++) {
-                Wing *wing = collection->wings[j];
-                Wake *wake = collection->wakes[j];
+            for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
+                LiftingSurface *lifting_surface = body->lifting_surfaces[j];
+                Wake *wake = body->wakes[j];
                 
-                // Retrieve local wing velocities:
+                // Retrieve local lifting_surface velocities:
                 std::vector<Vector3d> &local_wake_velocities = wake_velocities[idx];
                 idx++;
                 
                 // Convect wake nodes that coincide with the trailing edge nodes with the freestream velocity.
                 // Alternative options are discussed in
                 //   K. Dixon, The Near Wake Structure of a Vertical Axis Wind Turbine, M.Sc. Thesis, TU Delft, 2008.
-                for (int k = wake->n_nodes() - (int) wing->trailing_edge_nodes.size(); k < wake->n_nodes(); k++) {
+                for (int k = wake->n_nodes() - (int) lifting_surface->trailing_edge_nodes.size(); k < wake->n_nodes(); k++) {
                      Vector3d kinematic_velocity = wake->node_deformation_velocities[k]
-                                                   + collection->node_kinematic_velocity(*wake, k)
+                                                   + body->node_kinematic_velocity(*wake, k)
                                                    - freestream_velocity;
                                                                
                      wake->nodes[k] -= kinematic_velocity * dt;
                 }                
                 
                 // Convect all other wake nodes according to the local wake velocity:
-                for (int k = 0; k < wake->n_nodes() - (int) wing->trailing_edge_nodes.size(); k++)         
+                for (int k = 0; k < wake->n_nodes() - (int) lifting_surface->trailing_edge_nodes.size(); k++)         
                     wake->nodes[k] += local_wake_velocities[k] * dt;
                     
                 // Update vortex core radii:
@@ -900,22 +921,22 @@ Solver::update_wakes(double dt)
         
     } else {
         // No wake convection.  Re-position wake:
-        for (int i = 0; i < (int) collections.size(); i++) {
-            Collection *collection = collections[i];
+        for (int i = 0; i < (int) bodies.size(); i++) {
+            Body *body = bodies[i];
             
-            Vector3d collection_kinematic_velocity = collection->velocity - freestream_velocity;
+            Vector3d body_kinematic_velocity = body->velocity - freestream_velocity;
             
-            for (int j = 0; j < (int) collection->wings.size(); j++) {
-                Wing *wing = collection->wings[j];
-                Wake *wake = collection->wakes[j];
+            for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
+                LiftingSurface *lifting_surface = body->lifting_surfaces[j];
+                Wake *wake = body->wakes[j];
                 
-                for (int k = 0; k < (int) wing->trailing_edge_nodes.size(); k++) {
+                for (int k = 0; k < (int) lifting_surface->trailing_edge_nodes.size(); k++) {
                     // Connect wake to trailing edge nodes:                             
-                    wake->nodes[wing->trailing_edge_nodes.size() + k] = wing->nodes[wing->trailing_edge_nodes[k]];
+                    wake->nodes[lifting_surface->trailing_edge_nodes.size() + k] = lifting_surface->nodes[lifting_surface->trailing_edge_nodes[k]];
                     
-                    // Point wake in direction of collection kinematic velocity:
-                    wake->nodes[k] = wing->nodes[wing->trailing_edge_nodes[k]]
-                                     - Parameters::static_wake_length * collection_kinematic_velocity / collection_kinematic_velocity.norm();
+                    // Point wake in direction of body kinematic velocity:
+                    wake->nodes[k] = lifting_surface->nodes[lifting_surface->trailing_edge_nodes[k]]
+                                     - Parameters::static_wake_length * body_kinematic_velocity / body_kinematic_velocity.norm();
                 }
                 
                 // Need to update geometry:
@@ -928,88 +949,88 @@ Solver::update_wakes(double dt)
 /**
    Returns the pressure coefficient of the given panel.
    
-   @param[in]   collection  Reference collection.
+   @param[in]   body  Reference body.
    @param[in]   panel       Reference panel.
   
    @returns Pressure coefficient.
 */
 double
-Solver::pressure_coefficient(const Mesh &mesh, int panel) const
+Solver::pressure_coefficient(const Surface &surface, int panel) const
 {
     int offset = 0;
     
-    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
-        Mesh *tmp_mesh = meshes_without_wakes[i];
+    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
+        Surface *tmp_surface = non_wake_surfaces[i];
         
-        if (&mesh == tmp_mesh)
+        if (&surface == tmp_surface)
             return pressure_coefficients(offset + panel);
         
-        offset += tmp_mesh->n_panels();
+        offset += tmp_surface->n_panels();
     }
     
-    cerr << "Solver::pressure_coefficient():  Panel " << panel << " not found on mesh " << mesh.id << "." << endl;
+    cerr << "Solver::pressure_coefficient():  Panel " << panel << " not found on surface " << surface.id << "." << endl;
     
     return 0.0;
 }
 
 /**
-   Computes the force caused by the pressure distribution on the given collection.
+   Computes the force caused by the pressure distribution on the given body.
    
-   @param[in]   collection  Reference collection.
+   @param[in]   body  Reference body.
   
    @returns Force vector.
 */
 Eigen::Vector3d
-Solver::force(const Collection &collection) const
+Solver::force(const Body &body) const
 {
-    double v_ref = reference_velocity(collection);
+    double v_ref = reference_velocity(body);
         
     Vector3d F(0, 0, 0);
     int offset = 0;
     
-    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
-        Mesh *mesh = meshes_without_wakes[i];
+    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
+        Surface *surface = non_wake_surfaces[i];
         
-        for (int k = 0; k < mesh->n_panels(); k++) {                                    
-            Vector3d normal = mesh->panel_normal(k);            
-            double surface_area = mesh->panel_surface_area(k);
+        for (int k = 0; k < surface->n_panels(); k++) {                                    
+            Vector3d normal = surface->panel_normal(k);            
+            double surface_area = surface->panel_surface_area(k);
             F += 0.5 * fluid_density * pow(v_ref, 2) * surface_area * pressure_coefficients(offset + k) * normal;
         }
         
-        offset += mesh->n_panels();
+        offset += surface->n_panels();
     }
     
     return F;      
 }
 
 /**
-   Computes the moment caused by the pressure distribution on the given collection, relative to the given point.
+   Computes the moment caused by the pressure distribution on the given body, relative to the given point.
    
-   @param[in]   collection  Reference collection.
+   @param[in]   body  Reference body.
    @param[in]   x           Reference point.
   
    @returns Moment vector.
 */
 Eigen::Vector3d
-Solver::moment(const Collection &collection, const Eigen::Vector3d &x) const
+Solver::moment(const Body &body, const Eigen::Vector3d &x) const
 {
-    double v_ref = reference_velocity(collection);
+    double v_ref = reference_velocity(body);
         
     Vector3d M(0, 0, 0);
     int offset = 0;
     
-    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
-        Mesh *mesh = meshes_without_wakes[i];
+    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
+        Surface *surface = non_wake_surfaces[i];
         
-        for (int k = 0; k < mesh->n_panels(); k++) {                                    
-            Vector3d normal = mesh->panel_normal(k);            
-            double surface_area = mesh->panel_surface_area(k);
+        for (int k = 0; k < surface->n_panels(); k++) {                                    
+            Vector3d normal = surface->panel_normal(k);            
+            double surface_area = surface->panel_surface_area(k);
             Vector3d F = 0.5 * fluid_density * pow(v_ref, 2) * surface_area * pressure_coefficients(offset + k) * normal;
-            Vector3d r = mesh->panel_collocation_point(k, false) - x;
+            Vector3d r = surface->panel_collocation_point(k, false) - x;
             M += r.cross(F);
         }
         
-        offset += mesh->n_panels();
+        offset += surface->n_panels();
     }
     
     return M;
@@ -1021,15 +1042,15 @@ Solver::moment(const Collection &collection, const Eigen::Vector3d &x) const
    @param[in]   step_number     Step number used to name the output files.
 */
 void
-Solver::log_coefficients(int step_number, Mesh::FileFormat format) const
+Solver::log_coefficients(int step_number, Surface::FileFormat format) const
 {   
     // Decide file extension:
     const char *extension;
     switch (format) {
-    case Mesh::VTK:
+    case Surface::VTK:
         extension = ".vtk";
         break;
-    case Mesh::GMSH:
+    case Surface::GMSH:
         extension = ".msh";
         break;
     }
@@ -1039,77 +1060,82 @@ Solver::log_coefficients(int step_number, Mesh::FileFormat format) const
     int save_node_offset = 0;
     int save_panel_offset = 0;
     
-    for (int i = 0; i < (int) collections.size(); i++) {
-        Collection *collection = collections[i];
+    for (int i = 0; i < (int) bodies.size(); i++) {
+        Body *body = bodies[i];
         
-        // Log no-lift mesh:
-        VectorXd nolift_mesh_doublet_coefficients(collection->nolift_mesh.n_panels());
-        VectorXd nolift_mesh_source_coefficients(collection->nolift_mesh.n_panels());
-        VectorXd nolift_mesh_pressure_coefficients(collection->nolift_mesh.n_panels());
-        for (int k = 0; k < collection->nolift_mesh.n_panels(); k++) {
-            nolift_mesh_doublet_coefficients(k)  = doublet_coefficients(offset + k);
-            nolift_mesh_source_coefficients(k)   = source_coefficients(offset + k);
-            nolift_mesh_pressure_coefficients(k) = pressure_coefficients(offset + k);
-        }
-        
-        offset += collection->nolift_mesh.n_panels();
-        
-        vector<string> view_names;
-        vector<VectorXd> view_data;
-        
-        view_names.push_back("DoubletDistribution");
-        view_data.push_back(nolift_mesh_doublet_coefficients);
-        
-        view_names.push_back("SourceDistribution");
-        view_data.push_back(nolift_mesh_source_coefficients);
-        
-        view_names.push_back("PressureDistribution");
-        view_data.push_back(nolift_mesh_pressure_coefficients);
-        
-        std::stringstream ss;
-        ss << log_folder << "/" << collection->id << "/nolift_mesh/step_" << step_number << extension;
-
-        collection->nolift_mesh.save(ss.str(), format, view_names, view_data, save_node_offset, save_panel_offset);
-        save_node_offset += collection->nolift_mesh.n_nodes();
-        save_panel_offset += collection->nolift_mesh.n_panels();
-        
-        // Iterate wings:
-        for (int j = 0; j < (int) collection->wings.size(); j++) {
-            Wing *wing = collection->wings[j];
-            Wake *wake = collection->wakes[j];
+        // Iterate non-lifting surfaces:
+        for (int j = 0; j < (int) body->non_lifting_surfaces.size(); j++) {
+            Surface *non_lifting_surface = body->non_lifting_surfaces[j];
             
-            // Log wing coefficients:
-            VectorXd wing_doublet_coefficients(wing->n_panels());
-            VectorXd wing_source_coefficients(wing->n_panels());
-            VectorXd wing_pressure_coefficients(wing->n_panels());
-            for (int k = 0; k < wing->n_panels(); k++) {
-                wing_doublet_coefficients(k)  = doublet_coefficients(offset + k);
-                wing_source_coefficients(k)   = source_coefficients(offset + k);
-                wing_pressure_coefficients(k) = pressure_coefficients(offset + k);
+            // Log non-lifting surface coefficients:
+            VectorXd non_lifting_surface_doublet_coefficients(non_lifting_surface->n_panels());
+            VectorXd non_lifting_surface_source_coefficients(non_lifting_surface->n_panels());
+            VectorXd non_lifting_surface_pressure_coefficients(non_lifting_surface->n_panels());
+            for (int k = 0; k < non_lifting_surface->n_panels(); k++) {
+                non_lifting_surface_doublet_coefficients(k)  = doublet_coefficients(offset + k);
+                non_lifting_surface_source_coefficients(k)   = source_coefficients(offset + k);
+                non_lifting_surface_pressure_coefficients(k) = pressure_coefficients(offset + k);
             }
             
-            offset += wing->n_panels();
+            offset += non_lifting_surface->n_panels();
             
             vector<string> view_names;
             vector<VectorXd> view_data;
             
             view_names.push_back("DoubletDistribution");
-            view_data.push_back(wing_doublet_coefficients);
+            view_data.push_back(non_lifting_surface_doublet_coefficients);
             
             view_names.push_back("SourceDistribution");
-            view_data.push_back(wing_source_coefficients);
+            view_data.push_back(non_lifting_surface_source_coefficients);
             
             view_names.push_back("PressureDistribution");
-            view_data.push_back(wing_pressure_coefficients);
+            view_data.push_back(non_lifting_surface_pressure_coefficients);
             
             std::stringstream ss;
-            ss << log_folder << "/" << collection->id << "/wing_" << j << "/step_" << step_number << extension;
+            ss << log_folder << "/" << body->id << "/non_lifting_surface_" << j << "/step_" << step_number << extension;
 
-            wing->save(ss.str(), format, view_names, view_data, save_node_offset, save_panel_offset);
-            save_node_offset += wing->n_nodes();
-            save_panel_offset += wing->n_panels();
+            non_lifting_surface->save(ss.str(), format, view_names, view_data, save_node_offset, save_panel_offset);
+            save_node_offset += non_lifting_surface->n_nodes();
+            save_panel_offset += non_lifting_surface->n_panels();
+        }   
+        
+        // Iterate lifting surfaces:
+        for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
+            LiftingSurface *lifting_surface = body->lifting_surfaces[j];
+            Wake *wake = body->wakes[j];
             
-            // Log wake mesh and coefficients:
+            // Log lifting surface coefficients:
+            VectorXd lifting_surface_doublet_coefficients(lifting_surface->n_panels());
+            VectorXd lifting_surface_source_coefficients(lifting_surface->n_panels());
+            VectorXd lifting_surface_pressure_coefficients(lifting_surface->n_panels());
+            for (int k = 0; k < lifting_surface->n_panels(); k++) {
+                lifting_surface_doublet_coefficients(k)  = doublet_coefficients(offset + k);
+                lifting_surface_source_coefficients(k)   = source_coefficients(offset + k);
+                lifting_surface_pressure_coefficients(k) = pressure_coefficients(offset + k);
+            }
+            
+            offset += lifting_surface->n_panels();
+            
+            vector<string> view_names;
+            vector<VectorXd> view_data;
+            
+            view_names.push_back("DoubletDistribution");
+            view_data.push_back(lifting_surface_doublet_coefficients);
+            
+            view_names.push_back("SourceDistribution");
+            view_data.push_back(lifting_surface_source_coefficients);
+            
+            view_names.push_back("PressureDistribution");
+            view_data.push_back(lifting_surface_pressure_coefficients);
+            
+            std::stringstream ss;
+            ss << log_folder << "/" << body->id << "/lifting_surface_" << j << "/step_" << step_number << extension;
+
+            lifting_surface->save(ss.str(), format, view_names, view_data, save_node_offset, save_panel_offset);
+            save_node_offset += lifting_surface->n_nodes();
+            save_panel_offset += lifting_surface->n_panels();
+            
+            // Log wake surface and coefficients:
             VectorXd wake_doublet_coefficients(wake->doublet_coefficients.size());
             for (int k = 0; k < (int) wake->doublet_coefficients.size(); k++)
                 wake_doublet_coefficients(k) = wake->doublet_coefficients[k];
@@ -1121,7 +1147,7 @@ Solver::log_coefficients(int step_number, Mesh::FileFormat format) const
             view_data.push_back(wake_doublet_coefficients);
             
             std::stringstream ss2;
-            ss2 << log_folder << "/" << collection->id << "/wake_" << j << "/step_" << step_number << extension;
+            ss2 << log_folder << "/" << body->id << "/wake_" << j << "/step_" << step_number << extension;
             wake->save(ss2.str(), format, view_names, view_data, 0, save_panel_offset);
             save_node_offset += wake->n_nodes();
             save_panel_offset += wake->n_panels();
@@ -1131,7 +1157,7 @@ Solver::log_coefficients(int step_number, Mesh::FileFormat format) const
 
 /**
    Logs velocity potential and velocity vector fields into Gmsh files in the logging folder.  The grid
-   is the smallest box encompassing all nodes of all meshes, expanded in the X, Y, and Z directions by
+   is the smallest box encompassing all nodes of all surfaces, expanded in the X, Y, and Z directions by
    the given margins.
    
    @param[in]   step_number     Step number used to name the output files.
@@ -1155,11 +1181,11 @@ Solver::log_fields_gmsh(int step_number,
     double z_min = numeric_limits<double>::max();
     double z_max = numeric_limits<double>::min();
     
-    for (int i = 0; i < (int) meshes.size(); i++) {
-        Mesh *mesh = meshes[i];
+    for (int i = 0; i < (int) surfaces.size(); i++) {
+        Surface *surface = surfaces[i];
         
-        for (int j = 0; j < mesh->n_nodes(); j++) {
-            Vector3d &node = mesh->nodes[j];
+        for (int j = 0; j < surface->n_nodes(); j++) {
+            Vector3d &node = surface->nodes[j];
             
             if (node(0) < x_min)
                 x_min = node(0);
@@ -1257,7 +1283,7 @@ Solver::log_fields_gmsh(int step_number,
 
 /**
    Logs velocity potential and velocity vector fields into VTK files in the logging folder.  The grid
-   is the smallest box encompassing all nodes of all meshes, expanded in the X, Y, and Z directions by
+   is the smallest box encompassing all nodes of all surfaces, expanded in the X, Y, and Z directions by
    the given margins.
    
    @param[in]   step_number     Step number used to name the output files.
@@ -1281,11 +1307,11 @@ Solver::log_fields_vtk(int step_number,
     double z_min = numeric_limits<double>::max();
     double z_max = numeric_limits<double>::min();
     
-    for (int i = 0; i < (int) meshes.size(); i++) {
-        Mesh *mesh = meshes[i];
+    for (int i = 0; i < (int) surfaces.size(); i++) {
+        Surface *surface = surfaces[i];
         
-        for (int j = 0; j < mesh->n_nodes(); j++) {
-            Vector3d &node = mesh->nodes[j];
+        for (int j = 0; j < surface->n_nodes(); j++) {
+            Vector3d &node = surface->nodes[j];
             
             if (node(0) < x_min)
                 x_min = node(0);
@@ -1411,7 +1437,7 @@ Solver::log_fields_vtk(int step_number,
 
 /**
    Logs velocity potential and velocity vector fields into VTK files in the logging folder.  The grid
-   is the smallest box encompassing all nodes of all meshes, expanded in the X, Y, and Z directions by
+   is the smallest box encompassing all nodes of all surfaces, expanded in the X, Y, and Z directions by
    the given margins.
    
    @param[in]   step_number     Step number used to name the output files.
@@ -1425,15 +1451,15 @@ Solver::log_fields_vtk(int step_number,
 */
 void
 Solver::log_fields(int step_number,
-                   Mesh::FileFormat format,
+                   Surface::FileFormat format,
                    double dx, double dy, double dz,
                    double x_margin, double y_margin, double z_margin) const
 {   
     switch (format) {
-    case Mesh::VTK:
+    case Surface::VTK:
         log_fields_vtk(step_number, dy, dy, dz, x_margin, y_margin, z_margin);
         break;
-    case Mesh::GMSH:
+    case Surface::GMSH:
         log_fields_gmsh(step_number, dy, dy, dz, x_margin, y_margin, z_margin);
         break;
     }

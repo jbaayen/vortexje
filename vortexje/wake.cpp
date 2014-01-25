@@ -1,7 +1,7 @@
 //
 // Vortexje -- Wake
 //
-// Copyright (C) 2012 Baayen & Heinz GmbH.
+// Copyright (C) 2012 - 2014 Baayen & Heinz GmbH.
 //
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
@@ -20,9 +20,9 @@ using namespace Vortexje;
 /**
    Constructs an empty wake.
    
-   @param[in]   wing    Associated wing.
+   @param[in]   lifting_surface    Associated lifting surface.
 */
-Wake::Wake(Wing &wing): wing(wing)
+Wake::Wake(LiftingSurface &lifting_surface): lifting_surface(lifting_surface)
 {
 }
 
@@ -33,10 +33,10 @@ void
 Wake::add_layer()
 {
     // Add layer of nodes at trailing edge, and add panels if necessary:
-    int trailing_edge_n_nodes = wing.trailing_edge_nodes.size();
+    int trailing_edge_n_nodes = lifting_surface.trailing_edge_nodes.size();
     int trailing_edge_n_panels = trailing_edge_n_nodes - 1;
     for (int k = 0; k < trailing_edge_n_nodes; k++) {
-        Vector3d new_point = wing.nodes[wing.trailing_edge_nodes[k]];
+        Vector3d new_point = lifting_surface.nodes[lifting_surface.trailing_edge_nodes[k]];
         
         int node = n_nodes();
         nodes.push_back(new_point);
@@ -115,12 +115,12 @@ Wake::add_layer()
 void
 Wake::translate_trailing_edge(const Eigen::Vector3d &translation)
 {
-    if (n_nodes() < (int) wing.trailing_edge_nodes.size())
+    if (n_nodes() < (int) lifting_surface.trailing_edge_nodes.size())
         return;
         
     int k0;
     if (Parameters::convect_wake)
-        k0 = n_nodes() - (int) wing.trailing_edge_nodes.size();
+        k0 = n_nodes() - (int) lifting_surface.trailing_edge_nodes.size();
     else
         k0 = 0;
         
@@ -138,12 +138,12 @@ Wake::translate_trailing_edge(const Eigen::Vector3d &translation)
 void
 Wake::transform_trailing_edge(const Eigen::Matrix3d &transformation)
 {
-    if (n_nodes() < (int) wing.trailing_edge_nodes.size())
+    if (n_nodes() < (int) lifting_surface.trailing_edge_nodes.size())
         return;
         
     int k0;
     if (Parameters::convect_wake)
-        k0 = n_nodes() - (int) wing.trailing_edge_nodes.size();
+        k0 = n_nodes() - (int) lifting_surface.trailing_edge_nodes.size();
     else
         k0 = 0;
         

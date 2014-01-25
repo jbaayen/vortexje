@@ -1,5 +1,5 @@
 //
-// Vortexje -- Mesh.
+// Vortexje -- Surface.
 //
 // Copyright (C) 2012 - 2014 Baayen & Heinz GmbH.
 //
@@ -15,36 +15,36 @@
 #include <Eigen/Geometry>
 #include <Eigen/SVD>
 
-#include <vortexje/mesh.hpp>
+#include <vortexje/surface.hpp>
 #include <vortexje/parameters.hpp>
 
 using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
 
-// Static counter to give every mesh a unique ID.
+// Static counter to give every surface a unique ID.
 static int id_counter = 0;
 
 /**
-   Constructs an empty mesh.
+   Constructs an empty surface.
 */
-Mesh::Mesh()
+Surface::Surface()
 {
     // Set ID:
     id = ++id_counter;
 }
 
 /**
-   Constructs a mesh from the given gmsh MSH file.
+   Constructs a surface from the given Gmsh MSH file.
    
-   @param[in]   file    Filename pointing to a gmsh MSH file.
+   @param[in]   file    Filename pointing to a Gmsh MSH file.
 */
-Mesh::Mesh(std::string file)
+Surface::Surface(std::string file)
 {
     // Set ID:
     id = ++id_counter;
     
-    // Load mesh from file:
+    // Load surface from file:
     load(file);
 }
 
@@ -52,7 +52,7 @@ Mesh::Mesh(std::string file)
    Clears the node-panel neighbor data structure, and frees up its memory.
 */
 void
-Mesh::clear_node_panel_neighbors()
+Surface::clear_node_panel_neighbors()
 {
     vector<vector<int> *> unique;
     
@@ -78,13 +78,13 @@ Mesh::clear_node_panel_neighbors()
 /**
    Destructor.
 */
-Mesh::~Mesh()
+Surface::~Surface()
 {
     clear_node_panel_neighbors();
 }
 
 /**
-   Adds a triangle to this mesh, following the gmsh orientation convention.
+   Adds a triangle to this surface, following the Gmsh orientation convention.
     
    @param[in]  node_a  Node number to form vertex A.
    @param[in]  node_b  Node number to form vertex B.
@@ -96,7 +96,7 @@ Mesh::~Mesh()
    compute_topology() as well as compute_geometry() when done adding panels.
 */
 int
-Mesh::add_triangle(int node_a, int node_b, int node_c)
+Surface::add_triangle(int node_a, int node_b, int node_c)
 {
     vector<int> single_panel_nodes;
     single_panel_nodes.push_back(node_a);
@@ -114,7 +114,7 @@ Mesh::add_triangle(int node_a, int node_b, int node_c)
 }
 
 /**
-   Adds a quadrangle to this mesh, following the gmsh orientation convention.
+   Adds a quadrangle to this surface, following the gmsh orientation convention.
     
    @param[in]  node_a  Node number to form vertex A.
    @param[in]  node_b  Node number to form vertex B.
@@ -127,7 +127,7 @@ Mesh::add_triangle(int node_a, int node_b, int node_c)
    compute_panel_neighbors() when done adding panels.
 */
 int
-Mesh::add_quadrangle(int node_a, int node_b, int node_c, int node_d)
+Surface::add_quadrangle(int node_a, int node_b, int node_c, int node_d)
 {
     vector<int> single_panel_nodes;
     single_panel_nodes.push_back(node_a);
@@ -147,18 +147,18 @@ Mesh::add_quadrangle(int node_a, int node_b, int node_c, int node_d)
 }
 
 /**
-   Reconstructs a mesh from a gmsh MSH file.
+   Reconstructs a surface from a Gmsh MSH file.
    
-   @param[in]   file   gmsh MSH file filename.
+   @param[in]   file   Gmsh MSH file filename.
    
    @returns true on success.
 */
 bool
-Mesh::load(const string file)
+Surface::load(const string file)
 {
-    cout << "Mesh " << id << ": Loading from " << file << "." << endl;
+    cout << "Surface " << id << ": Loading from " << file << "." << endl;
     
-    // Load mesh from gmsh MSH file:
+    // Load surface from gmsh MSH file:
     ifstream f;
     f.open(file.c_str());
     
@@ -169,7 +169,7 @@ Mesh::load(const string file)
         getline(f, line);
         
         if (line[0] == '$') {
-            if        (line == "$MeshFormat"   ) {
+            if        (line == "$SurfaceFormat"   ) {
                 getline(f, line);
                 
                 istringstream tokens(line);
@@ -179,7 +179,7 @@ Mesh::load(const string file)
                 tokens >> version >> file_type >> data_size;
                 
                 if (version != "2.2" || file_type != 0 || data_size != 8) {
-                    cerr << "Mesh " << id << ": Unknown data format in " << f << "." << endl;
+                    cerr << "Surface " << id << ": Unknown data format in " << f << "." << endl;
                     
                     f.close();
                     
@@ -260,7 +260,7 @@ Mesh::load(const string file)
     
     f.close();
     
-    // Compute mesh topology:
+    // Compute surface topology:
     compute_topology();
     
     // Compute panel geometry:
@@ -274,7 +274,7 @@ Mesh::load(const string file)
    Computes neighboring panels of panels, based on existing node-panel data structures.
 */
 void
-Mesh::compute_topology()
+Surface::compute_topology()
 {   
     // Compute panel neighbors:
     for (int i = 0; i < (int) panel_nodes.size(); i++) {
@@ -313,10 +313,10 @@ Mesh::compute_topology()
    Computes the normals, collocation points, surface areas, and diameters of all panels.
 */
 void
-Mesh::compute_geometry()
+Surface::compute_geometry()
 {
     // Normals:
-    cout << "Mesh " << id << ": Generating panel normals." << endl;
+    cout << "Surface " << id << ": Generating panel normals." << endl;
         
     panel_normals.clear();
     panel_normals.reserve(n_panels());
@@ -344,7 +344,7 @@ Mesh::compute_geometry()
     }
     
     // Collocation points: 
-    cout << "Mesh " << id << ": Generating panel collocation points." << endl;
+    cout << "Surface " << id << ": Generating panel collocation points." << endl;
     
     panel_collocation_points[0].clear();
     panel_collocation_points[0].reserve(n_panels());
@@ -368,7 +368,7 @@ Mesh::compute_geometry()
     }
     
     // Surface areas:
-    cout << "Mesh " << id << ": Generating panel surface area cache." << endl;
+    cout << "Surface " << id << ": Generating panel surface area cache." << endl;
     
     panel_surface_areas.clear();
     panel_surface_areas.reserve(n_panels());
@@ -394,7 +394,7 @@ Mesh::compute_geometry()
     }
     
     // Diameters:
-    cout << "Mesh " << id << ": Generating panel diameter cache." << endl;
+    cout << "Surface " << id << ": Generating panel diameter cache." << endl;
     
     panel_diameters.clear();
     panel_diameters.reserve(n_panels());
@@ -419,7 +419,7 @@ Mesh::compute_geometry()
 }
 
 /**
-   Saves this mesh to a VTK unstructured grid file, including data vectors associating numerical values to each panel -- cell data,
+   Saves this surface to a VTK unstructured grid file, including data vectors associating numerical values to each panel -- cell data,
    in gmsh terminology.
   
    @param[in]   file            Destination filename.
@@ -429,9 +429,9 @@ Mesh::compute_geometry()
    @param[in]   panel_offset    Panel numbering offset in output file.
 */
 void
-Mesh::save_vtk(const std::string file, const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data) const
+Surface::save_vtk(const std::string file, const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data) const
 {  
-    // Save mesh to VTK file:
+    // Save surface to VTK file:
     ofstream f;
     f.open(file.c_str());
     
@@ -483,7 +483,7 @@ Mesh::save_vtk(const std::string file, const std::vector<std::string> &view_name
             cell_type = 9;
             break;
         default:
-            cerr << "Mesh " << id << ": Unknown polygon at panel " << i << "." << endl;
+            cerr << "Surface " << id << ": Unknown polygon at panel " << i << "." << endl;
             continue;
         }
         
@@ -508,7 +508,7 @@ Mesh::save_vtk(const std::string file, const std::vector<std::string> &view_name
 }
 
 /**
-   Saves this mesh to a gmsh MSH file, including data vectors associating numerical values to each panel -- views,
+   Saves this surface to a Gmsh MSH file, including data vectors associating numerical values to each panel -- views,
    in gmsh terminology.
   
    @param[in]   file            Destination filename.
@@ -518,15 +518,15 @@ Mesh::save_vtk(const std::string file, const std::vector<std::string> &view_name
    @param[in]   panel_offset    Panel numbering offset in output file.
 */
 void
-Mesh::save_gmsh(const std::string file, const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data, int node_offset, int panel_offset) const
+Surface::save_gmsh(const std::string file, const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data, int node_offset, int panel_offset) const
 {
-    // Save mesh to gmsh file:
+    // Save surface to gmsh file:
     ofstream f;
     f.open(file.c_str());
     
-    f << "$MeshFormat" << endl;
+    f << "$SurfaceFormat" << endl;
     f << "2.2 0 8" << endl; 
-    f << "$EndMeshFormat" << endl;
+    f << "$EndSurfaceFormat" << endl;
     
     f << "$Nodes" << endl;
     f << n_nodes() << endl;
@@ -556,7 +556,7 @@ Mesh::save_gmsh(const std::string file, const std::vector<std::string> &view_nam
             element_type = 3;
             break;
         default:
-            cerr << "Mesh " << id << ": Unknown polygon at panel " << i << "." << endl;
+            cerr << "Surface " << id << ": Unknown polygon at panel " << i << "." << endl;
             continue;
         }
         
@@ -608,7 +608,7 @@ Mesh::save_gmsh(const std::string file, const std::vector<std::string> &view_nam
 }
 
 /**
-   Saves this mesh to a file, including data vectors associating numerical values to each panel.
+   Saves this surface to a file, including data vectors associating numerical values to each panel.
   
    @param[in]   file            Destination filename.
    @param[in]   format          Destination file format.
@@ -618,9 +618,9 @@ Mesh::save_gmsh(const std::string file, const std::vector<std::string> &view_nam
    @param[in]   panel_offset    Panel numbering offset in output file.
 */
 void
-Mesh::save(const std::string file, FileFormat format, const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data, int node_offset, int panel_offset) const
+Surface::save(const std::string file, FileFormat format, const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data, int node_offset, int panel_offset) const
 {
-    cout << "Mesh " << id << ": Saving to " << file << "." << endl;
+    cout << "Surface " << id << ": Saving to " << file << "." << endl;
     
     switch (format) {
     case VTK:
@@ -633,7 +633,7 @@ Mesh::save(const std::string file, FileFormat format, const std::vector<std::str
 }
 
 /**
-   Saves this mesh to a file.
+   Saves this surface to a file.
   
    @param[in]   file            Destination filename.
    @param[in]   format          Destination file format.
@@ -641,7 +641,7 @@ Mesh::save(const std::string file, FileFormat format, const std::vector<std::str
    @param[in]   panel_offset    Panel numbering offset in output file.
 */
 void
-Mesh::save(const std::string file, FileFormat format, int node_offset, int panel_offset) const
+Surface::save(const std::string file, FileFormat format, int node_offset, int panel_offset) const
 {
     vector<string> empty_names;
     vector<VectorXd> empty_data;
@@ -650,88 +650,47 @@ Mesh::save(const std::string file, FileFormat format, int node_offset, int panel
 }
 
 /**
-   Returns the number of nodes contained in this mesh.
+   Returns the number of nodes contained in this surface.
    
    @returns Number of nodes.
 */
 int
-Mesh::n_nodes() const
+Surface::n_nodes() const
 {
     return nodes.size();
 }
 
 /**
-   Returns the number of panels contained in this mesh.
+   Returns the number of panels contained in this surface.
    
    @returns Number of panels.
 */
 int
-Mesh::n_panels() const
+Surface::n_panels() const
 {
     return panel_nodes.size();
 }
 
 /**
-   Rotates this mesh.
+   Rotates this surface.
    
-   @param[in]   axis                    Axis of rotation.
-   @param[in]   angle                   Angle of rotation.
+   @param[in]   axis    Axis of rotation.
+   @param[in]   angle   Angle of rotation.
 */
 void
-Mesh::rotate(const Eigen::Vector3d &axis, double angle)
+Surface::rotate(const Eigen::Vector3d &axis, double angle)
 {
     Eigen::Matrix3d transformation = AngleAxis<double>(angle, axis).toRotationMatrix();
     transform(transformation);
 }
 
 /**
-   Transforms this mesh.
+   Transforms this surface.
    
-   @param[in]   transformation             Transformation matrix.
+   @param[in]   transformation   Transformation matrix.
 */
 void
-Mesh::transform(const Eigen::Matrix3d &transformation)
-{
-    vector<Mesh*> empty;
-    transform(transformation, empty);
-}
-
-/**
-   Translates this mesh.
-   
-   @param[in]   translation             Translation vector.
-*/
-void
-Mesh::translate(const Eigen::Vector3d &translation)
-{
-    vector<Mesh*> empty;
-    translate(translation, empty);
-}
-
-/**
-   Rotates this mesh, under the assumption that the list of co-rotating meshes experiences
-   the same rotation.  The caches of the co-rotating meshes are updated accordingly.
-   
-   @param[in]   axis                    Axis of rotation.
-   @param[in]   angle                   Angle of rotation.
-   @param[in]   corotating_meshes       List of co-rotating meshes.
-*/
-void
-Mesh::rotate(const Eigen::Vector3d &axis, double angle, std::vector<Mesh*> &corotating_meshes)
-{
-    Eigen::Matrix3d transformation = AngleAxis<double>(angle, axis).toRotationMatrix();
-    transform(transformation, corotating_meshes);
-}
-
-/**
-   Transforms this mesh, under the assumption that the list of co-transforming meshes experiences
-   the same transformation.  The caches of the co-transforming meshes are updated accordingly.
-   
-   @param[in]   transformation          Transformation matrix.
-   @param[in]   cotransforming_meshes   List of co-transforming meshes.
-*/
-void
-Mesh::transform(const Eigen::Matrix3d &transformation, std::vector<Mesh*> &cotransforming_meshes)
+Surface::transform(const Eigen::Matrix3d &transformation)
 {
     for (int i = 0; i < n_nodes(); i++)
         nodes[i] = transformation * nodes[i];
@@ -750,14 +709,12 @@ Mesh::transform(const Eigen::Matrix3d &transformation, std::vector<Mesh*> &cotra
 }
 
 /**
-   Translates this mesh, under the assumption that the list of co-translating meshes experiences
-   the same translation.  The caches of the co-translating meshes are updated accordingly.
+   Translates this surface.
    
-   @param[in]   translation             Translation vector.
-   @param[in]   cotranslating_meshes    List of co-translating meshes.
+   @param[in]   translation   Translation vector.
 */
 void
-Mesh::translate(const Eigen::Vector3d &translation, std::vector<Mesh*> &cotranslating_meshes)
+Surface::translate(const Eigen::Vector3d &translation)
 {
     for (int i = 0; i < n_nodes(); i++)
         nodes[i] = nodes[i] + translation;
@@ -779,7 +736,7 @@ Mesh::translate(const Eigen::Vector3d &translation, std::vector<Mesh*> &cotransl
    @returns Distance between reference point and panel.
 */
 double
-Mesh::distance_to_panel(const Eigen::Vector3d &x, int panel) const
+Surface::distance_to_panel(const Eigen::Vector3d &x, int panel) const
 {
     double distance = numeric_limits<double>::max();
     
@@ -871,7 +828,7 @@ Mesh::distance_to_panel(const Eigen::Vector3d &x, int panel) const
    @returns true if the closest panel borders a trailing edge.
 */
 bool
-Mesh::closest_panel(const Eigen::Vector3d &x, int &panel, double &distance) const
+Surface::closest_panel(const Eigen::Vector3d &x, int &panel, double &distance) const
 {
     distance = numeric_limits<double>::max();
     panel = -1;
@@ -896,7 +853,7 @@ Mesh::closest_panel(const Eigen::Vector3d &x, int &panel, double &distance) cons
    @returns Collocation point.
 */
 Vector3d
-Mesh::panel_collocation_point(int panel, bool below_surface) const
+Surface::panel_collocation_point(int panel, bool below_surface) const
 {
     return panel_collocation_points[below_surface][panel];
 }
@@ -909,7 +866,7 @@ Mesh::panel_collocation_point(int panel, bool below_surface) const
    @returns Inward-pointing normal.
 */
 Vector3d
-Mesh::panel_normal(int panel) const
+Surface::panel_normal(int panel) const
 {
     return panel_normals[panel];
 }
@@ -922,7 +879,7 @@ Mesh::panel_normal(int panel) const
    @returns Panel surface area.
 */
 double
-Mesh::panel_surface_area(int panel) const
+Surface::panel_surface_area(int panel) const
 {  
     return panel_surface_areas[panel];
 }
@@ -935,7 +892,7 @@ Mesh::panel_surface_area(int panel) const
    @returns Panel diameter.
 */
 double
-Mesh::panel_diameter(int panel) const
+Surface::panel_diameter(int panel) const
 {
     return panel_diameters[panel];
 }
@@ -948,7 +905,7 @@ Mesh::panel_diameter(int panel) const
    @returns Deformation velocity.
 */
 Vector3d
-Mesh::panel_deformation_velocity(int panel) const
+Surface::panel_deformation_velocity(int panel) const
 {
     Vector3d deformation_velocity(0, 0, 0);
     for (int i = 0; i < (int) panel_nodes[panel].size(); i++)
@@ -967,7 +924,7 @@ Mesh::panel_deformation_velocity(int panel) const
    @returns Point, located outside of the body, close to the given node.
 */
 Vector3d
-Mesh::close_to_body_point(int node) const
+Surface::close_to_body_point(int node) const
 {
     Vector3d layer_direction(0, 0, 0);
     for (int i = 0; i < (int) node_panel_neighbors[node]->size(); i++)
@@ -996,7 +953,7 @@ x_to_y_rotation(const Vector3d &unit_x, const Vector3d &unit_y)
    @returns On-body gradient.
 */
 Vector3d
-Mesh::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int this_panel) const
+Surface::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int this_panel) const
 {
     // We compute the scalar field gradient by fitting a linear model.
     Vector3d this_normal = panel_normal(this_panel);
@@ -1083,7 +1040,7 @@ doublet_edge_influence(const Vector3d &x, const Vector3d &this_panel_collocation
    @returns Influence coefficient.
 */
 double
-Mesh::doublet_influence(const Eigen::Vector3d &x, int this_panel) const
+Surface::doublet_influence(const Eigen::Vector3d &x, int this_panel) const
 {
     // Transform such that panel normal becomes unit Z vector:
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
@@ -1153,7 +1110,7 @@ source_edge_influence(const Vector3d &x, const Vector3d &this_panel_collocation_
    @returns Influence coefficient.
 */
 double
-Mesh::source_influence(const Eigen::Vector3d &x, int this_panel) const
+Surface::source_influence(const Eigen::Vector3d &x, int this_panel) const
 {
     // Transform such that panel normal becomes unit Z vector:
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
@@ -1223,7 +1180,7 @@ source_edge_unit_velocity(const Vector3d &x, const Vector3d &this_panel_collocat
    @returns Velocity induced by the source panel.
 */
 Vector3d
-Mesh::source_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
+Surface::source_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
 {   
     // Transform such that panel normal becomes unit Z vector:
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
@@ -1266,7 +1223,7 @@ Mesh::source_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
    @returns Velocity induced by the vortex ring.
 */
 Vector3d
-Mesh::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
+Surface::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
 {    
     Vector3d velocity(0, 0, 0);
     
@@ -1314,7 +1271,7 @@ Mesh::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
    @note See M. Ramasamy and J. G. Leishman, Reynolds Number Based Blade Tip Vortex Model, University of Maryland, 2005.
 */
 Vector3d
-Mesh::vortex_ring_ramasamy_leishman_velocity(const Eigen::Vector3d &x, int this_panel, const std::vector<double> core_radii, double vorticity) const
+Surface::vortex_ring_ramasamy_leishman_velocity(const Eigen::Vector3d &x, int this_panel, const std::vector<double> core_radii, double vorticity) const
 {
     // Ramasamy-Leishman series data:
     typedef struct {
@@ -1439,14 +1396,14 @@ Mesh::vortex_ring_ramasamy_leishman_velocity(const Eigen::Vector3d &x, int this_
    has been computed before, the cached influence coefficient is returned.  If not, the coefficient
    is computed and cached.
    
-   @param[in]   other       Mesh on which the influence coefficient is evaluated.
+   @param[in]   other       Surface on which the influence coefficient is evaluated.
    @param[in]   other_panel Panel on which the influence coefficient is evaluated.
    @param[in]   this_panel  Panel on which the doublet panel is located.
    
    @returns Influence coefficient.
 */
 double
-Mesh::doublet_influence(const Mesh &other, int other_panel, int this_panel) const
+Surface::doublet_influence(const Surface &other, int other_panel, int this_panel) const
 { 
     return doublet_influence(other.panel_collocation_point(other_panel, true), this_panel);
 }
@@ -1456,14 +1413,14 @@ Mesh::doublet_influence(const Mesh &other, int other_panel, int this_panel) cons
    has been computed before, the cached influence coefficient is returned.  If not, the coefficient
    is computed and cached.
    
-   @param[in]   other       Mesh on which the influence coefficient is evaluated.
+   @param[in]   other       Surface on which the influence coefficient is evaluated.
    @param[in]   other_panel Panel on which the influence coefficient is evaluated.
    @param[in]   this_panel  Panel on which the source panel is located.
    
    @returns Influence coefficient.
 */
 double
-Mesh::source_influence(const Mesh &other, int other_panel, int this_panel) const
+Surface::source_influence(const Surface &other, int other_panel, int this_panel) const
 {
     return source_influence(other.panel_collocation_point(other_panel, true), this_panel);
 }
@@ -1473,14 +1430,14 @@ Mesh::source_influence(const Mesh &other, int other_panel, int this_panel) const
    has been computed before, the cached velocity is returned.  If not, the quantity
    is computed and cached.
    
-   @param[in]   other       Mesh on which the velocity is evaluated.
+   @param[in]   other       Surface on which the velocity is evaluated.
    @param[in]   other_panel Panel on which the velocity is evaluated.
    @param[in]   this_panel  Panel on which the vortex ring is located.
    
    @returns Velocity induced by the source panel.
 */
 Vector3d
-Mesh::source_unit_velocity(const Mesh &other, int other_panel, int this_panel) const
+Surface::source_unit_velocity(const Surface &other, int other_panel, int this_panel) const
 { 
     return source_unit_velocity(other.panel_collocation_point(other_panel, true), this_panel);
 }
@@ -1490,14 +1447,14 @@ Mesh::source_unit_velocity(const Mesh &other, int other_panel, int this_panel) c
    has been computed before, the cached velocity is returned.  If not, the quantity
    is computed and cached.
    
-   @param[in]   other       Mesh on which the velocity is evaluated.
+   @param[in]   other       Surface on which the velocity is evaluated.
    @param[in]   other_panel Panel on which the velocity is evaluated.
    @param[in]   this_panel  Panel on which the vortex ring is located.
    
    @returns Velocity induced by the vortex ring.
 */
 Vector3d
-Mesh::vortex_ring_unit_velocity(const Mesh &other, int other_panel, int this_panel) const
+Surface::vortex_ring_unit_velocity(const Surface &other, int other_panel, int this_panel) const
 {
     return vortex_ring_unit_velocity(other.panel_collocation_point(other_panel, true), this_panel);
 }
@@ -1507,7 +1464,7 @@ Mesh::vortex_ring_unit_velocity(const Mesh &other, int other_panel, int this_pan
    has been computed before, the cached velocity is returned.  If not, the quantity
    is computed and cached.
    
-   @param[in]   other       Mesh on which the velocity is evaluated.
+   @param[in]   other       Surface on which the velocity is evaluated.
    @param[in]   other_panel Panel on which the velocity is evaluated.
    @param[in]   this_panel  Panel on which the vortex ring is located.
    @param[in]   core_radii  Radii of the filaments forming the vortex ring.
@@ -1518,7 +1475,7 @@ Mesh::vortex_ring_unit_velocity(const Mesh &other, int other_panel, int this_pan
    @note See M. Ramasamy and J. G. Leishman, Reynolds Number Based Blade Tip Vortex Model, University of Maryland, 2005.
 */
 Vector3d
-Mesh::vortex_ring_ramasamy_leishman_velocity(const Mesh &other, int other_panel, int this_panel, const std::vector<double> core_radii, double vorticity) const
+Surface::vortex_ring_ramasamy_leishman_velocity(const Surface &other, int other_panel, int this_panel, const std::vector<double> core_radii, double vorticity) const
 {
     return vortex_ring_ramasamy_leishman_velocity(other.panel_collocation_point(other_panel, true), this_panel, core_radii, vorticity);
 }

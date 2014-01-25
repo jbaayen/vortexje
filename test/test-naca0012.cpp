@@ -9,6 +9,8 @@
 #include <iostream>
 
 #include <vortexje/solver.hpp>
+#include <vortexje/lifting-surface-builder.hpp>
+#include <vortexje/airfoils/naca4.hpp>
 
 using namespace std;
 using namespace Eigen;
@@ -23,30 +25,51 @@ run_test(double alpha)
     Parameters::unsteady_bernoulli = false;
     Parameters::convect_wake = false;
     
-    // Load meshes:
-    Mesh nolift_mesh;
-    
     // Create wing:
-    Vector3d location(0, 0, 0);
-    Vector3d chord_direction(1, 0, 0);
-    Vector3d top_direction(0, 1, 0);
-    Vector3d span_direction(0, 0, 1);
+    LiftingSurface wing;
     
-    Mesh wing_mesh(string("naca0012.msh"));
+    wing.chord_direction = Vector3d(1, 0, 0);
+    wing.span_direction  = Vector3d(0, 0, 1);
     
-    Wing wing(wing_mesh, location, chord_direction, top_direction, span_direction);
+    LiftingSurfaceBuilder surface_builder(wing);
+
+    const double chord = 0.75;
+    const double span = 4.5;
+    
+    const int n_points_per_airfoil = 32;
+    const int n_airfoils = 21;
+    
+    int trailing_edge_point_id;
+    vector<int> prev_airfoil_nodes;
+    for (int i = 0; i < n_airfoils; i++) {
+        vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points =
+            Airfoils::NACA4::generate(0, 0, 0.12, true, chord, n_points_per_airfoil, trailing_edge_point_id);
+        for (int j = 0; j < (int) airfoil_points.size(); j++)
+            airfoil_points[j](2) += i * span / (double) (n_airfoils - 1);
+            
+        vector<int> airfoil_nodes = surface_builder.create_nodes(airfoil_points, trailing_edge_point_id);
+        
+        if (i > 0)
+            surface_builder.create_panels_between(airfoil_nodes, prev_airfoil_nodes, trailing_edge_point_id);
+            
+        prev_airfoil_nodes = airfoil_nodes;
+    }
+
+    wing.compute_topology();
+    wing.compute_geometry();
+    
+    wing.sort_strips();
     
     // Rotate by angle of attack:
-    wing.rotate(span_direction, -alpha);
+    wing.rotate(wing.span_direction, -alpha);
     
-    // Create mesh collection:
-    Collection collection(string("test-wing"),
-                          nolift_mesh);
-    collection.add_wing(&wing);
+    // Create surface body:
+    Body body(string("test-wing"));
+    body.add_lifting_surface(&wing);
     
     // Set up solver:
     Solver solver("test-naca0012-log");
-    solver.add_collection(collection);
+    solver.add_body(body);
     
     Vector3d freestream_velocity(30, 0, 0);
     solver.set_freestream_velocity(freestream_velocity);
@@ -59,11 +82,11 @@ run_test(double alpha)
     solver.update_coefficients(0);
     
     // Output lift and drag coefficients:
-    Vector3d F_a = solver.force(collection);
+    Vector3d F_a = solver.force(body);
     
     double q = 0.5 * fluid_density * freestream_velocity.squaredNorm();
     
-    double S = 4.5 * 0.75;
+    double S = chord * span;
     
     double C_L = F_a(1) / (q * S);
     double C_D = F_a(0) / (q * S);

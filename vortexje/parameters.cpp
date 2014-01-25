@@ -43,8 +43,6 @@ double Parameters::interpolation_layer_notch_angle    = 2 * M_PI / 3;
 
 double Parameters::inversion_tolerance                = 1e-7;
 
-double Parameters::sharp_edge_threshold               = 0.1;
-
 double Parameters::collocation_point_delta            = 1e-7;
 
 bool   Parameters::marcov_surface_velocity            = false;

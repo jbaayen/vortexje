@@ -1,12 +1,12 @@
 //
-// Vortexje -- Collection.
+// Vortexje -- Body.
 //
-// Copyright (C) 2012 Baayen & Heinz GmbH.
+// Copyright (C) 2012 - 2014 Baayen & Heinz GmbH.
 //
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
-#include <vortexje/collection.hpp>
+#include <vortexje/body.hpp>
 
 #include <iostream>
 
@@ -15,16 +15,12 @@ using namespace Eigen;
 using namespace Vortexje;
     
 /**
-   Constructs a new Collection.
+   Constructs a new Body.
    
-   @param[in]   id              Name for this collection.
-   @param[in]   nolift_mesh     Obstacle-only mesh.
+   @param[in]   id   Name for this body.
 */
-Collection::Collection(string id, Mesh &nolift_mesh) : id(id), nolift_mesh(nolift_mesh)
+Body::Body(string id) : id(id)
 {
-    // Initialize mesh list:
-    meshes_without_wakes.push_back(&nolift_mesh);
-    
     // Initialize kinematics:
     position = Vector3d(0, 0, 0);
     velocity = Vector3d(0, 0, 0);
@@ -34,44 +30,58 @@ Collection::Collection(string id, Mesh &nolift_mesh) : id(id), nolift_mesh(nolif
 }
 
 /**
-   Collection destructor.
+   Body destructor.
 */
-Collection::~Collection()
+Body::~Body()
 {
 }
 
 /**
-   Adds a Wing to this collection.
+   Adds a non-lifting surface to this body.
    
-   @param[in]   wing    Wing.
+   @param[in]   surface    Non-lifting surface.
 */
 void
-Collection::add_wing(Wing *wing)
+Body::add_non_lifting_surface(Surface *non_lifting_surface)
 {
-    wings.push_back(wing);
-    meshes_without_wakes.push_back(wing);
+    // Non-lifting surfaces go in the front.
+    non_lifting_surfaces.push_back(non_lifting_surface);
+    non_wake_surfaces.push_back(non_lifting_surface);
+}
+
+/**
+   Adds a lifting surface to this body.
+   
+   @param[in]   lifting_surface    Lifting surface.
+*/
+void
+Body::add_lifting_surface(LiftingSurface *lifting_surface)
+{
+    // Lifting surfaces go in the back.
+    lifting_surfaces.push_back(lifting_surface);
+    non_wake_surfaces.push_back(lifting_surface);
         
-    Wake *wake = new Wake(*wing);
+    Wake *wake = new Wake(*lifting_surface);
     wakes.push_back(wake);
 }
 
 /**
-   Sets the linear position of this collection.
+   Sets the linear position of this body.
    
    @param[in]   position    Linear position.
 */
 void
-Collection::set_position(const Vector3d &position)
+Body::set_position(const Vector3d &position)
 {
     // Compute differential:
     Vector3d dposition = position - this->position;
        
-    // Apply for all non-wake meshes:
-    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
-        Mesh *mesh = meshes_without_wakes[i];
+    // Apply for all non-wake surfacees:
+    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
+        Surface *surface = non_wake_surfaces[i];
         
         // Translate:
-        mesh->translate(dposition, meshes_without_wakes);
+        surface->translate(dposition);
     }
     
     // Apply for trailing edge wake nodes:
@@ -87,34 +97,34 @@ Collection::set_position(const Vector3d &position)
 }
 
 /**
-   Sets the attitude (orientation) of this collection.
+   Sets the attitude (orientation) of this body.
    
-   @param[in]   attitude    Attitude (orientation) of this collection, as normalized quaternion.
+   @param[in]   attitude    Attitude (orientation) of this body, as normalized quaternion.
 */
 void
-Collection::set_attitude(const Quaterniond &attitude)
+Body::set_attitude(const Quaterniond &attitude)
 {   
     Eigen::Vector3d translation;
     Eigen::Matrix3d transformation;
     
-    // Apply for all non-wake meshes:
-    for (int i = 0; i < (int) meshes_without_wakes.size(); i++) {
-        Mesh *mesh = meshes_without_wakes[i];
+    // Apply for all non-wake surfacees:
+    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
+        Surface *surface = non_wake_surfaces[i];
         
         // Translate to origin:
         translation = -position;
-        mesh->translate(translation, meshes_without_wakes);
+        surface->translate(translation);
         
         // Transform to canonical orientation:
         transformation = this->attitude.inverse().toRotationMatrix();
-        mesh->transform(transformation, meshes_without_wakes);
+        surface->transform(transformation);
         
         // Transform to new orientation:
         transformation = attitude.toRotationMatrix();
-        mesh->transform(transformation, meshes_without_wakes);
+        surface->transform(transformation);
         
         // Translate back:
-        mesh->translate(position, meshes_without_wakes);
+        surface->translate(position);
     }
     
     // Apply for trailing edge wake nodes:
@@ -142,23 +152,23 @@ Collection::set_attitude(const Quaterniond &attitude)
 }
 
 /**
-   Sets the linear velocity of this collection.
+   Sets the linear velocity of this body.
    
    @param[in]   velocity    Linear velocity.
 */
 void 
-Collection::set_velocity(const Vector3d &velocity)
+Body::set_velocity(const Vector3d &velocity)
 {
     this->velocity = velocity;
 }
 
 /**
-   Sets the rotational velocity of this collection.
+   Sets the rotational velocity of this body.
    
    @param[in]   rotational_velocity     Rotational velocity.
 */
 void
-Collection::set_rotational_velocity(const Vector3d &rotational_velocity)
+Body::set_rotational_velocity(const Vector3d &rotational_velocity)
 {
     this->rotational_velocity = rotational_velocity;
 }
@@ -166,15 +176,15 @@ Collection::set_rotational_velocity(const Vector3d &rotational_velocity)
 /**
    Computes the kinematic velocity of the given panel.
    
-   @param[in]   mesh   Mesh, belonging to this collection. 
-   @param[in]   panel  Panel, belonging to this mesh.
+   @param[in]   surface   Surface, belonging to this body. 
+   @param[in]   panel  Panel, belonging to this surface.
    
    @return The kinematic velocity.
 */
 Vector3d
-Collection::panel_kinematic_velocity(const Mesh &mesh, int panel) const
+Body::panel_kinematic_velocity(const Surface &surface, int panel) const
 {
-    Vector3d panel_position = mesh.panel_collocation_point(panel, false);
+    Vector3d panel_position = surface.panel_collocation_point(panel, false);
     Vector3d r = panel_position - position;
     return velocity + rotational_velocity.cross(r);
 }
@@ -182,14 +192,14 @@ Collection::panel_kinematic_velocity(const Mesh &mesh, int panel) const
 /**
    Computes the kinematic velocity of the given node.
    
-   @param[in]   mesh   Mesh, belonging to this collection. 
-   @param[in]   node   Node, belonging to this mesh.
+   @param[in]   surface   Surface, belonging to this body. 
+   @param[in]   node   Node, belonging to this surface.
    
    @return The kinematic velocity.
 */
 Vector3d
-Collection::node_kinematic_velocity(const Mesh &mesh, int node) const
+Body::node_kinematic_velocity(const Surface &surface, int node) const
 {
-    Vector3d r = mesh.nodes[node] - position;
+    Vector3d r = surface.nodes[node] - position;
     return velocity + rotational_velocity.cross(r);
 }

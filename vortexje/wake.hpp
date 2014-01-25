@@ -1,7 +1,7 @@
 //
 // Vortexje -- Wake.
 //
-// Copyright (C) 2012 Baayen & Heinz GmbH.
+// Copyright (C) 2012 - 2014 Baayen & Heinz GmbH.
 //
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
@@ -11,8 +11,7 @@
 
 #include <Eigen/StdVector>
 
-#include <vortexje/mesh.hpp>
-#include <vortexje/wing.hpp>
+#include <vortexje/lifting-surface.hpp>
 
 namespace Vortexje
 {
@@ -22,17 +21,17 @@ namespace Vortexje
    
    @brief Wake representation.
 */
-class Wake : public Mesh
+class Wake : public Surface
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     
-    Wake(Wing &wing);
+    Wake(LiftingSurface &lifting_surface);
     
     /**
-       Associated Wing.
+       Associated lifting surface.
     */
-    Wing &wing;
+    LiftingSurface &lifting_surface;
     
     void add_layer();
     
