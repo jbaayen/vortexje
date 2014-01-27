@@ -929,7 +929,7 @@ Surface::close_to_body_point(int node) const
     Vector3d layer_direction(0, 0, 0);
     for (int i = 0; i < (int) node_panel_neighbors[node]->size(); i++)
         layer_direction += panel_normal((*node_panel_neighbors[node])[i]);
-    layer_direction /= layer_direction.norm();
+    layer_direction.normalize();
     
     return nodes[node] - Parameters::interpolation_layer_thickness * layer_direction;
 }
