@@ -47,8 +47,6 @@ public:
     Surface();
     Surface(std::string file);
     
-    void clear_node_panel_neighbors();
-    
     virtual ~Surface();
     
     bool load(const std::string file);
@@ -148,6 +146,9 @@ public:
     Eigen::Vector3d source_unit_velocity(const Surface &other, int other_panel, int this_panel) const;
     Eigen::Vector3d vortex_ring_unit_velocity(const Surface &other, int other_panel, int this_panel) const;
     Eigen::Vector3d vortex_ring_ramasamy_leishman_velocity(const Surface &other, int other_panel, int this_panel, const std::vector<double> core_radii, double vorticity) const;
+    
+protected:
+    void clear_node_panel_neighbors();
     
 private:
     void save_vtk(const std::string file,
