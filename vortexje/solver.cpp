@@ -170,42 +170,6 @@ Solver::set_fluid_density(double value)
     fluid_density = value;
 }
 
-// Add doublet influence of wakes to system matrix:
-void
-Solver::wakes_influence(MatrixXd &A, Surface &surface, int offset) const
-{
-    for (int j = 0; j < surface.n_panels(); j++) {
-        int lifting_surface_offset = 0;
-        
-        for (int k = 0; k < (int) bodies.size(); k++) {
-            Body *body = bodies[k];
-            
-            for (int l = 0; l < (int) body->non_lifting_surfaces.size(); l++)
-                lifting_surface_offset += body->non_lifting_surfaces[l]->n_panels();
-            
-            for (int l = 0; l < (int) body->lifting_surfaces.size(); l++) {
-                LiftingSurface *lifting_surface = body->lifting_surfaces[l];
-                Wake *wake = body->wakes[l];
-                    
-                int idx = 0;
-                for (int m = wake->n_panels() - (int) lifting_surface->upper_trailing_edge_panels.size(); m < (int) wake->n_panels(); m++) {
-                    int pa = lifting_surface->upper_trailing_edge_panels[idx];
-                    int pb = lifting_surface->lower_trailing_edge_panels[idx];
-                    
-                    // Account for the influence of the new wake panels.  The doublet strength of these panels
-                    // is set according to the Kutta condition;  see below.
-                    A(offset + j, lifting_surface_offset + pa) += wake->doublet_influence(surface, j, m);
-                    A(offset + j, lifting_surface_offset + pb) -= wake->doublet_influence(surface, j, m);
-                    
-                    idx++;
-                }
-                
-                lifting_surface_offset += lifting_surface->n_panels();
-            }
-        }
-    }
-}
-
 // Compute source coefficient for given surface and panel:
 double
 Solver::source_coefficient(const Surface &surface, int panel, const Vector3d &kinematic_velocity, bool include_wake_influence) const
@@ -459,11 +423,11 @@ Solver::disturbance_potential_gradient(const Eigen::Vector3d &x) const
             Wake *wake = body->wakes[j];
             LiftingSurface *lifting_surface = body->lifting_surfaces[j];
             
-            if (wake->n_panels() >= (int) lifting_surface->upper_trailing_edge_panels.size()) {
-                for (int k = wake->n_panels() - (int) lifting_surface->upper_trailing_edge_panels.size(); k < wake->n_panels(); k++)
+            if (wake->n_panels() >= lifting_surface->n_spanwise_panels()) {
+                for (int k = wake->n_panels() - lifting_surface->n_spanwise_panels(); k < wake->n_panels(); k++)
                     gradient += wake->vortex_ring_unit_velocity(x, k) * wake->doublet_coefficients[k];
 
-                for (int k = 0; k < wake->n_panels() - (int) lifting_surface->upper_trailing_edge_panels.size(); k++) {
+                for (int k = 0; k < wake->n_panels() - lifting_surface->n_spanwise_panels(); k++) {
                     if (Parameters::use_ramasamy_leishman_vortex_sheet)
                         gradient += wake->vortex_ring_ramasamy_leishman_velocity(x, k, wake->vortex_core_radii[k], wake->doublet_coefficients[k]);
                     else
@@ -530,7 +494,7 @@ Solver::velocity(const Eigen::Vector3d &x) const
         
         if (distance_candidate < distance) {
             distance                 = distance_candidate;
-            close_surface               = surface_candidate;
+            close_surface            = surface_candidate;
             close_panel              = panel_candidate;
             close_offset             = offset;
             close_near_trailing_edge = near_trailing_edge;
@@ -644,6 +608,40 @@ Solver::doublet_coefficient_matrix_block(MatrixXd &doublet_influence_coefficient
     }
 }
 
+// Add doublet influence of wakes to system matrix:
+void
+Solver::wake_influence(MatrixXd &A, Surface &surface, int offset) const
+{
+    for (int j = 0; j < surface.n_panels(); j++) {
+        int lifting_surface_offset = 0;
+        
+        for (int k = 0; k < (int) bodies.size(); k++) {
+            Body *body = bodies[k];
+            
+            for (int l = 0; l < (int) body->non_lifting_surfaces.size(); l++)
+                lifting_surface_offset += body->non_lifting_surfaces[l]->n_panels();
+            
+            for (int l = 0; l < (int) body->lifting_surfaces.size(); l++) {
+                LiftingSurface *lifting_surface = body->lifting_surfaces[l];
+                Wake *wake = body->wakes[l];
+                    
+                int wake_panel_offset = wake->n_panels() - lifting_surface->n_spanwise_panels();
+                for (int m = 0; m < lifting_surface->n_spanwise_panels(); m++) {  
+                    int pa = lifting_surface->trailing_edge_upper_panel(m);
+                    int pb = lifting_surface->trailing_edge_lower_panel(m);
+                    
+                    // Account for the influence of the new wake panels.  The doublet strength of these panels
+                    // is set according to the Kutta condition;  see below.
+                    A(offset + j, lifting_surface_offset + pa) += wake->doublet_influence(surface, j, wake_panel_offset + m);
+                    A(offset + j, lifting_surface_offset + pb) -= wake->doublet_influence(surface, j, wake_panel_offset + m);
+                }
+                
+                lifting_surface_offset += lifting_surface->n_panels();
+            }
+        }
+    }
+}
+
 /**
    Computes new source, doublet, and pressure distributions.
    
@@ -702,7 +700,7 @@ Solver::update_coefficients(double dt)
             offset_two = offset_two + non_wake_surfaces[j]->n_panels();
         }
         
-        wakes_influence(A, *non_wake_surfaces[i], offset_one);
+        wake_influence(A, *non_wake_surfaces[i], offset_one);
         
         offset_one = offset_one + non_wake_surfaces[i]->n_panels();
     }
@@ -738,16 +736,14 @@ Solver::update_coefficients(double dt)
             Wake *wake = body->wakes[j];
                      
             // Set panel doublet coefficient:
-            int trailing_edge_n_nodes = lifting_surface->trailing_edge_nodes.size();
-            int trailing_edge_n_panels = trailing_edge_n_nodes - 1;
-            for (int k = 0; k < trailing_edge_n_panels; k++) {
-                double doublet_coefficient_top    = doublet_coefficients(offset + lifting_surface->upper_trailing_edge_panels[k]);
-                double doublet_coefficient_bottom = doublet_coefficients(offset + lifting_surface->lower_trailing_edge_panels[k]);
+            for (int k = 0; k < lifting_surface->n_spanwise_panels(); k++) {
+                double doublet_coefficient_top    = doublet_coefficients(offset + lifting_surface->trailing_edge_upper_panel(k));
+                double doublet_coefficient_bottom = doublet_coefficients(offset + lifting_surface->trailing_edge_lower_panel(k));
                 
                 // Use the trailing-edge Kutta condition to compute the doublet coefficients of the new wake panels.
                 double doublet_coefficient = doublet_coefficient_top - doublet_coefficient_bottom;
                 
-                int idx = wake->n_panels() - trailing_edge_n_panels + k;
+                int idx = wake->n_panels() - lifting_surface->n_spanwise_panels() + k;
                 wake->doublet_coefficients[idx] = doublet_coefficient;
             }
             
@@ -890,14 +886,14 @@ Solver::update_wakes(double dt)
                 LiftingSurface *lifting_surface = body->lifting_surfaces[j];
                 Wake *wake = body->wakes[j];
                 
-                // Retrieve local lifting_surface velocities:
+                // Retrieve local wake velocities:
                 std::vector<Vector3d> &local_wake_velocities = wake_velocities[idx];
                 idx++;
                 
                 // Convect wake nodes that coincide with the trailing edge nodes with the freestream velocity.
                 // Alternative options are discussed in
                 //   K. Dixon, The Near Wake Structure of a Vertical Axis Wind Turbine, M.Sc. Thesis, TU Delft, 2008.
-                for (int k = wake->n_nodes() - (int) lifting_surface->trailing_edge_nodes.size(); k < wake->n_nodes(); k++) {
+                for (int k = wake->n_nodes() - lifting_surface->n_spanwise_nodes(); k < wake->n_nodes(); k++) {
                      Vector3d kinematic_velocity = wake->node_deformation_velocities[k]
                                                    + body->node_kinematic_velocity(*wake, k)
                                                    - freestream_velocity;
@@ -906,7 +902,7 @@ Solver::update_wakes(double dt)
                 }                
                 
                 // Convect all other wake nodes according to the local wake velocity:
-                for (int k = 0; k < wake->n_nodes() - (int) lifting_surface->trailing_edge_nodes.size(); k++)         
+                for (int k = 0; k < wake->n_nodes() - lifting_surface->n_spanwise_nodes(); k++)         
                     wake->nodes[k] += local_wake_velocities[k] * dt;
                     
                 // Update vortex core radii:
@@ -930,12 +926,12 @@ Solver::update_wakes(double dt)
                 LiftingSurface *lifting_surface = body->lifting_surfaces[j];
                 Wake *wake = body->wakes[j];
                 
-                for (int k = 0; k < (int) lifting_surface->trailing_edge_nodes.size(); k++) {
+                for (int k = 0; k < lifting_surface->n_spanwise_nodes(); k++) {
                     // Connect wake to trailing edge nodes:                             
-                    wake->nodes[lifting_surface->trailing_edge_nodes.size() + k] = lifting_surface->nodes[lifting_surface->trailing_edge_nodes[k]];
+                    wake->nodes[lifting_surface->n_spanwise_nodes() + k] = lifting_surface->nodes[lifting_surface->trailing_edge_node(k)];
                     
                     // Point wake in direction of body kinematic velocity:
-                    wake->nodes[k] = lifting_surface->nodes[lifting_surface->trailing_edge_nodes[k]]
+                    wake->nodes[k] = lifting_surface->nodes[lifting_surface->trailing_edge_node(k)]
                                      - Parameters::static_wake_length * body_kinematic_velocity / body_kinematic_velocity.norm();
                 }
                 

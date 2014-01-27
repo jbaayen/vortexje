@@ -33,30 +33,28 @@ void
 Wake::add_layer()
 {
     // Add layer of nodes at trailing edge, and add panels if necessary:
-    int trailing_edge_n_nodes = lifting_surface.trailing_edge_nodes.size();
-    int trailing_edge_n_panels = trailing_edge_n_nodes - 1;
-    for (int k = 0; k < trailing_edge_n_nodes; k++) {
-        Vector3d new_point = lifting_surface.nodes[lifting_surface.trailing_edge_nodes[k]];
+    for (int k = 0; k < lifting_surface.n_spanwise_nodes(); k++) {
+        Vector3d new_point = lifting_surface.nodes[lifting_surface.trailing_edge_node(k)];
         
         int node = n_nodes();
         nodes.push_back(new_point);
         
         node_deformation_velocities.push_back(Vector3d(0, 0, 0));
         
-        if (k > 0 && (int) nodes.size() > trailing_edge_n_nodes + 1) {
+        if (k > 0 && (int) nodes.size() > lifting_surface.n_spanwise_nodes() + 1) {
             vector<int> vertices;
             vertices.push_back(node - 1);
-            vertices.push_back(node - 1 - trailing_edge_n_nodes);
-            vertices.push_back(node - trailing_edge_n_nodes);
+            vertices.push_back(node - 1 - lifting_surface.n_spanwise_nodes());
+            vertices.push_back(node - lifting_surface.n_spanwise_nodes());
             vertices.push_back(node);
             
             int panel = n_panels();
             panel_nodes.push_back(vertices);
         
             vector<int> local_panel_neighbors;
-            if (panel - trailing_edge_n_panels >= 0) {
-                local_panel_neighbors.push_back(panel - trailing_edge_n_panels);
-                panel_neighbors[panel - trailing_edge_n_panels].push_back(panel);
+            if (panel - lifting_surface.n_spanwise_panels() >= 0) {
+                local_panel_neighbors.push_back(panel - lifting_surface.n_spanwise_panels());
+                panel_neighbors[panel - lifting_surface.n_spanwise_panels()].push_back(panel);
             }
             if (k > 1) {
                 local_panel_neighbors.push_back(panel - 1);
@@ -70,9 +68,9 @@ Wake::add_layer()
             node_panel_neighbors.push_back(local_node_panel_neighbors);
             
             node_panel_neighbors[node - 1]->push_back(panel);
-            if (node - 1 - trailing_edge_n_nodes >= 0) {
-                node_panel_neighbors[node - trailing_edge_n_nodes]->push_back(panel); 
-                node_panel_neighbors[node - 1 - trailing_edge_n_nodes]->push_back(panel);
+            if (node - 1 - lifting_surface.n_spanwise_nodes() >= 0) {
+                node_panel_neighbors[node - lifting_surface.n_spanwise_nodes()]->push_back(panel); 
+                node_panel_neighbors[node - 1 - lifting_surface.n_spanwise_nodes()]->push_back(panel);
             }
             
             doublet_coefficients.push_back(0);
@@ -115,12 +113,12 @@ Wake::add_layer()
 void
 Wake::translate_trailing_edge(const Eigen::Vector3d &translation)
 {
-    if (n_nodes() < (int) lifting_surface.trailing_edge_nodes.size())
+    if (n_nodes() < lifting_surface.n_spanwise_nodes())
         return;
         
     int k0;
     if (Parameters::convect_wake)
-        k0 = n_nodes() - (int) lifting_surface.trailing_edge_nodes.size();
+        k0 = n_nodes() - lifting_surface.n_spanwise_nodes();
     else
         k0 = 0;
         
@@ -138,12 +136,12 @@ Wake::translate_trailing_edge(const Eigen::Vector3d &translation)
 void
 Wake::transform_trailing_edge(const Eigen::Matrix3d &transformation)
 {
-    if (n_nodes() < (int) lifting_surface.trailing_edge_nodes.size())
+    if (n_nodes() < lifting_surface.n_spanwise_nodes())
         return;
         
     int k0;
     if (Parameters::convect_wake)
-        k0 = n_nodes() - (int) lifting_surface.trailing_edge_nodes.size();
+        k0 = n_nodes() - lifting_surface.n_spanwise_nodes();
     else
         k0 = 0;
         

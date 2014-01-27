@@ -138,3 +138,13 @@ SurfaceBuilder::create_panels_between(const vector<int> &first_nodes, const vect
     
     return new_panels;
 }
+
+/**
+   Finishes the surface construction process by computing the topology as well as various geometrical properties.
+*/
+void
+SurfaceBuilder::finish()
+{
+    surface.compute_topology();
+    surface.compute_geometry();
+}

@@ -89,7 +89,7 @@ private:
                                           Eigen::MatrixXd &source_influence_coefficients,
                                           const Surface &surface_one, int offset_one, const Surface &surface_two, int offset_two) const;
                                           
-    void wakes_influence(Eigen::MatrixXd &A, Surface &surface, int offset) const;
+    void wake_influence(Eigen::MatrixXd &A, Surface &surface, int offset) const;
                                           
     double source_coefficient(const Surface &surface, int panel, const Eigen::Vector3d &kinematic_velocity, bool include_wake_influence) const;
     

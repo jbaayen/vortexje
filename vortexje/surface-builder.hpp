@@ -36,7 +36,9 @@ public:
     
     std::vector<int> create_nodes(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > &points);
     
-    std::vector<int> create_panels_between(const std::vector<int> &first_nodes, const std::vector<int> &second_nodes, bool cyclic);
+    std::vector<int> create_panels_between(const std::vector<int> &first_nodes, const std::vector<int> &second_nodes, bool cyclic = true);
+    
+    void finish();
 };
 
 };

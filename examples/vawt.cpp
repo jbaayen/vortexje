@@ -30,15 +30,8 @@ public:
     // Constructor:
     Blade()
     {
-        // Set up local coordinate system:
-        chord_direction = Vector3d(1, 0, 0);
-        span_direction  = Vector3d(0, 0, 1);
-        
         // Create blade:
         LiftingSurfaceBuilder surface_builder(*this);
-        
-        int trailing_edge_point_id;
-        vector<int> prev_airfoil_nodes;
         
         const int n_points_per_airfoil = 32;
         const int n_airfoils = 21;
@@ -46,24 +39,30 @@ public:
         const double chord = 0.75;
         const double span = 4.5;
         
-        for (int j = 0; j < n_airfoils; j++) {
+        int trailing_edge_point_id;
+        vector<int> prev_airfoil_nodes;
+        
+        vector<vector<int> > node_strips;
+        vector<vector<int> > panel_strips;
+        
+        for (int i = 0; i < n_airfoils; i++) {
             vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points =
                 Airfoils::NACA4::generate(0, 0, 0.12, true, chord, n_points_per_airfoil, trailing_edge_point_id);
-            for (int k = 0; k < (int) airfoil_points.size(); k++)
-                airfoil_points[k](2) += j * span / (double) (n_airfoils - 1);
+            for (int j = 0; j < (int) airfoil_points.size(); j++)
+                airfoil_points[j](2) += i * span / (double) (n_airfoils - 1);
                 
-            vector<int> airfoil_nodes = surface_builder.create_nodes(airfoil_points, trailing_edge_point_id);
+            vector<int> airfoil_nodes = surface_builder.create_nodes(airfoil_points);
+            node_strips.push_back(airfoil_nodes);
             
-            if (j > 0)
-                surface_builder.create_panels_between(airfoil_nodes, prev_airfoil_nodes, trailing_edge_point_id);
+            if (i > 0) {
+                vector<int> airfoil_panels = surface_builder.create_panels_between(airfoil_nodes, prev_airfoil_nodes, trailing_edge_point_id);
+                panel_strips.push_back(airfoil_panels);
+            }
                 
             prev_airfoil_nodes = airfoil_nodes;
         }
 
-        compute_topology();
-        compute_geometry();
-        
-        sort_strips();
+        surface_builder.finish(node_strips, panel_strips, trailing_edge_point_id);
         
         // Translate and rotate into the canonical coordinate system:
         Vector3d translation(-chord / 3.0, 0.0, -span / 2.0);

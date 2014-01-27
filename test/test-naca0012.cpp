@@ -23,13 +23,10 @@ run_test(double alpha)
 {
     // Set up parameters for simplest possible simulation:
     Parameters::unsteady_bernoulli = false;
-    Parameters::convect_wake = false;
+    Parameters::convect_wake       = false;
     
     // Create wing:
     LiftingSurface wing;
-    
-    wing.chord_direction = Vector3d(1, 0, 0);
-    wing.span_direction  = Vector3d(0, 0, 1);
     
     LiftingSurfaceBuilder surface_builder(wing);
 
@@ -41,27 +38,31 @@ run_test(double alpha)
     
     int trailing_edge_point_id;
     vector<int> prev_airfoil_nodes;
+    
+    vector<vector<int> > node_strips;
+    vector<vector<int> > panel_strips;
+    
     for (int i = 0; i < n_airfoils; i++) {
         vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points =
             Airfoils::NACA4::generate(0, 0, 0.12, true, chord, n_points_per_airfoil, trailing_edge_point_id);
         for (int j = 0; j < (int) airfoil_points.size(); j++)
             airfoil_points[j](2) += i * span / (double) (n_airfoils - 1);
-            
-        vector<int> airfoil_nodes = surface_builder.create_nodes(airfoil_points, trailing_edge_point_id);
+             
+        vector<int> airfoil_nodes = surface_builder.create_nodes(airfoil_points);
+        node_strips.push_back(airfoil_nodes);
         
-        if (i > 0)
-            surface_builder.create_panels_between(airfoil_nodes, prev_airfoil_nodes, trailing_edge_point_id);
+        if (i > 0) {
+            vector<int> airfoil_panels = surface_builder.create_panels_between(airfoil_nodes, prev_airfoil_nodes, trailing_edge_point_id);
+            panel_strips.push_back(airfoil_panels);
+        }
             
         prev_airfoil_nodes = airfoil_nodes;
     }
 
-    wing.compute_topology();
-    wing.compute_geometry();
-    
-    wing.sort_strips();
-    
+    surface_builder.finish(node_strips, panel_strips, trailing_edge_point_id);
+
     // Rotate by angle of attack:
-    wing.rotate(wing.span_direction, -alpha);
+    wing.rotate(Vector3d::UnitZ(), -alpha);
     
     // Create surface body:
     Body body(string("test-wing"));

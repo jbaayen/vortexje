@@ -10,7 +10,6 @@
 #define __LIFTING_SURFACE_HPP__
 
 #include <Eigen/Core>
-#include <Eigen/StdVector>
 
 #include <vortexje/surface.hpp>
 
@@ -28,46 +27,37 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     
     LiftingSurface();
-
-    void sort_strips();
-    
-    /**
-       Unit vector pointing along the LiftingSurface chord.
-    */
-    Eigen::Vector3d chord_direction;
-    
-    /**
-       Unit vector pointing along the LiftingSurface span.
-    */
-    Eigen::Vector3d span_direction;
          
     /**
-       Chord-wise strips of panels on the upper side of the surface.
+       Nodes on the upper side of the surface.  The first dimension is the chordwise direction;  the second the spanwise direction.
     */
-    std::vector<std::vector<int> > upper_panel_strips;
+    Eigen::MatrixXi upper_nodes;
     
     /**
-       Chord-wise strips of panels on the lower side of the surface.
+       Nodes on the lower side of the surface.  The first dimension is the chordwise direction;  the second the spanwise direction.
     */
-    std::vector<std::vector<int> > lower_panel_strips;
+    Eigen::MatrixXi lower_nodes;
     
     /**
-       List of panel numbers that are located above and adjecent to the trailing edge.
-     */
-    std::vector<int> upper_trailing_edge_panels;
-
-    /**
-       List of panel numbers that are located below and adjecent to the trailing edge   
+       Panels on the upper side of the surface.  The first dimension is the chordwise direction;  the second the spanwise direction.
     */
-    std::vector<int> lower_trailing_edge_panels; 
+    Eigen::MatrixXi upper_panels;
     
     /**
-       List of node numbers that form the trailing edge.
+       Panels on the lower side of the surface.  The first dimension is the chordwise direction;  the second the spanwise direction.
     */
-    std::vector<int> trailing_edge_nodes;
+    Eigen::MatrixXi lower_panels;
     
-    void transform(const Eigen::Matrix3d &transformation);
+    int n_chordwise_nodes() const;
+    int n_chordwise_panels() const;
     
+    int n_spanwise_nodes() const;
+    int n_spanwise_panels() const;
+    
+    int trailing_edge_node(int index) const;
+    int trailing_edge_upper_panel(int index) const;
+    int trailing_edge_lower_panel(int index) const;
+      
     bool closest_panel(const Eigen::Vector3d &x, int &panel, double &distance) const;
     
     Eigen::Vector3d close_to_body_point(int node) const;

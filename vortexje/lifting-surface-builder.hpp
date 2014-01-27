@@ -10,7 +10,6 @@
 #define __LIFTING_SURFACE_BUILDER_HPP__
 
 #include <Eigen/Core>
-#include <Eigen/StdVector>
 
 #include <vortexje/lifting-surface.hpp>
 #include <vortexje/surface-builder.hpp>
@@ -23,7 +22,7 @@ namespace Vortexje
    
    @brief Lifting surface construction helper.
 */
-class LiftingSurfaceBuilder : protected SurfaceBuilder
+class LiftingSurfaceBuilder : public SurfaceBuilder
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -35,11 +34,9 @@ public:
     */
     LiftingSurface &lifting_surface;
     
-    std::vector<int> create_nodes(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > &airfoil_points, int trailing_edge_point_id);
-    
-    std::vector<int> create_panels_between(const std::vector<int> &first_airfoil_nodes, const std::vector<int> &second_airfoil_nodes, int trailing_edge_point_id);
-    
     std::vector<int> create_panels_inside(const std::vector<int> &airfoil_nodes, int trailing_edge_point_id, int z_sign);
+    
+    void finish(const std::vector<std::vector<int> > &node_strips, const std::vector<std::vector<int> > &panel_strips, int trailing_edge_point_id);
 };
 
 };

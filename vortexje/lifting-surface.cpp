@@ -24,94 +24,86 @@ LiftingSurface::LiftingSurface() : Surface()
 }
 
 /**
-   Sorts the strips, as well as the trailing edge node and panel lists, by the spanwise coordinate.
-   
-   @note Sorted trailing edge node and panel lists are a prerequisite for wake emission.
+   Returns the number of chordwise nodes.
+
+   @returns The number of chordwise nodes.
 */
-void
-LiftingSurface::sort_strips()
+int 
+LiftingSurface::n_chordwise_nodes() const
 {
-    // Note:  Eventually, we want to use std::sort and C++11 lambda functions here.
-    bool swapped;
-    int n;
-        
-    // Sort strips:
-    {
-        vector<vector<int> > *lists[2];
-        lists[0] = &upper_panel_strips;
-        lists[1] = &lower_panel_strips;
-        for (int k = 0; k < 2; k++) {
-            vector<vector<int> > &list = *lists[k];
-            
-            swapped = true;
-            n = list.size();
-            while (swapped) {
-                swapped = false;
-                for (int i = 1; i < n; i++) {
-                    if (panel_collocation_point(list[i - 1][0], false).dot(span_direction) > panel_collocation_point(list[i][0], false).dot(span_direction)) {
-                        vector<int> temp = list[i];
-                        list[i] = list[i - 1];
-                        list[i - 1] = temp;
-                        swapped = true;
-                    }
-                }
-                n--;
-            }
-        }
-    }
-    
-    // Sort trailing edge nodes:
-    {
-        swapped = true;
-        n = trailing_edge_nodes.size();
-        while (swapped) {
-           swapped = false;
-           for (int i = 1; i < n; i++) {
-                if (nodes[trailing_edge_nodes[i - 1]].dot(span_direction) > nodes[trailing_edge_nodes[i]].dot(span_direction)) {
-                    int temp = trailing_edge_nodes[i];
-                    trailing_edge_nodes[i] = trailing_edge_nodes[i - 1];
-                    trailing_edge_nodes[i - 1] = temp;
-                    swapped = true;
-                }
-           }
-           n--;
-        }
-    }
-    
-    // Sort trailing edge panels:
-    {
-        vector<int> *lists[2];
-        lists[0] = &upper_trailing_edge_panels;
-        lists[1] = &lower_trailing_edge_panels;
-        for (int k = 0; k < 2; k++) {
-            vector<int> &list = *lists[k];
-            
-            swapped = true;
-            n = list.size();
-            while (swapped) {
-                swapped = false;
-                for (int i = 1; i < n; i++) {
-                    if (panel_collocation_point(list[i - 1], false).dot(span_direction) > panel_collocation_point(list[i], false).dot(span_direction)) {
-                        int temp = list[i];
-                        list[i] = list[i - 1];
-                        list[i - 1] = temp;
-                        swapped = true;
-                    }
-                }
-                n--;
-            }
-        }
-    }
+    return (int) upper_nodes.rows();
 }
 
-// Transform surface.
-void
-LiftingSurface::transform(const Eigen::Matrix3d &transformation)
+/**
+   Returns the number of chordwise panels.
+   
+   @returns The number of chordwise panels.
+*/
+int 
+LiftingSurface::n_chordwise_panels() const
 {
-    this->Surface::transform(transformation);
-    
-    chord_direction = transformation * chord_direction;
-    span_direction  = transformation * span_direction;
+    return (int) upper_panels.rows();
+}
+
+/**
+   Returns the number of spanwise nodes.
+
+   @returns The number of spanwise nodes.
+*/
+int 
+LiftingSurface::n_spanwise_nodes() const
+{
+    return (int) upper_nodes.cols();
+}
+
+/**
+   Returns the number of spanwise panels.
+   
+   @returns The number of spanwise panels.
+*/
+int 
+LiftingSurface::n_spanwise_panels() const
+{
+    return (int) upper_panels.cols();
+}
+
+/**
+   Returns the index'th trailing edge node.
+  
+   @param[in]   index   Trailing edge node index.
+   
+   @returns The node number of the index'th trailing edge node.
+*/
+int 
+LiftingSurface::trailing_edge_node(int index) const
+{
+    return upper_nodes(upper_nodes.rows() - 1, index);
+}
+
+/**
+   Returns the index'th upper trailing edge panel.
+  
+   @param[in]   index   Trailing edge panel index.
+   
+   @returns The panel number of the index'th upper trailing edge panel.
+*/
+int
+LiftingSurface::trailing_edge_upper_panel(int index) const
+{
+    return upper_panels(upper_panels.rows() - 1, index);
+}
+
+/**
+   Returns the index'th lower trailing edge panel.
+  
+   @param[in]   index   Trailing edge panel index.
+   
+   @returns The panel number of the index'th lower trailing edge panel.
+*/
+int
+LiftingSurface::trailing_edge_lower_panel(int index) const
+{
+    return lower_panels(lower_panels.rows() - 1, index);
 }
 
 // Find panel closest to given point, returning 'true' if the given point lies with the notch
@@ -124,17 +116,52 @@ LiftingSurface::closest_panel(const Eigen::Vector3d &x, int &panel, double &dist
     this->Surface::closest_panel(x, panel, distance);
     
     bool trailing_edge = false;
-    for (int i = 0; i < (int) trailing_edge_nodes.size(); i++) {
-        const Vector3d &trailing_edge_node = nodes[trailing_edge_nodes[i]];
+    for (int i = 0; i < n_spanwise_nodes(); i++) {
+        const Vector3d &trailing_edge_point = nodes[trailing_edge_node(i)];
         
-        Vector3d x_direction = x - trailing_edge_node;
+        // Compute local coordinate system:
+        const Vector3d &upper_chordwise_neighbor = nodes[upper_nodes(n_chordwise_nodes() - 2, i)];
+        const Vector3d &lower_chordwise_neighbor = nodes[lower_nodes(n_chordwise_nodes() - 2, i)];
+        
+        Vector3d upper_chord_direction = trailing_edge_point - upper_chordwise_neighbor;
+        Vector3d lower_chord_direction = trailing_edge_point - lower_chordwise_neighbor;
+        upper_chord_direction.normalize();
+        lower_chord_direction.normalize();
+        
+        Vector3d chord_direction = upper_chord_direction + lower_chord_direction;
+        chord_direction.normalize();
+        
+        Vector3d span_direction(0, 0, 0);
+        
+        if (i > 0) {
+            const Vector3d &left_spanwise_neighbor = nodes[trailing_edge_node(i - 1)];
+            
+            Vector3d left_span_direction = trailing_edge_point - left_spanwise_neighbor;
+            left_span_direction.normalize();
+            
+            span_direction += left_span_direction;
+        }
+        
+        if (i < n_spanwise_nodes() - 1) {
+            const Vector3d &right_spanwise_neighbor = nodes[trailing_edge_node(i + 1)];
+            
+            Vector3d right_span_direction = trailing_edge_point - right_spanwise_neighbor;
+            right_span_direction.normalize();
+            
+            span_direction -= right_span_direction;
+        }
+        
+        span_direction.normalize(); 
+        
+        // Test for interpolation layer notch:
+        Vector3d x_direction = x - trailing_edge_point;
         x_direction -= x_direction.dot(span_direction) * span_direction;
         if (x_direction.norm() < Parameters::inversion_tolerance) {
             trailing_edge = true;
             break;
         }
         
-        x_direction /= x_direction.norm();
+        x_direction.normalize();
         
         double dot_product = chord_direction.dot(x_direction);  
         double angle = acos(dot_product);
@@ -156,8 +183,8 @@ LiftingSurface::close_to_body_point(int node) const
     //   K. Dixon, C. S. Ferreira, C. Hofemann, G. van Brussel, G. van Kuik,
     //   A 3D Unsteady Panel Method for Vertical Axis Wind Turbines, DUWIND, 2008.
     bool trailing_edge = false;
-    for (int i = 0; i < (int) trailing_edge_nodes.size(); i++) {
-        if (node == trailing_edge_nodes[i]) {
+    for (int i = 0; i < n_spanwise_nodes(); i++) {
+        if (node == trailing_edge_node(i)) {
             trailing_edge = true;
             break;
         }
