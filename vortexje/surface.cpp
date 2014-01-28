@@ -1026,6 +1026,7 @@ doublet_edge_influence(const Vector3d &x, const Vector3d &this_panel_collocation
     double h1 = (x(0) - node_a(0)) * (x(1) - node_a(1));
     double h2 = (x(0) - node_b(0)) * (x(1) - node_b(1));
 
+    // IEEE-754 floating point division by zero results in +/- inf, and atan(inf) = pi / 2.
     double delta_theta = atan((m * e1 - h1) / (z * r1)) - atan((m * e2 - h2) / (z * r2));
     
     return delta_theta;
@@ -1092,11 +1093,8 @@ source_edge_influence(const Vector3d &x, const Vector3d &this_panel_collocation_
     double h1 = (x(0) - node_a(0)) * (x(1) - node_a(1));
     double h2 = (x(0) - node_b(0)) * (x(1) - node_b(1));
     
-    double delta_theta;
-    if (fabs(z) < Parameters::inversion_tolerance)
-        delta_theta = 0.0;
-    else
-        delta_theta = atan((m * e1 - h1) / (z * r1)) - atan((m * e2 - h2) / (z * r2));
+    // IEEE-754 floating point division by zero results in +/- inf, and atan(inf) = pi / 2.
+    double delta_theta = atan((m * e1 - h1) / (z * r1)) - atan((m * e2 - h2) / (z * r2));
     
     return ((x(0) - node_a(0)) * (node_b(1) - node_a(1)) - (x(1) - node_a(1)) * (node_b(0) - node_a(0))) / d * log((r1 + r2 + d) / (r1 + r2 - d)) - fabs(z) * delta_theta; 
 }
@@ -1162,6 +1160,7 @@ source_edge_unit_velocity(const Vector3d &x, const Vector3d &this_panel_collocat
     double h1 = (x(0) - node_a(0)) * (x(1) - node_a(1));
     double h2 = (x(0) - node_b(0)) * (x(1) - node_b(1));
     
+    // IEEE-754 floating point division by zero results in +/- inf, and atan(inf) = pi / 2.
     double delta_theta = atan((m * e1 - h1) / (z * r1)) - atan((m * e2 - h2) / (z * r2));
     
     double u = (node_b(1) - node_a(1)) / d * log((r1 + r2 - d) / (r1 + r2 + d));
