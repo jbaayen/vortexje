@@ -8,11 +8,11 @@
 
 #include <iostream>
 
-#include <vortexje/airfoils/naca4.hpp>
+#include <vortexje/shapes/airfoils/naca4.hpp>
 
 using namespace std;
 using namespace Eigen;
-using namespace Vortexje::Airfoils;
+using namespace Vortexje::Shapes::Airfoils;
 
 // Cosine rule:
 static double

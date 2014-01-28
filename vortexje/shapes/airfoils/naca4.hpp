@@ -15,6 +15,9 @@
 namespace Vortexje
 {
 
+namespace Shapes
+{
+
 namespace Airfoils
 {
 
@@ -27,6 +30,8 @@ class NACA4
 {
 public:
     static std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > generate(double max_camber, double max_camber_dist, double max_thickness, bool finite_te_thickness, double chord, int n_points, int &trailing_edge_point_id);
+};
+
 };
 
 };

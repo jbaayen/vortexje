@@ -40,7 +40,7 @@ main (int argc, char **argv)
     // Run simulation:
     solver.update_coefficients(0);
     
-    // Check pressure coefficients:
+    // Check pressure coefficients and surface potential values:
     for (int i = 0; i < sphere.n_panels(); i++) {
         Vector3d x = sphere.panel_collocation_point(i, false);
         

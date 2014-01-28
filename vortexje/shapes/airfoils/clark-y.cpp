@@ -8,11 +8,11 @@
 
 #include <iostream>
 
-#include <vortexje/airfoils/clark-y.hpp>
+#include <vortexje/shapes/airfoils/clark-y.hpp>
 
 using namespace std;
 using namespace Eigen;
-using namespace Vortexje::Airfoils;
+using namespace Vortexje::Shapes::Airfoils;
 
 // Clark-Y airfoil generation:
 #define CLARKY_DATA_SIZE 61

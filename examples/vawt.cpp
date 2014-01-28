@@ -10,7 +10,8 @@
 
 #include <vortexje/solver.hpp>
 #include <vortexje/lifting-surface-builder.hpp>
-#include <vortexje/airfoils/naca4.hpp>
+#include <vortexje/shapes/airfoils/naca4.hpp>
+#include <vortexje/shapes/ellipse.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -23,6 +24,7 @@ using namespace Vortexje;
 #define MILL_RADIUS     2.5
 #define TIP_SPEED_RATIO 5
 #define WIND_VELOCITY   6
+#define INCLUDE_TOWER
 
 class Blade : public LiftingSurface
 {
@@ -47,7 +49,7 @@ public:
         
         for (int i = 0; i < n_airfoils; i++) {
             vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points =
-                Airfoils::NACA4::generate(0, 0, 0.12, true, chord, n_points_per_airfoil, trailing_edge_point_id);
+                Shapes::Airfoils::NACA4::generate(0, 0, 0.12, true, chord, n_points_per_airfoil, trailing_edge_point_id);
             for (int j = 0; j < (int) airfoil_points.size(); j++)
                 airfoil_points[j](2) += i * span / (double) (n_airfoils - 1);
                 
@@ -72,12 +74,51 @@ public:
     }
 };
 
-class VAWT : public Body
+class Tower : public Surface
 {
 public:
     // Constructor:
+    Tower()
+    {
+        // Create cylinder:      
+        SurfaceBuilder surface_builder(*this);
+        
+        const double r = 0.1;
+        const double h = 4.5;
+        
+        const int n_points = 32;
+        const int n_layers = 21;
+        
+        vector<int> prev_nodes;
+        
+        for (int i = 0; i < n_layers; i++) {
+            vector<Vector3d, Eigen::aligned_allocator<Vector3d> > points =
+                Shapes::Ellipse::generate(r, r, n_points);
+            for (int j = 0; j < (int) points.size(); j++)
+                points[j](2) += i * h / (double) (n_layers - 1);
+                 
+            vector<int> nodes = surface_builder.create_nodes(points);
+            
+            if (i > 0)
+                vector<int> airfoil_panels = surface_builder.create_panels_between(nodes, prev_nodes);
+                
+            prev_nodes = nodes;
+        }
+
+        surface_builder.finish();
+        
+        // Translate into the canonical coordinate system:
+        Vector3d translation(0.0, 0.0, -h / 2.0);
+        translate(translation);
+    }
+};
+
+class VAWT : public Body
+{
+public:
     double rotor_radius;
     
+    // Constructor:
     VAWT(string   id,
          double   rotor_radius,
          int      n_blades,
@@ -91,6 +132,12 @@ public:
         this->velocity = Vector3d(0, 0, 0);
         this->attitude = AngleAxis<double>(theta_0, Vector3d::UnitZ());
         this->rotational_velocity = Vector3d(0, 0, dthetadt);
+        
+#ifdef INCLUDE_TOWER
+        // Initialize tower:
+        Surface *tower = new Tower();
+        non_lifting_surfaces.push_back(tower);
+#endif
         
         // Initialize blades:
         for (int i = 0; i < n_blades; i++) {
@@ -115,10 +162,15 @@ public:
     // Destructor:
     ~VAWT()
     {
+#ifdef INCLUDE_TOWER
+        for (int i = 0; i < (int) non_lifting_surfaces.size(); i++)
+            delete non_lifting_surfaces[i];
+#endif
+            
         for (int i = 0; i < (int) lifting_surfaces.size(); i++) {
             delete lifting_surfaces[i];
             delete wakes[i];
-        }
+        }     
     }
 
     // Rotate:
