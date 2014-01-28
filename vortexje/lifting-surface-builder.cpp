@@ -31,7 +31,7 @@ LiftingSurfaceBuilder::LiftingSurfaceBuilder(LiftingSurface &lifting_surface) : 
    @returns List of new panel numbers.
 */
 vector<int>
-LiftingSurfaceBuilder::create_panels_inside(const vector<int> &airfoil_nodes, int trailing_edge_point_id, int z_sign)
+LiftingSurfaceBuilder::create_panels_inside_airfoil(const vector<int> &airfoil_nodes, int trailing_edge_point_id, int z_sign)
 {
     vector<int> new_panels;
     
@@ -70,17 +70,17 @@ LiftingSurfaceBuilder::create_panels_inside(const vector<int> &airfoil_nodes, in
     vector<int> new_between_panels;
     
     if (z_sign == 1) {
-        new_between_panels = create_panels_between(middle_nodes, upper_nodes, false);
+        new_between_panels = create_panels_between_shapes(middle_nodes, upper_nodes, false);
         new_panels.insert(new_panels.end(), new_between_panels.begin(), new_between_panels.end());
         
-        new_between_panels = create_panels_between(lower_nodes, middle_nodes, false);
+        new_between_panels = create_panels_between_shapes(lower_nodes, middle_nodes, false);
         new_panels.insert(new_panels.end(), new_between_panels.begin(), new_between_panels.end());
         
     } else { 
-        new_between_panels = create_panels_between(upper_nodes, middle_nodes, false);
+        new_between_panels = create_panels_between_shapes(upper_nodes, middle_nodes, false);
         new_panels.insert(new_panels.end(), new_between_panels.begin(), new_between_panels.end());
         
-        new_between_panels = create_panels_between(middle_nodes, lower_nodes, false);
+        new_between_panels = create_panels_between_shapes(middle_nodes, lower_nodes, false);
         new_panels.insert(new_panels.end(), new_between_panels.begin(), new_between_panels.end());
         
     }

@@ -34,11 +34,11 @@ public:
     */
     Surface &surface;
     
-    std::vector<int> create_nodes(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > &points);
+    std::vector<int> create_nodes_for_points(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > &points);
     
-    std::vector<int> create_panels_between(const std::vector<int> &first_nodes, const std::vector<int> &second_nodes, bool cyclic = true);
+    std::vector<int> create_panels_between_shapes(const std::vector<int> &first_nodes, const std::vector<int> &second_nodes, bool cyclic = true);
     
-    std::vector<int> create_panels_inside(const std::vector<int> &nodes, const Eigen::Vector3d &tip_point, int z_sign);
+    std::vector<int> create_panels_inside_shape(const std::vector<int> &nodes, const Eigen::Vector3d &tip_point, int z_sign);
     
     void finish();
 };

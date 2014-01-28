@@ -1,6 +1,6 @@
 include ../config.mk
 
-CPPDEPS = surface.cpp solver.cpp parameters.cpp lifting-surface.cpp wake.cpp body.cpp surface-builder.cpp lifting-surface-builder.cpp shapes/ellipse.cpp shapes/airfoils/naca4.cpp shapes/airfoils/clark-y.cpp
+CPPDEPS = surface.cpp solver.cpp parameters.cpp lifting-surface.cpp wake.cpp body.cpp surface-builder.cpp lifting-surface-builder.cpp shape-generators/ellipse.cpp shape-generators/airfoils/naca4.cpp shape-generators/airfoils/clark-y.cpp
 
 HPPDEPS = surface.hpp solver.hpp parameters.hpp lifting-surface.hpp wake.hpp body.hpp surface-builder.hpp lifting-surface-builder.hpp
 
@@ -19,7 +19,7 @@ libvortexje.so.1.0.0: $(OBJS) $(HPPDEPS)
 	gcc -shared -Wl,-soname,libvortexje.so.1 -o libvortexje.so.1.0.0 $(OBJS) $(LDFLAGS)
 
 install: libvortexje.so.1.0.0
-	cd shapes; $(MAKE) install
+	cd shape-generators; $(MAKE) install
 	cp libvortexje.so.1.0.0 $(PREFIX)/lib/libvortexje.so.1.0.0
 	ln -sf $(PREFIX)/lib/libvortexje.so.1.0.0 $(PREFIX)/lib/libvortexje.so.1
 	ln -sf $(PREFIX)/lib/libvortexje.so.1.0.0 $(PREFIX)/lib/libvortexje.so
@@ -27,5 +27,5 @@ install: libvortexje.so.1.0.0
 	cp $(HPPDEPS) $(PREFIX)/include/vortexje
 
 clean:
-	cd shapes; $(MAKE) clean
+	cd shape-generators; $(MAKE) clean
 	rm -f *.o *.a *.so *.so.1 *.so.1.0.0

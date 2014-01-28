@@ -8,11 +8,11 @@
 
 #include <cmath>
 
-#include <vortexje/shapes/ellipse.hpp>
+#include <vortexje/shape-generators/ellipse.hpp>
 
 using namespace std;
 using namespace Eigen;
-using namespace Vortexje::Shapes;
+using namespace Vortexje::ShapeGenerators;
 
 /**
    Generates points tracing an ellipse.

@@ -33,7 +33,7 @@ SurfaceBuilder::SurfaceBuilder(Surface &surface) : surface(surface)
    @returns A list of new node numbers.
 */
 vector<int>
-SurfaceBuilder::create_nodes(const vector<Vector3d, Eigen::aligned_allocator<Vector3d> > &points)
+SurfaceBuilder::create_nodes_for_points(const vector<Vector3d, Eigen::aligned_allocator<Vector3d> > &points)
 {
     vector<int> new_nodes;
     
@@ -63,7 +63,7 @@ SurfaceBuilder::create_nodes(const vector<Vector3d, Eigen::aligned_allocator<Vec
    @returns A list of new panel numbers.
 */
 vector<int>
-SurfaceBuilder::create_panels_between(const vector<int> &first_nodes, const vector<int> &second_nodes, bool cyclic)
+SurfaceBuilder::create_panels_between_shapes(const vector<int> &first_nodes, const vector<int> &second_nodes, bool cyclic)
 {
     vector<int> new_panels;
     
@@ -148,7 +148,7 @@ SurfaceBuilder::create_panels_between(const vector<int> &first_nodes, const vect
    @returns List of new panel numbers.
 */
 vector<int>
-SurfaceBuilder::create_panels_inside(const vector<int> &nodes, const Vector3d &tip_point, int z_sign)
+SurfaceBuilder::create_panels_inside_shape(const vector<int> &nodes, const Vector3d &tip_point, int z_sign)
 {
     vector<int> new_panels;
     

@@ -10,7 +10,7 @@
 
 #include <vortexje/solver.hpp>
 #include <vortexje/lifting-surface-builder.hpp>
-#include <vortexje/shapes/airfoils/naca4.hpp>
+#include <vortexje/shape-generators/airfoils/naca4.hpp>
 
 using namespace std;
 using namespace Eigen;
@@ -44,15 +44,15 @@ run_test(double alpha)
     
     for (int i = 0; i < n_airfoils; i++) {
         vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points =
-            Shapes::Airfoils::NACA4::generate(0, 0, 0.12, true, chord, n_points_per_airfoil, trailing_edge_point_id);
+            ShapeGenerators::Airfoils::NACA4::generate(0, 0, 0.12, true, chord, n_points_per_airfoil, trailing_edge_point_id);
         for (int j = 0; j < (int) airfoil_points.size(); j++)
             airfoil_points[j](2) += i * span / (double) (n_airfoils - 1);
              
-        vector<int> airfoil_nodes = surface_builder.create_nodes(airfoil_points);
+        vector<int> airfoil_nodes = surface_builder.create_nodes_for_points(airfoil_points);
         node_strips.push_back(airfoil_nodes);
         
         if (i > 0) {
-            vector<int> airfoil_panels = surface_builder.create_panels_between(airfoil_nodes, prev_airfoil_nodes, trailing_edge_point_id);
+            vector<int> airfoil_panels = surface_builder.create_panels_between_shapes(airfoil_nodes, prev_airfoil_nodes, trailing_edge_point_id);
             panel_strips.push_back(airfoil_panels);
         }
             

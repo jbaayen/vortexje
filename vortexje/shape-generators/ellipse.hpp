@@ -15,7 +15,7 @@
 namespace Vortexje
 {
 
-namespace Shapes
+namespace ShapeGenerators
 {
 
 /**
