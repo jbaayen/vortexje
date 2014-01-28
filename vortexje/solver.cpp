@@ -338,14 +338,8 @@ Solver::surface_velocity_potential(const Surface &surface, int offset, int panel
         Vector3d kinematic_velocity = surface.panel_deformation_velocity(panel)
                                           + body->panel_kinematic_velocity(surface, panel)
                                           - freestream_velocity;
-                                              
-        Vector3d tangential_velocity = -kinematic_velocity;
         
-        // Remove any normal velocity.  This is the (implicit) contribution of the source term.
-        Vector3d normal = surface.panel_normal(panel);
-        tangential_velocity -= tangential_velocity.dot(normal) * normal;
-        
-        phi += tangential_velocity.dot(surface.panel_collocation_point(panel, false));
+        phi -= kinematic_velocity.dot(surface.panel_collocation_point(panel, false));
         
         return phi;
     }
@@ -517,8 +511,8 @@ Solver::velocity(const Eigen::Vector3d &x) const
     } else {
         disturbance_potential_gradients.push_back(disturbance_potential_gradient(x));
         
-        close_surface  = NULL;
-        close_panel = -1;
+        close_surface = NULL;
+        close_panel   = -1;
     }
     
     Vector3d velocity(0, 0, 0);
@@ -563,7 +557,7 @@ Solver::velocity(const Eigen::Vector3d &x) const
 /**
    Initializes the wakes by adding a first layer of vortex ring panels.
    
-   @param[in]   dt  Time step size.
+   @param[in]   dt   Time step size.
 */
 void
 Solver::initialize_wakes(double dt)
