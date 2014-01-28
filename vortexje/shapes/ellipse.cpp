@@ -28,7 +28,8 @@ Ellipse::generate(double a, double b, int n_points)
 {
     vector<Vector3d, Eigen::aligned_allocator<Vector3d> > points;
     
-    double dt = 2 * M_PI / (double) n_points;
+    // Go in the clockwise (negative) direction, for consistency with the airfoil generators.
+    double dt = -2 * M_PI / (double) n_points;
     for (int i = 0; i < n_points; i++) {
         double t = i * dt;
         

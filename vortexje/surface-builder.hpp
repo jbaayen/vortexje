@@ -38,6 +38,8 @@ public:
     
     std::vector<int> create_panels_between(const std::vector<int> &first_nodes, const std::vector<int> &second_nodes, bool cyclic = true);
     
+    std::vector<int> create_panels_inside(const std::vector<int> &nodes, const Eigen::Vector3d &tip_point, int z_sign);
+    
     void finish();
 };
 

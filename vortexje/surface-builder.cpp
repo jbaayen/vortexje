@@ -139,6 +139,60 @@ SurfaceBuilder::create_panels_between(const vector<int> &first_nodes, const vect
 }
 
 /**
+   Fills a shape with triangular panels, all meeting on the specified tip point.
+  
+   @param[in]   nodes       Node numbers tracing a shape.
+   @param[in]   tip_point   Point where all triangles meet.
+   @param[in]   z_sign      Handedness of the created panels.
+   
+   @returns List of new panel numbers.
+*/
+vector<int>
+SurfaceBuilder::create_panels_inside(const vector<int> &nodes, const Vector3d &tip_point, int z_sign)
+{
+    vector<int> new_panels;
+    
+    // Add tip node:
+    int tip_node = surface.nodes.size();
+
+    surface.nodes.push_back(tip_point);
+    
+    surface.node_deformation_velocities.push_back(Vector3d(0, 0, 0));
+    
+    vector<int> *empty_vector = new vector<int>;
+    surface.node_panel_neighbors.push_back(empty_vector);
+    
+    // Create triangle for leading and trailing edges:
+    for (int i = 0; i < (int) nodes.size(); i++) {
+        int triangle[3];
+        
+        if (z_sign == 1) {
+            triangle[0] = nodes[i];
+            if (i == (int) nodes.size() - 1)
+                triangle[1] = nodes[0];
+            else
+                triangle[1] = nodes[i + 1];
+            triangle[2] = tip_node;
+                
+        } else {
+            triangle[0] = nodes[i];
+            triangle[1] = tip_node;
+            if (i == (int) nodes.size() - 1)
+                triangle[2] = nodes[0];
+            else
+                triangle[2] = nodes[i + 1];
+            
+        }
+            
+        int new_panel = surface.add_triangle(triangle[0], triangle[1], triangle[2]);
+        new_panels.push_back(new_panel);
+    }
+    
+    // Done:
+    return new_panels;
+}
+
+/**
    Finishes the surface construction process by computing the topology as well as various geometrical properties.
 */
 void

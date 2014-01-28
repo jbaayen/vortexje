@@ -28,11 +28,13 @@ LiftingSurfaceBuilder::LiftingSurfaceBuilder(LiftingSurface &lifting_surface) : 
    @param[in]   trailing_edge_point_id   Index of trailing edge node in list of airfoil nodes.
    @param[in]   z_sign                   Handedness of the created panels.
    
-   @returns List of new panels numbers.
+   @returns List of new panel numbers.
 */
 vector<int>
 LiftingSurfaceBuilder::create_panels_inside(const vector<int> &airfoil_nodes, int trailing_edge_point_id, int z_sign)
 {
+    vector<int> new_panels;
+    
     // Add middle nodes:
     vector<int> upper_nodes;
     vector<int> lower_nodes;
@@ -65,31 +67,57 @@ LiftingSurfaceBuilder::create_panels_inside(const vector<int> &airfoil_nodes, in
     }
     
     // Close middle part with panels:
+    vector<int> new_between_panels;
+    
     if (z_sign == 1) {
-        create_panels_between(middle_nodes, upper_nodes, false);
-        create_panels_between(lower_nodes, middle_nodes, false);
+        new_between_panels = create_panels_between(middle_nodes, upper_nodes, false);
+        new_panels.insert(new_panels.end(), new_between_panels.begin(), new_between_panels.end());
+        
+        new_between_panels = create_panels_between(lower_nodes, middle_nodes, false);
+        new_panels.insert(new_panels.end(), new_between_panels.begin(), new_between_panels.end());
+        
     } else { 
-        create_panels_between(upper_nodes, middle_nodes, false);
-        create_panels_between(middle_nodes, lower_nodes, false);
+        new_between_panels = create_panels_between(upper_nodes, middle_nodes, false);
+        new_panels.insert(new_panels.end(), new_between_panels.begin(), new_between_panels.end());
+        
+        new_between_panels = create_panels_between(middle_nodes, lower_nodes, false);
+        new_panels.insert(new_panels.end(), new_between_panels.begin(), new_between_panels.end());
+        
     }
     
     // Create triangle for leading and trailing edges:
+    int new_panel;
+    
     if (z_sign == 1) { 
-        lifting_surface.add_triangle(airfoil_nodes[0], airfoil_nodes[1], middle_nodes[0]);
-        lifting_surface.add_triangle(airfoil_nodes[0], middle_nodes[0], airfoil_nodes[airfoil_nodes.size() - 1]);
+        new_panel = lifting_surface.add_triangle(airfoil_nodes[0], airfoil_nodes[1], middle_nodes[0]);
+        new_panels.push_back(new_panel);
         
-        lifting_surface.add_triangle(middle_nodes[trailing_edge_point_id - 2], airfoil_nodes[trailing_edge_point_id - 1], airfoil_nodes[trailing_edge_point_id]);
-        lifting_surface.add_triangle(middle_nodes[trailing_edge_point_id - 2], airfoil_nodes[trailing_edge_point_id], airfoil_nodes[trailing_edge_point_id + 1]);
+        new_panel = lifting_surface.add_triangle(airfoil_nodes[0], middle_nodes[0], airfoil_nodes[airfoil_nodes.size() - 1]);
+        new_panels.push_back(new_panel);
+        
+        new_panel = lifting_surface.add_triangle(middle_nodes[trailing_edge_point_id - 2], airfoil_nodes[trailing_edge_point_id - 1], airfoil_nodes[trailing_edge_point_id]);
+        new_panels.push_back(new_panel);
+        
+        new_panel = lifting_surface.add_triangle(middle_nodes[trailing_edge_point_id - 2], airfoil_nodes[trailing_edge_point_id], airfoil_nodes[trailing_edge_point_id + 1]);
+        new_panels.push_back(new_panel);
+        
     } else {
-        lifting_surface.add_triangle(airfoil_nodes[0], middle_nodes[0], airfoil_nodes[1]);
-        lifting_surface.add_triangle(airfoil_nodes[0], airfoil_nodes[airfoil_nodes.size() - 1], middle_nodes[0]);
+        new_panel = lifting_surface.add_triangle(airfoil_nodes[0], middle_nodes[0], airfoil_nodes[1]);
+        new_panels.push_back(new_panel);
         
-        lifting_surface.add_triangle(middle_nodes[trailing_edge_point_id - 2], airfoil_nodes[trailing_edge_point_id], airfoil_nodes[trailing_edge_point_id - 1]);
-        lifting_surface.add_triangle(middle_nodes[trailing_edge_point_id - 2], airfoil_nodes[trailing_edge_point_id + 1], airfoil_nodes[trailing_edge_point_id]);
+        new_panel = lifting_surface.add_triangle(airfoil_nodes[0], airfoil_nodes[airfoil_nodes.size() - 1], middle_nodes[0]);
+        new_panels.push_back(new_panel);
+        
+        new_panel = lifting_surface.add_triangle(middle_nodes[trailing_edge_point_id - 2], airfoil_nodes[trailing_edge_point_id], airfoil_nodes[trailing_edge_point_id - 1]);
+        new_panels.push_back(new_panel);
+        
+        new_panel = lifting_surface.add_triangle(middle_nodes[trailing_edge_point_id - 2], airfoil_nodes[trailing_edge_point_id + 1], airfoil_nodes[trailing_edge_point_id]);
+        new_panels.push_back(new_panel);
+        
     }
     
     // Done:
-    return middle_nodes;
+    return new_panels;
 }
 
 /**
