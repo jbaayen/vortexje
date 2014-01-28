@@ -37,7 +37,7 @@ Surface::Surface()
 /**
    Constructs a surface from the given Gmsh MSH file.
    
-   @param[in]   file    Filename pointing to a Gmsh MSH file.
+   @param[in]   file   Filename pointing to a Gmsh MSH file.
 */
 Surface::Surface(std::string file)
 {
@@ -86,9 +86,9 @@ Surface::~Surface()
 /**
    Adds a triangle to this surface, following the Gmsh orientation convention.
     
-   @param[in]  node_a  Node number to form vertex A.
-   @param[in]  node_b  Node number to form vertex B.
-   @param[in]  node_c  Node number to form vertex C.
+   @param[in]   node_a   Node number to form vertex A.
+   @param[in]   node_b   Node number to form vertex B.
+   @param[in]   node_c   Node number to form vertex C.
     
    @returns New panel number.
     
@@ -116,10 +116,10 @@ Surface::add_triangle(int node_a, int node_b, int node_c)
 /**
    Adds a quadrangle to this surface, following the gmsh orientation convention.
     
-   @param[in]  node_a  Node number to form vertex A.
-   @param[in]  node_b  Node number to form vertex B.
-   @param[in]  node_c  Node number to form vertex C.
-   @param[in]  node_d  Node number to form vertex D.
+   @param[in]   node_a   Node number to form vertex A.
+   @param[in]   node_b   Node number to form vertex B.
+   @param[in]   node_c   Node number to form vertex C.
+   @param[in]   node_d   Node number to form vertex D.
     
    @returns New panel number.
     
@@ -422,11 +422,11 @@ Surface::compute_geometry()
    Saves this surface to a VTK unstructured grid file, including data vectors associating numerical values to each panel -- cell data,
    in gmsh terminology.
   
-   @param[in]   file            Destination filename.
-   @param[in]   view_names      List of names of data vectors to be stored.
-   @param[in]   view_data       List of data vectors to be stored.
-   @param[in]   node_offset     Node numbering offset in output file.
-   @param[in]   panel_offset    Panel numbering offset in output file.
+   @param[in]   file           Destination filename.
+   @param[in]   view_names     List of names of data vectors to be stored.
+   @param[in]   view_data      List of data vectors to be stored.
+   @param[in]   node_offset    Node numbering offset in output file.
+   @param[in]   panel_offset   Panel numbering offset in output file.
 */
 void
 Surface::save_vtk(const std::string file, const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data) const
@@ -511,11 +511,11 @@ Surface::save_vtk(const std::string file, const std::vector<std::string> &view_n
    Saves this surface to a Gmsh MSH file, including data vectors associating numerical values to each panel -- views,
    in gmsh terminology.
   
-   @param[in]   file            Destination filename.
-   @param[in]   view_names      List of names of data vectors to be stored.
-   @param[in]   view_data       List of data vectors to be stored.
-   @param[in]   node_offset     Node numbering offset in output file.
-   @param[in]   panel_offset    Panel numbering offset in output file.
+   @param[in]   file           Destination filename.
+   @param[in]   view_names     List of names of data vectors to be stored.
+   @param[in]   view_data      List of data vectors to be stored.
+   @param[in]   node_offset    Node numbering offset in output file.
+   @param[in]   panel_offset   Panel numbering offset in output file.
 */
 void
 Surface::save_gmsh(const std::string file, const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data, int node_offset, int panel_offset) const
@@ -610,12 +610,12 @@ Surface::save_gmsh(const std::string file, const std::vector<std::string> &view_
 /**
    Saves this surface to a file, including data vectors associating numerical values to each panel.
   
-   @param[in]   file            Destination filename.
-   @param[in]   format          Destination file format.
-   @param[in]   view_names      List of names of data vectors to be stored.
-   @param[in]   view_data       List of data vectors to be stored.
-   @param[in]   node_offset     Node numbering offset in output file.
-   @param[in]   panel_offset    Panel numbering offset in output file.
+   @param[in]   file           Destination filename.
+   @param[in]   format         Destination file format.
+   @param[in]   view_names     List of names of data vectors to be stored.
+   @param[in]   view_data      List of data vectors to be stored.
+   @param[in]   node_offset    Node numbering offset in output file.
+   @param[in]   panel_offset   Panel numbering offset in output file.
 */
 void
 Surface::save(const std::string file, FileFormat format, const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data, int node_offset, int panel_offset) const
@@ -635,10 +635,10 @@ Surface::save(const std::string file, FileFormat format, const std::vector<std::
 /**
    Saves this surface to a file.
   
-   @param[in]   file            Destination filename.
-   @param[in]   format          Destination file format.
-   @param[in]   node_offset     Node numbering offset in output file.
-   @param[in]   panel_offset    Panel numbering offset in output file.
+   @param[in]   file           Destination filename.
+   @param[in]   format         Destination file format.
+   @param[in]   node_offset    Node numbering offset in output file.
+   @param[in]   panel_offset   Panel numbering offset in output file.
 */
 void
 Surface::save(const std::string file, FileFormat format, int node_offset, int panel_offset) const
@@ -821,9 +821,9 @@ Surface::distance_to_panel(const Eigen::Vector3d &x, int panel) const
 /**
    Finds the panel closest to the given point, and reports the distance.
    
-   @param[in]   x           Reference point.
-   @param[out]  panel       Closest panel number.
-   @param[out]  distance    Distance to closest panel.
+   @param[in]   x          Reference point.
+   @param[out]  panel      Closest panel number.
+   @param[out]  distance   Distance to closest panel.
    
    @returns true if the closest panel borders a trailing edge.
 */
@@ -919,7 +919,7 @@ Surface::panel_deformation_velocity(int panel) const
    This method is used by the wake-wake and wake-body interaction code to evaluate velocities and
    influence coefficients close to the body, where the solutions would otherwise become numerically singular.
    
-   @param[in]   node    Node number.
+   @param[in]   node   Node number.
    
    @returns Point, located outside of the body, close to the given node.
 */
@@ -947,8 +947,8 @@ x_to_y_rotation(const Vector3d &unit_x, const Vector3d &unit_y)
 /**
    Computes the on-body gradient of a scalar field.
    
-   @param[in]   scalar_field    Scalar field, ordered by panel number.
-   @param[in]   panel           Panel on which the on-body gradient is evaluated.
+   @param[in]   scalar_field   Scalar field, ordered by panel number.
+   @param[in]   panel          Panel on which the on-body gradient is evaluated.
    
    @returns On-body gradient.
 */
@@ -1035,8 +1035,8 @@ doublet_edge_influence(const Vector3d &x, const Vector3d &this_panel_collocation
 /**
    Computes the potential influence induced by a doublet panel of unit strength.  
    
-   @param[in]   x           Point at which the influence coefficient is evaluated.
-   @param[in]   this_panel  Panel on which the doublet panel is located.
+   @param[in]   x            Point at which the influence coefficient is evaluated.
+   @param[in]   this_panel   Panel on which the doublet panel is located.
    
    @returns Influence coefficient.
 */
@@ -1102,8 +1102,8 @@ source_edge_influence(const Vector3d &x, const Vector3d &this_panel_collocation_
 /**
    Computes the potential influence induced by a source panel of unit strength.  
    
-   @param[in]   x           Point at which the influence coefficient is evaluated.
-   @param[in]   this_panel  Panel on which the source panel is located.
+   @param[in]   x            Point at which the influence coefficient is evaluated.
+   @param[in]   this_panel   Panel on which the source panel is located.
    
    @returns Influence coefficient.
 */
@@ -1173,8 +1173,8 @@ source_edge_unit_velocity(const Vector3d &x, const Vector3d &this_panel_collocat
 /**
    Computes the velocity induced by a source panel of unit strength.  
    
-   @param[in]   x           Point at which the velocity is evaluated.
-   @param[in]   this_panel  The panel on which the vortex ring is located.
+   @param[in]   x            Point at which the velocity is evaluated.
+   @param[in]   this_panel   The panel on which the vortex ring is located.
    
    @returns Velocity induced by the source panel.
 */
@@ -1216,8 +1216,8 @@ Surface::source_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
 /**
    Computes the velocity induced by a vortex ring of unit strength.
    
-   @param[in]   x           Point at which the velocity is evaluated.
-   @param[in]   this_panel  Panel on which the vortex ring is located.
+   @param[in]   x            Point at which the velocity is evaluated.
+   @param[in]   this_panel   Panel on which the vortex ring is located.
    
    @returns Velocity induced by the vortex ring.
 */
@@ -1260,10 +1260,10 @@ Surface::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) con
 /**
    Computes the velocity induced by a Ramasamy-Leishman vortex ring.
    
-   @param[in]   x           Point at which the velocity is evaluated.
-   @param[in]   this_panel  Panel on which the vortex ring is located.
-   @param[in]   core_radii  Radii of the filaments forming the vortex ring.
-   @param[in]   vorticity   Strength of vortex ring.
+   @param[in]   x            Point at which the velocity is evaluated.
+   @param[in]   this_panel   Panel on which the vortex ring is located.
+   @param[in]   core_radii   Radii of the filaments forming the vortex ring.
+   @param[in]   vorticity    Strength of vortex ring.
    
    @returns Velocity induced by the Ramasamy-Leishman vortex ring.
    
@@ -1395,9 +1395,9 @@ Surface::vortex_ring_ramasamy_leishman_velocity(const Eigen::Vector3d &x, int th
    has been computed before, the cached influence coefficient is returned.  If not, the coefficient
    is computed and cached.
    
-   @param[in]   other       Surface on which the influence coefficient is evaluated.
-   @param[in]   other_panel Panel on which the influence coefficient is evaluated.
-   @param[in]   this_panel  Panel on which the doublet panel is located.
+   @param[in]   other         Surface on which the influence coefficient is evaluated.
+   @param[in]   other_panel   Panel on which the influence coefficient is evaluated.
+   @param[in]   this_panel    Panel on which the doublet panel is located.
    
    @returns Influence coefficient.
 */
@@ -1412,9 +1412,9 @@ Surface::doublet_influence(const Surface &other, int other_panel, int this_panel
    has been computed before, the cached influence coefficient is returned.  If not, the coefficient
    is computed and cached.
    
-   @param[in]   other       Surface on which the influence coefficient is evaluated.
-   @param[in]   other_panel Panel on which the influence coefficient is evaluated.
-   @param[in]   this_panel  Panel on which the source panel is located.
+   @param[in]   other         Surface on which the influence coefficient is evaluated.
+   @param[in]   other_panel   Panel on which the influence coefficient is evaluated.
+   @param[in]   this_panel    Panel on which the source panel is located.
    
    @returns Influence coefficient.
 */
@@ -1429,9 +1429,9 @@ Surface::source_influence(const Surface &other, int other_panel, int this_panel)
    has been computed before, the cached velocity is returned.  If not, the quantity
    is computed and cached.
    
-   @param[in]   other       Surface on which the velocity is evaluated.
-   @param[in]   other_panel Panel on which the velocity is evaluated.
-   @param[in]   this_panel  Panel on which the vortex ring is located.
+   @param[in]   other         Surface on which the velocity is evaluated.
+   @param[in]   other_panel   Panel on which the velocity is evaluated.
+   @param[in]   this_panel    Panel on which the vortex ring is located.
    
    @returns Velocity induced by the source panel.
 */
@@ -1446,9 +1446,9 @@ Surface::source_unit_velocity(const Surface &other, int other_panel, int this_pa
    has been computed before, the cached velocity is returned.  If not, the quantity
    is computed and cached.
    
-   @param[in]   other       Surface on which the velocity is evaluated.
-   @param[in]   other_panel Panel on which the velocity is evaluated.
-   @param[in]   this_panel  Panel on which the vortex ring is located.
+   @param[in]   other         Surface on which the velocity is evaluated.
+   @param[in]   other_panel   Panel on which the velocity is evaluated.
+   @param[in]   this_panel    Panel on which the vortex ring is located.
    
    @returns Velocity induced by the vortex ring.
 */
@@ -1463,11 +1463,11 @@ Surface::vortex_ring_unit_velocity(const Surface &other, int other_panel, int th
    has been computed before, the cached velocity is returned.  If not, the quantity
    is computed and cached.
    
-   @param[in]   other       Surface on which the velocity is evaluated.
-   @param[in]   other_panel Panel on which the velocity is evaluated.
-   @param[in]   this_panel  Panel on which the vortex ring is located.
-   @param[in]   core_radii  Radii of the filaments forming the vortex ring.
-   @param[in]   vorticity   Strength of vortex ring.
+   @param[in]   other         Surface on which the velocity is evaluated.
+   @param[in]   other_panel   Panel on which the velocity is evaluated.
+   @param[in]   this_panel    Panel on which the vortex ring is located.
+   @param[in]   core_radii    Radii of the filaments forming the vortex ring.
+   @param[in]   vorticity     Strength of vortex ring.
    
    @returns Velocity induced by the Ramasamy-Leishman vortex ring.
    

@@ -15,7 +15,7 @@ using namespace Vortexje;
 /**
    Constructs a new LiftingSurfaceBuilder object for the given LiftingSurface.
    
-   @param[in]   lifting_surface    LiftingSurface object to construct.
+   @param[in]   lifting_surface   LiftingSurface object to construct.
 */
 LiftingSurfaceBuilder::LiftingSurfaceBuilder(LiftingSurface &lifting_surface) : SurfaceBuilder(lifting_surface), lifting_surface(lifting_surface)
 {

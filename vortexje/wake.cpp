@@ -20,7 +20,7 @@ using namespace Vortexje;
 /**
    Constructs an empty wake.
    
-   @param[in]   lifting_surface    Associated lifting surface.
+   @param[in]   lifting_surface   Associated lifting surface.
 */
 Wake::Wake(LiftingSurface &lifting_surface): lifting_surface(lifting_surface)
 {
@@ -108,7 +108,7 @@ Wake::add_layer()
 /**
    Translates the nodes of the trailing edge.
    
-   @param[in]   translation     Translation vector.
+   @param[in]   translation   Translation vector.
 */
 void
 Wake::translate_trailing_edge(const Eigen::Vector3d &translation)
@@ -131,7 +131,7 @@ Wake::translate_trailing_edge(const Eigen::Vector3d &translation)
 /**
    Transforms the nodes of the trailing edge.
    
-   @param[in]   transformation  Transformation matrix.
+   @param[in]   transformation   Transformation matrix.
 */
 void
 Wake::transform_trailing_edge(const Eigen::Matrix3d &transformation)

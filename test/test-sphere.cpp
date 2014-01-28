@@ -47,11 +47,17 @@ main (int argc, char **argv)
         // Angle between flow and point on sphere:
         double theta = acos(x.dot(freestream_velocity) / (x.norm() * freestream_velocity.norm()));
         
-        // Analytical solution for pressure coefficient.  See J. Katz and A. Plotkin, Low-Speed Aerodynamics, Cambridge University Press, 2001.
+        // Analytical solution for pressure coefficient and surface potential.
+        // See J. Katz and A. Plotkin, Low-Speed Aerodynamics, Cambridge University Press, 2001.
         double C_p_ref = 1.0 - 9.0 / 4.0 * pow(sin(theta), 2);
+        
+        double R = x.norm();
+        double phi_ref = freestream_velocity.norm() * cos(theta) * (R + pow(R, 3) / (2 * pow(R, 2)));
         
         // Computed pressure coefficient:
         double C_p = solver.pressure_coefficient(sphere, i);
+        
+        double phi = solver.surface_velocity_potential(sphere, i);
         
         // Compare:
         if (fabs(C_p - C_p_ref) > TEST_TOLERANCE) {
@@ -59,6 +65,16 @@ main (int argc, char **argv)
             cerr << " theta = " << theta << " rad" << endl;
             cerr << " C_p(ref) = " << C_p_ref << endl;
             cerr << " C_p = " << C_p << endl;
+            cerr << " ******************* " << endl;
+            
+            exit(1);
+        }
+        
+        if (fabs(phi - phi_ref) / (R * freestream_velocity.norm()) > TEST_TOLERANCE) {
+            cerr << " *** TEST FAILED *** " << endl;
+            cerr << " theta = " << theta << " rad" << endl;
+            cerr << " phi(ref) = " << phi_ref << endl;
+            cerr << " phi = " << phi << endl;
             cerr << " ******************* " << endl;
             
             exit(1);

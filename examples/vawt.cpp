@@ -137,9 +137,6 @@ main (int argc, char **argv)
     // Set simulation parameters for dynamic wake convection with Ramasamy-Leishman vortex model:
     Parameters::convect_wake                       = true;
     Parameters::use_ramasamy_leishman_vortex_sheet = true;
-        
-    // Shut up separation warnings:
-    Parameters::min_pressure_coefficient = -1e10;
     
     // Set up VAWT:
     Vector3d position(0, 0, 0);

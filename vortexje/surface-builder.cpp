@@ -7,7 +7,6 @@
 //
 
 #include <iostream>
-#include <algorithm>
 
 #include <Eigen/Geometry>
 

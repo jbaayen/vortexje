@@ -55,18 +55,6 @@ Solver::Solver(const string log_folder) : log_folder(log_folder)
     
     // Total number of panels:
     n_non_wake_panels = 0;
-    
-    // Properly size and zero doublet coefficient vector:
-    doublet_coefficients.resize(n_non_wake_panels);
-    source_coefficients.resize(n_non_wake_panels);
-    pressure_coefficients.resize(n_non_wake_panels);
-    velocity_potentials.resize(n_non_wake_panels);
-    for (int i = 0; i < n_non_wake_panels; i++) {
-        doublet_coefficients(i) = 0.0;
-        source_coefficients(i) = 0.0;
-        pressure_coefficients(i) = 0.0;
-        velocity_potentials(i) = 0.0;
-    }
         
     // Open log files:
     mkdir_helper(log_folder);
@@ -82,7 +70,7 @@ Solver::~Solver()
 /**
    Adds a surface body to this solver.
    
-   @param[in]   body  Body to be added.
+   @param[in]   body   Body to be added.
 */
 void
 Solver::add_body(Body &body)
@@ -110,16 +98,20 @@ Solver::add_body(Body &body)
     }
     
     doublet_coefficients.resize(n_non_wake_panels);
+    doublet_coefficients.setZero();
+    
     source_coefficients.resize(n_non_wake_panels);
+    source_coefficients.setZero();
+    
+    surface_velocity_potentials.resize(n_non_wake_panels);
+    surface_velocity_potentials.setZero();
+    
+    surface_velocities.resize(n_non_wake_panels, 3);
+    surface_velocities.setZero();
+    
     pressure_coefficients.resize(n_non_wake_panels);
-    velocity_potentials.resize(n_non_wake_panels);
-    for (int i = 0; i < n_non_wake_panels; i++) {
-        doublet_coefficients(i) = 0.0;
-        source_coefficients(i) = 0.0;
-        pressure_coefficients(i) = 0.0;
-        velocity_potentials(i) = 0.0;
-    }
-        
+    pressure_coefficients.setZero();
+
     // Open logs:
     string body_log_folder = log_folder + "/" + body.id;
     
@@ -206,7 +198,7 @@ Solver::source_coefficient(const Surface &surface, int panel, const Vector3d &ki
 /**
    Computes the surface velocity for the given panel.
    
-   @param[in]   surface                        Reference surface.
+   @param[in]   surface                     Reference surface.
    @param[in]   panel                       Reference panel.
    @param[in]   doublet_coefficient_field   Doublet coefficient distribution on given surface.
    
@@ -256,22 +248,18 @@ Solver::reference_velocity(const Body &body) const
 }
 
 /**
-   Computes the pressure coefficient for the given panel.
+   Computes the pressure coefficient.
    
-   @param[in]   surface                        Reference Surface.
-   @param[in]   panel                       Reference panel.
-   @param[in]   doublet_coefficient_field   Doublet coefficient distribution on given surface.
-   @param[in]   dphidt                      Time-derivative of the velocity potential of the reference panel.
-   @param[in]   v_ref                       Reference velocity for unit removal.
+   @param[in]   surface_velocity   Surface velocity for the reference panel.
+   @param[in]   dphidt             Time-derivative of the velocity potential for the reference panel.
+   @param[in]   v_ref              Reference velocity.
    
    @returns Pressure coefficient.
 */
 double
-Solver::pressure_coefficient(const Surface &surface, int panel, const Eigen::VectorXd &doublet_coefficient_field, double dphidt, double v_ref) const
+Solver::pressure_coefficient(const Vector3d &surface_velocity, double dphidt, double v_ref) const
 {
-    double C_p = 1 - (surface_velocity(surface, panel, doublet_coefficient_field).squaredNorm() + 2 * dphidt) / pow(v_ref, 2);
-    if (C_p < Parameters::min_pressure_coefficient)
-        cerr << "Solver: Pressure coefficient on surface " << surface.id << ", panel " << panel << " is less than minimum." << endl;
+    double C_p = 1 - (surface_velocity.squaredNorm() + 2 * dphidt) / pow(v_ref, 2);
     
     return C_p;
 }
@@ -351,11 +339,11 @@ Solver::surface_velocity_potential(const Surface &surface, int offset, int panel
    @returns Vector of velocity potential values, ordered by panel number.
 */
 Eigen::VectorXd
-Solver::surface_velocity_potentials() const
+Solver::surface_surface_velocity_potentials() const
 {
     cout << "Solver: Computing surface potential values." << endl;
     
-    VectorXd surface_velocity_potentials(n_non_wake_panels);
+    VectorXd surface_surface_velocity_potentials(n_non_wake_panels);
     
     int offset = 0;  
  
@@ -366,7 +354,7 @@ Solver::surface_velocity_potentials() const
             Surface *non_lifting_surface = body->non_lifting_surfaces[j];
             
             for (int k = 0; k < non_lifting_surface->n_panels(); k++)
-                surface_velocity_potentials(offset + k) = surface_velocity_potential(*non_lifting_surface, offset, k);
+                surface_surface_velocity_potentials(offset + k) = surface_velocity_potential(*non_lifting_surface, offset, k);
             
             offset += non_lifting_surface->n_panels();
         }
@@ -375,13 +363,13 @@ Solver::surface_velocity_potentials() const
             LiftingSurface *lifting_surface = body->lifting_surfaces[j];
             
             for (int k = 0; k < lifting_surface->n_panels(); k++)
-                surface_velocity_potentials(offset + k) = surface_velocity_potential(*lifting_surface, offset, k);
+                surface_surface_velocity_potentials(offset + k) = surface_velocity_potential(*lifting_surface, offset, k);
             
             offset += lifting_surface->n_panels();
         }
     }
     
-    return surface_velocity_potentials;
+    return surface_surface_velocity_potentials;
 }
 
 /**
@@ -438,23 +426,23 @@ Solver::disturbance_potential_gradient(const Eigen::Vector3d &x) const
 /**
    Computes velocity potential time derivative at the given panel.
    
-   @param[in]  velocity_potentials         Current potential values.
-   @param[in]  old_velocity_potentials     Previous potential values
-   @param[in]  offset                      Offset to requested Surface
-   @param[in]  panel                       Panel number.
-   @param[in]  dt                          Time step.
+   @param[in]  surface_velocity_potentials       Current potential values.
+   @param[in]  old_surface_velocity_potentials   Previous potential values
+   @param[in]  offset                            Offset to requested Surface
+   @param[in]  panel                             Panel number.
+   @param[in]  dt                                Time step size.
    
    @returns Velocity potential time derivative.
 */ 
 double
-Solver::velocity_potential_time_derivative(const Eigen::VectorXd &velocity_potentials, const Eigen::VectorXd &old_velocity_potentials, int offset, int panel, double dt) const
+Solver::velocity_potential_time_derivative(const Eigen::VectorXd &surface_velocity_potentials, const Eigen::VectorXd &old_surface_velocity_potentials, int offset, int panel, double dt) const
 {
     double dphidt;
     
     // Evaluate the time-derivative of the potential in a body-fixed reference frame, as in
     //   J. P. Giesing, Nonlinear Two-Dimensional Unsteady Potential Flow with Lift, Journal of Aircraft, 1968.
     if (Parameters::unsteady_bernoulli && dt > 0.0)
-        dphidt = (velocity_potentials(offset + panel) - old_velocity_potentials(offset + panel)) / dt;
+        dphidt = (surface_velocity_potentials(offset + panel) - old_surface_velocity_potentials(offset + panel)) / dt;
     else
         dphidt = 0.0;
         
@@ -639,7 +627,7 @@ Solver::wake_influence(MatrixXd &A, Surface &surface, int offset) const
 /**
    Computes new source, doublet, and pressure distributions.
    
-   @param[in]   dt  Time step size.
+   @param[in]   dt   Time step size.
 */
 void
 Solver::update_coefficients(double dt)
@@ -647,7 +635,7 @@ Solver::update_coefficients(double dt)
     // Compute source distribution:
     cout << "Solver: Computing source distribution with wake influence." << endl;
     
-    int source_coefficients_idx = 0;
+    int idx = 0;
     
     for (int i = 0; i < (int) bodies.size(); i++) {
         Body *body = bodies[i];
@@ -660,8 +648,8 @@ Solver::update_coefficients(double dt)
                                               + body->panel_kinematic_velocity(*non_lifting_surface, k) 
                                               - freestream_velocity;
             
-                source_coefficients(source_coefficients_idx) = source_coefficient(*non_lifting_surface, k, kinematic_velocity, true);
-                source_coefficients_idx++;
+                source_coefficients(idx) = source_coefficient(*non_lifting_surface, k, kinematic_velocity, true);
+                idx++;
             }
         }
         
@@ -673,8 +661,8 @@ Solver::update_coefficients(double dt)
                                               + body->panel_kinematic_velocity(*lifting_surface, k) 
                                               - freestream_velocity;
             
-                source_coefficients(source_coefficients_idx) = source_coefficient(*lifting_surface, k, kinematic_velocity, true);
-                source_coefficients_idx++;
+                source_coefficients(idx) = source_coefficient(*lifting_surface, k, kinematic_velocity, true);
+                idx++;
             }
         }
     }
@@ -750,7 +738,7 @@ Solver::update_coefficients(double dt)
         // Recompute source distribution without wake influence:
         cout << "Solver: Recomputing source distribution without wake influence." << endl;
         
-        source_coefficients_idx = 0;
+        idx = 0;
         
         for (int i = 0; i < (int) bodies.size(); i++) {
             Body *body = bodies[i];
@@ -763,8 +751,8 @@ Solver::update_coefficients(double dt)
                                                   + body->panel_kinematic_velocity(*non_lifting_surface, k) 
                                                   - freestream_velocity;
                 
-                    source_coefficients(source_coefficients_idx) = source_coefficient(*non_lifting_surface, k, kinematic_velocity, false);
-                    source_coefficients_idx++;
+                    source_coefficients(idx) = source_coefficient(*non_lifting_surface, k, kinematic_velocity, false);
+                    idx++;
                 }
             }
             
@@ -776,22 +764,21 @@ Solver::update_coefficients(double dt)
                                                   + body->panel_kinematic_velocity(*lifting_surface, k) 
                                                   - freestream_velocity;
                 
-                    source_coefficients(source_coefficients_idx) = source_coefficient(*lifting_surface, k, kinematic_velocity, false);
-                    source_coefficients_idx++;
+                    source_coefficients(idx) = source_coefficient(*lifting_surface, k, kinematic_velocity, false);
+                    idx++;
                 }
             }
         }
     }
     
     // Compute potential values on new body with new coefficients:
-    VectorXd old_velocity_potentials = velocity_potentials;
-    if (Parameters::unsteady_bernoulli)
-        velocity_potentials = surface_velocity_potentials();
+    VectorXd old_surface_velocity_potentials = surface_velocity_potentials;
+    surface_velocity_potentials = surface_surface_velocity_potentials();
 
     // Compute pressure distribution:
     cout << "Solver: Computing pressure distribution." << endl;
 
-    int pressure_coefficients_idx = 0;
+    idx = 0;
     
     offset = 0;
 
@@ -808,13 +795,14 @@ Solver::update_coefficients(double dt)
                 doublet_coefficient_field(k) = doublet_coefficients(offset + k); 
                 
             for (int k = 0; k < non_lifting_surface->n_panels(); k++) {
-                double dphidt = velocity_potential_time_derivative(velocity_potentials, old_velocity_potentials, offset, k, dt);
- 
-                pressure_coefficients(pressure_coefficients_idx) = pressure_coefficient(*non_lifting_surface, k,
-                                                                                        doublet_coefficient_field,
-                                                                                        dphidt, v_ref);
+                double dphidt = velocity_potential_time_derivative(surface_velocity_potentials, old_surface_velocity_potentials, offset, k, dt);
                 
-                pressure_coefficients_idx++;
+                Vector3d V = surface_velocity(*non_lifting_surface, k, doublet_coefficient_field);
+                surface_velocities.block<1, 3>(idx, 0) = V;
+ 
+                pressure_coefficients(idx) = pressure_coefficient(V, dphidt, v_ref);
+                
+                idx++;
             }   
             
             offset += non_lifting_surface->n_panels();      
@@ -828,13 +816,14 @@ Solver::update_coefficients(double dt)
                 doublet_coefficient_field(k) = doublet_coefficients(offset + k); 
                 
             for (int k = 0; k < lifting_surface->n_panels(); k++) {
-                double dphidt = velocity_potential_time_derivative(velocity_potentials, old_velocity_potentials, offset, k, dt);
- 
-                pressure_coefficients(pressure_coefficients_idx) = pressure_coefficient(*lifting_surface, k,
-                                                                                        doublet_coefficient_field,
-                                                                                        dphidt, v_ref);
+                double dphidt = velocity_potential_time_derivative(surface_velocity_potentials, old_surface_velocity_potentials, offset, k, dt);
                 
-                pressure_coefficients_idx++;
+                Vector3d V = surface_velocity(*lifting_surface, k, doublet_coefficient_field);
+                surface_velocities.block<1, 3>(idx, 0) = V;
+ 
+                pressure_coefficients(idx) = pressure_coefficient(V, dphidt, v_ref);
+                
+                idx++;
             }   
             
             offset += lifting_surface->n_panels();      
@@ -845,7 +834,7 @@ Solver::update_coefficients(double dt)
 /**
    Convects existing wake nodes, and emits a new layer of wake panels.
    
-   @param[in]   dt  Time step size.
+   @param[in]   dt   Time step size.
 */
 void
 Solver::update_wakes(double dt)
@@ -937,10 +926,64 @@ Solver::update_wakes(double dt)
 }
 
 /**
-   Returns the pressure coefficient of the given panel.
+   Returns the surface velocity potential for the given panel.
    
-   @param[in]   body  Reference body.
-   @param[in]   panel       Reference panel.
+   @param[in]   body    Reference body.
+   @param[in]   panel   Reference panel.
+  
+   @returns Surface velocity potential.
+*/
+double
+Solver::surface_velocity_potential(const Surface &surface, int panel) const
+{
+    int offset = 0;
+    
+    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
+        Surface *tmp_surface = non_wake_surfaces[i];
+        
+        if (&surface == tmp_surface)
+            return surface_velocity_potentials(offset + panel);
+        
+        offset += tmp_surface->n_panels();
+    }
+    
+    cerr << "Solver::surface_velocity_potential():  Panel " << panel << " not found on surface " << surface.id << "." << endl;
+    
+    return 0.0;
+}
+
+/**
+   Returns the surface velocity for the given panel.
+   
+   @param[in]   body    Reference body.
+   @param[in]   panel   Reference panel.
+  
+   @returns Surface velocity.
+*/
+Vector3d
+Solver::surface_velocity(const Surface &surface, int panel) const
+{
+    int offset = 0;
+    
+    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
+        Surface *tmp_surface = non_wake_surfaces[i];
+        
+        if (&surface == tmp_surface)
+            return surface_velocities.block<1, 3>(offset + panel, 0);
+        
+        offset += tmp_surface->n_panels();
+    }
+    
+    cerr << "Solver::surface_velocity():  Panel " << panel << " not found on surface " << surface.id << "." << endl;
+    
+    return Vector3d(0, 0, 0);
+}
+
+/**
+   Returns the pressure coefficient for the given panel.
+   
+   @param[in]   body    Reference body.
+   @param[in]   panel   Reference panel.
   
    @returns Pressure coefficient.
 */
@@ -966,7 +1009,7 @@ Solver::pressure_coefficient(const Surface &surface, int panel) const
 /**
    Computes the force caused by the pressure distribution on the given body.
    
-   @param[in]   body  Reference body.
+   @param[in]   body   Reference body.
   
    @returns Force vector.
 */
@@ -996,8 +1039,8 @@ Solver::force(const Body &body) const
 /**
    Computes the moment caused by the pressure distribution on the given body, relative to the given point.
    
-   @param[in]   body  Reference body.
-   @param[in]   x           Reference point.
+   @param[in]   body   Reference body.
+   @param[in]   x      Reference point.
   
    @returns Moment vector.
 */
@@ -1029,7 +1072,8 @@ Solver::moment(const Body &body, const Eigen::Vector3d &x) const
 /**
    Logs source, doublet, and pressure coefficients into files in the logging folder.
    
-   @param[in]   step_number     Step number used to name the output files.
+   @param[in]   step_number   Step number used to name the output files.
+   @param[in]   format        File format to log data in.
 */
 void
 Solver::log_coefficients(int step_number, Surface::FileFormat format) const
@@ -1150,13 +1194,13 @@ Solver::log_coefficients(int step_number, Surface::FileFormat format) const
    is the smallest box encompassing all nodes of all surfaces, expanded in the X, Y, and Z directions by
    the given margins.
    
-   @param[in]   step_number     Step number used to name the output files.
-   @param[in]   dx              Grid step size in X-direction.
-   @param[in]   dy              Grid step size in Y-direction.
-   @param[in]   dz              Grid step size in Z-direction.
-   @param[in]   x_margin        Grid expansion margin in X-direction.
-   @param[in]   y_margin        Grid expansion margin in Y-direction.
-   @param[in]   z_margin        Grid expansion margin in Z-direction.
+   @param[in]   step_number   Step number used to name the output files.
+   @param[in]   dx            Grid step size in X-direction.
+   @param[in]   dy            Grid step size in Y-direction.
+   @param[in]   dz            Grid step size in Z-direction.
+   @param[in]   x_margin      Grid expansion margin in X-direction.
+   @param[in]   y_margin      Grid expansion margin in Y-direction.
+   @param[in]   z_margin      Grid expansion margin in Z-direction.
 */
 void
 Solver::log_fields_gmsh(int step_number,
@@ -1276,13 +1320,13 @@ Solver::log_fields_gmsh(int step_number,
    is the smallest box encompassing all nodes of all surfaces, expanded in the X, Y, and Z directions by
    the given margins.
    
-   @param[in]   step_number     Step number used to name the output files.
-   @param[in]   dx              Grid step size in X-direction.
-   @param[in]   dy              Grid step size in Y-direction.
-   @param[in]   dz              Grid step size in Z-direction.
-   @param[in]   x_margin        Grid expansion margin in X-direction.
-   @param[in]   y_margin        Grid expansion margin in Y-direction.
-   @param[in]   z_margin        Grid expansion margin in Z-direction.
+   @param[in]   step_number   Step number used to name the output files.
+   @param[in]   dx            Grid step size in X-direction.
+   @param[in]   dy            Grid step size in Y-direction.
+   @param[in]   dz            Grid step size in Z-direction.
+   @param[in]   x_margin      Grid expansion margin in X-direction.
+   @param[in]   y_margin      Grid expansion margin in Y-direction.
+   @param[in]   z_margin      Grid expansion margin in Z-direction.
 */
 void
 Solver::log_fields_vtk(int step_number,
@@ -1430,14 +1474,14 @@ Solver::log_fields_vtk(int step_number,
    is the smallest box encompassing all nodes of all surfaces, expanded in the X, Y, and Z directions by
    the given margins.
    
-   @param[in]   step_number     Step number used to name the output files.
-   @param[in]   format          File format.
-   @param[in]   dx              Grid step size in X-direction.
-   @param[in]   dy              Grid step size in Y-direction.
-   @param[in]   dz              Grid step size in Z-direction.
-   @param[in]   x_margin        Grid expansion margin in X-direction.
-   @param[in]   y_margin        Grid expansion margin in Y-direction.
-   @param[in]   z_margin        Grid expansion margin in Z-direction.
+   @param[in]   step_number   Step number used to name the output files.
+   @param[in]   format        File format.
+   @param[in]   dx            Grid step size in X-direction.
+   @param[in]   dy            Grid step size in Y-direction.
+   @param[in]   dz            Grid step size in Z-direction.
+   @param[in]   x_margin      Grid expansion margin in X-direction.
+   @param[in]   y_margin      Grid expansion margin in Y-direction.
+   @param[in]   z_margin      Grid expansion margin in Z-direction.
 */
 void
 Solver::log_fields(int step_number,

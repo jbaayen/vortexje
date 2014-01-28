@@ -41,7 +41,7 @@ Body::~Body()
 /**
    Adds a non-lifting surface to this body.
    
-   @param[in]   surface    Non-lifting surface.
+   @param[in]   surface   Non-lifting surface.
 */
 void
 Body::add_non_lifting_surface(Surface *non_lifting_surface)
@@ -54,7 +54,7 @@ Body::add_non_lifting_surface(Surface *non_lifting_surface)
 /**
    Adds a lifting surface to this body.
    
-   @param[in]   lifting_surface    Lifting surface.
+   @param[in]   lifting_surface   Lifting surface.
 */
 void
 Body::add_lifting_surface(LiftingSurface *lifting_surface)
@@ -70,7 +70,7 @@ Body::add_lifting_surface(LiftingSurface *lifting_surface)
 /**
    Sets the linear position of this body.
    
-   @param[in]   position    Linear position.
+   @param[in]   position   Linear position.
 */
 void
 Body::set_position(const Vector3d &position)
@@ -101,7 +101,7 @@ Body::set_position(const Vector3d &position)
 /**
    Sets the attitude (orientation) of this body.
    
-   @param[in]   attitude    Attitude (orientation) of this body, as normalized quaternion.
+   @param[in]   attitude   Attitude (orientation) of this body, as normalized quaternion.
 */
 void
 Body::set_attitude(const Quaterniond &attitude)
@@ -156,7 +156,7 @@ Body::set_attitude(const Quaterniond &attitude)
 /**
    Sets the linear velocity of this body.
    
-   @param[in]   velocity    Linear velocity.
+   @param[in]   velocity   Linear velocity.
 */
 void 
 Body::set_velocity(const Vector3d &velocity)
@@ -167,7 +167,7 @@ Body::set_velocity(const Vector3d &velocity)
 /**
    Sets the rotational velocity of this body.
    
-   @param[in]   rotational_velocity     Rotational velocity.
+   @param[in]   rotational_velocity   Rotational velocity.
 */
 void
 Body::set_rotational_velocity(const Vector3d &rotational_velocity)
@@ -179,7 +179,7 @@ Body::set_rotational_velocity(const Vector3d &rotational_velocity)
    Computes the kinematic velocity of the given panel.
    
    @param[in]   surface   Surface, belonging to this body. 
-   @param[in]   panel  Panel, belonging to this surface.
+   @param[in]   panel     Panel, belonging to this surface.
    
    @return The kinematic velocity.
 */
@@ -195,7 +195,7 @@ Body::panel_kinematic_velocity(const Surface &surface, int panel) const
    Computes the kinematic velocity of the given node.
    
    @param[in]   surface   Surface, belonging to this body. 
-   @param[in]   node   Node, belonging to this surface.
+   @param[in]   node      Node, belonging to this surface.
    
    @return The kinematic velocity.
 */

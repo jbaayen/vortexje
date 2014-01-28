@@ -48,11 +48,6 @@ public:
     static double static_wake_length;
     
     /**
-       Minimum pressure coefficient, below which a warning is issued.
-    */
-    static double min_pressure_coefficient;
-    
-    /**
        Kinematic viscosity of the fluid.
     */
     static double fluid_kinematic_viscosity;

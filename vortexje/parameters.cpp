@@ -23,8 +23,6 @@ bool   Parameters::convect_wake                       = false;
 
 double Parameters::static_wake_length                 = 100.0;
 
-double Parameters::min_pressure_coefficient           = -12;
-
 double Parameters::fluid_kinematic_viscosity          = 15.68e-6;
 
 bool   Parameters::use_ramasamy_leishman_vortex_sheet = false;
