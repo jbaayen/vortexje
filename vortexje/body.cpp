@@ -34,6 +34,8 @@ Body::Body(string id) : id(id)
 */
 Body::~Body()
 {
+    for (int i = 0; i < (int) wakes.size(); i++)
+        delete wakes[i];
 }
 
 /**
