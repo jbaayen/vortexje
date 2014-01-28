@@ -1,6 +1,6 @@
 include ../../../config.mk
 
-HPPDEPS = clark-y.hpp naca4.hpp
+HPPDEPS = clark-y-generator.hpp naca4-generator.hpp
 
 all:
 

@@ -6,8 +6,8 @@
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
-#ifndef __CLARK_Y_HPP__
-#define __CLARK_Y_HPP__
+#ifndef __CLARK_Y_GENERATOR_HPP__
+#define __CLARK_Y_GENERATOR_HPP__
 
 #include <Eigen/Core>
 #include <Eigen/StdVector>
@@ -26,7 +26,7 @@ namespace Airfoils
    
    @brief ClarkY airfoil generation.
 */
-class ClarkY
+class ClarkYGenerator
 {
 public:
     static std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > generate(double chord, int n_points, int &trailing_edge_point_id);
@@ -38,4 +38,4 @@ public:
 
 };
 
-#endif // __CLARK_Y_HPP__
+#endif // __CLARK_Y_GENERATOR_HPP__

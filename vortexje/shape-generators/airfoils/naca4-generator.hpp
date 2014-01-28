@@ -6,8 +6,8 @@
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
-#ifndef __NACA4_HPP__
-#define __NACA4_HPP__
+#ifndef __NACA4_GENERATOR_HPP__
+#define __NACA4_GENERATOR_HPP__
 
 #include <Eigen/Core>
 #include <Eigen/StdVector>
@@ -26,7 +26,7 @@ namespace Airfoils
    
    @brief NACA-4 series airfoil generation.
 */
-class NACA4
+class NACA4Generator
 {
 public:
     static std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > generate(double max_camber, double max_camber_dist, double max_thickness, bool finite_te_thickness, double chord, int n_points, int &trailing_edge_point_id);
@@ -38,4 +38,4 @@ public:
 
 };
 
-#endif // __NACA4_HPP__
+#endif // __NACA4_GENERATOR_HPP__

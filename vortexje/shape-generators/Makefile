@@ -1,6 +1,6 @@
 include ../../config.mk
 
-HPPDEPS = ellipse.hpp
+HPPDEPS = ellipse-generator.hpp
 
 all:
 	cd airfoils; $(MAKE)

@@ -1,8 +1,26 @@
 include ../config.mk
 
-CPPDEPS = surface.cpp solver.cpp parameters.cpp lifting-surface.cpp wake.cpp body.cpp surface-builder.cpp lifting-surface-builder.cpp shape-generators/ellipse.cpp shape-generators/airfoils/naca4.cpp shape-generators/airfoils/clark-y.cpp
+CPPDEPS = \
+	surface.cpp \
+	solver.cpp \
+	parameters.cpp \
+	lifting-surface.cpp \
+	wake.cpp \
+	body.cpp \
+	surface-builder.cpp \
+	lifting-surface-builder.cpp \
+	shape-generators/ellipse-generator.cpp \
+	shape-generators/airfoils/naca4-generator.cpp \
+	shape-generators/airfoils/clark-y-generator.cpp
 
-HPPDEPS = surface.hpp solver.hpp parameters.hpp lifting-surface.hpp wake.hpp body.hpp surface-builder.hpp lifting-surface-builder.hpp
+HPPDEPS = \
+	surface.hpp \
+	solver.hpp \
+	parameters.hpp \
+	lifting-surface.hpp \
+	wake.hpp body.hpp \
+	surface-builder.hpp \
+	lifting-surface-builder.hpp
 
 OBJS = $(CPPDEPS:.cpp=.o)
 

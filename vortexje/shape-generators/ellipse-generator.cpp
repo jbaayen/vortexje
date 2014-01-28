@@ -8,7 +8,7 @@
 
 #include <cmath>
 
-#include <vortexje/shape-generators/ellipse.hpp>
+#include <vortexje/shape-generators/ellipse-generator.hpp>
 
 using namespace std;
 using namespace Eigen;
@@ -24,7 +24,7 @@ using namespace Vortexje::ShapeGenerators;
    @returns List of points.
 */
 vector<Vector3d, Eigen::aligned_allocator<Vector3d> >
-Ellipse::generate(double a, double b, int n_points)
+EllipseGenerator::generate(double a, double b, int n_points)
 {
     vector<Vector3d, Eigen::aligned_allocator<Vector3d> > points;
     

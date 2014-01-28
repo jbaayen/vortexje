@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-#include <vortexje/shape-generators/airfoils/clark-y.hpp>
+#include <vortexje/shape-generators/airfoils/clark-y-generator.hpp>
 
 using namespace std;
 using namespace Eigen;
@@ -168,7 +168,7 @@ cosine_rule(int n_points, int i)
    @returns List of points.
 */
 vector<Vector3d, Eigen::aligned_allocator<Vector3d> >
-ClarkY::generate(double chord, int n_points, int &trailing_edge_point_id)
+ClarkYGenerator::generate(double chord, int n_points, int &trailing_edge_point_id)
 {
     if (n_points % 2 == 1) {
         cerr << "ClarkY::generate(): n_nodes must be even." << endl;

@@ -6,8 +6,8 @@
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
-#ifndef __ELLIPSE_HPP__
-#define __ELLIPSE_HPP__
+#ifndef __ELLIPSE_GENERATOR_HPP__
+#define __ELLIPSE_GENERATOR_HPP__
 
 #include <Eigen/Core>
 #include <Eigen/StdVector>
@@ -23,7 +23,7 @@ namespace ShapeGenerators
    
    @brief NACA-4 series airfoil generation.
 */
-class Ellipse
+class EllipseGenerator
 {
 public:
     static std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > generate(double a, double b, int n_points);
@@ -33,4 +33,4 @@ public:
 
 };
 
-#endif // __ELLIPSE_HPP__
+#endif // __ELLIPSE_GENERATOR_HPP__

@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-#include <vortexje/shape-generators/airfoils/naca4.hpp>
+#include <vortexje/shape-generators/airfoils/naca4-generator.hpp>
 
 using namespace std;
 using namespace Eigen;
@@ -74,7 +74,7 @@ compute_y_t(double x, double max_camber, double max_camber_dist, double max_thic
    @note See S. Yon, J. Katz, and A. Plotkin, Effect of Airfoil (Trailing-Edge) Thickness on the Numerical Solution of Panel Methods Based on the Dirichlet Boundary Condition, AIAA Journal, Vol. 30, No. 3, March 1992, for the issues that may arise when using an infinitely thin trailing edge.
 */
 vector<Vector3d, Eigen::aligned_allocator<Vector3d> >
-NACA4::generate(double max_camber, double max_camber_dist, double max_thickness, bool finite_te_thickness, double chord, int n_points, int &trailing_edge_point_id)
+NACA4Generator::generate(double max_camber, double max_camber_dist, double max_thickness, bool finite_te_thickness, double chord, int n_points, int &trailing_edge_point_id)
 {
     if (n_points % 2 == 1) {
         cerr << "NACA4::generate(): n_nodes must be even." << endl;

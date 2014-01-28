@@ -10,8 +10,8 @@
 
 #include <vortexje/solver.hpp>
 #include <vortexje/lifting-surface-builder.hpp>
-#include <vortexje/shape-generators/airfoils/naca4.hpp>
-#include <vortexje/shape-generators/ellipse.hpp>
+#include <vortexje/shape-generators/airfoils/naca4-generator.hpp>
+#include <vortexje/shape-generators/ellipse-generator.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -24,7 +24,7 @@ using namespace Vortexje;
 #define MILL_RADIUS     2.5
 #define TIP_SPEED_RATIO 5
 #define WIND_VELOCITY   6
-#define INCLUDE_TOWER
+//#define INCLUDE_TOWER
 
 class Blade : public LiftingSurface
 {
@@ -49,7 +49,7 @@ public:
         
         for (int i = 0; i < n_airfoils; i++) {
             vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points =
-                ShapeGenerators::Airfoils::NACA4::generate(0, 0, 0.12, true, chord, n_points_per_airfoil, trailing_edge_point_id);
+                ShapeGenerators::Airfoils::NACA4Generator::generate(0, 0, 0.12, true, chord, n_points_per_airfoil, trailing_edge_point_id);
             for (int j = 0; j < (int) airfoil_points.size(); j++)
                 airfoil_points[j](2) += i * span / (double) (n_airfoils - 1);
                 
@@ -93,7 +93,7 @@ public:
         
         for (int i = 0; i < n_layers; i++) {
             vector<Vector3d, Eigen::aligned_allocator<Vector3d> > points =
-                ShapeGenerators::Ellipse::generate(r, r, n_points);
+                ShapeGenerators::EllipseGenerator::generate(r, r, n_points);
             for (int j = 0; j < (int) points.size(); j++)
                 points[j](2) += i * h / (double) (n_layers - 1);
                  
