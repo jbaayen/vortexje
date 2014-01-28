@@ -129,7 +129,7 @@ public:
     
     Eigen::Vector3d panel_deformation_velocity(int panel) const;
     
-    virtual Eigen::Vector3d close_to_body_point(int node) const;
+    virtual Eigen::Vector3d near_exterior_point(int node) const;
     
     Eigen::Vector3d scalar_field_gradient(const Eigen::VectorXd &scalar_field, int this_panel) const;
     

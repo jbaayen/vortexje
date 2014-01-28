@@ -176,7 +176,7 @@ LiftingSurface::closest_panel(const Eigen::Vector3d &x, int &panel, double &dist
 
 // Compute out-of-body point close to given node:
 Vector3d
-LiftingSurface::close_to_body_point(int node) const
+LiftingSurface::near_exterior_point(int node) const
 {
     // For the trailing edge, the close to body point is set equal to the trailing edge point. 
     // This is to guarantee wake emission at the correct angle; see
@@ -193,5 +193,5 @@ LiftingSurface::close_to_body_point(int node) const
     if (trailing_edge)
         return nodes[node];
     else
-        return this->Surface::close_to_body_point(node);
+        return this->Surface::near_exterior_point(node);
 }

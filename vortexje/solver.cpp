@@ -505,13 +505,13 @@ Solver::velocity(const Eigen::Vector3d &x) const
  
     // Compute velocity potential gradients near the body:
     vector<Vector3d> disturbance_potential_gradients;
-    vector<Vector3d> close_to_body_points;
+    vector<Vector3d> near_exterior_points;
     if (distance < Parameters::interpolation_layer_thickness && !close_near_trailing_edge) {   
         for (int i = 0; i < (int) close_surface->panel_nodes[close_panel].size(); i++) {
-            Vector3d close_to_body_point = close_surface->close_to_body_point(close_surface->panel_nodes[close_panel][i]);
-            close_to_body_points.push_back(close_to_body_point);
+            Vector3d near_exterior_point = close_surface->near_exterior_point(close_surface->panel_nodes[close_panel][i]);
+            near_exterior_points.push_back(near_exterior_point);
             
-            disturbance_potential_gradients.push_back(disturbance_potential_gradient(close_to_body_point));
+            disturbance_potential_gradients.push_back(disturbance_potential_gradient(near_exterior_point));
         }
         
     } else {
@@ -537,7 +537,7 @@ Solver::velocity(const Eigen::Vector3d &x) const
         double total_weight = 0.0;
         
         for (int i = 0; i < (int) disturbance_potential_gradients.size(); i++) {
-            Vector3d layer_point_distance = x - close_to_body_points[i];
+            Vector3d layer_point_distance = x - near_exterior_points[i];
             layer_point_distance = layer_point_distance - layer_point_distance.dot(normal) * normal;
             
             double weight = distance * (close_surface->panel_diameter(close_panel) - layer_point_distance.norm());

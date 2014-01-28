@@ -924,7 +924,7 @@ Surface::panel_deformation_velocity(int panel) const
    @returns Point, located outside of the body, close to the given node.
 */
 Vector3d
-Surface::close_to_body_point(int node) const
+Surface::near_exterior_point(int node) const
 {
     Vector3d layer_direction(0, 0, 0);
     for (int i = 0; i < (int) node_panel_neighbors[node]->size(); i++)
