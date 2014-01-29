@@ -1,4 +1,4 @@
 set(SRCS
     rply.c)
 
-add_library(rply STATIC ${SRCS})
+add_library(rply OBJECT ${SRCS})

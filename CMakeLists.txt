@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8.9)
 project(Vortexje)
 
 # The version number.
@@ -14,8 +14,10 @@ find_package(Eigen3 REQUIRED)
 if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS "-O3 -march=native") # Optimize for this machine.
     set(CMAKE_CXX_FLAGS_RELEASE "-O3")       # Optimize for this architecture.
-    set(CMAKE_EXE_LINKER_FLAGS "-s")         # Strip binary.
 endif()
+
+# Enable PIC for shared library generation.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Use OpenMP.
 find_package(OpenMP)

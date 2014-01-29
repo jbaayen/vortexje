@@ -28,9 +28,13 @@ set(HDRS
 	surface-writer.hpp 
 	field-writer.hpp)
 
-add_library(vortexje SHARED ${SRCS})
-
-target_link_libraries(vortexje surface-loaders surface-writers field-writers shape-generators)
+add_library(vortexje SHARED ${SRCS}
+    $<TARGET_OBJECTS:surface-loaders>
+    $<TARGET_OBJECTS:surface-writers>
+    $<TARGET_OBJECTS:field-writers>
+    $<TARGET_OBJECTS:shape-generators>
+    $<TARGET_OBJECTS:airfoils>
+    $<TARGET_OBJECTS:rply>)
 
 install (TARGETS vortexje DESTINATION lib)
 install (FILES ${HDRS} DESTINATION include/vortexje)

@@ -4,6 +4,6 @@ set(SRCS
 set(HDRS
     vtk-field-writer.hpp)
 
-add_library(field-writers STATIC ${SRCS})
+add_library(field-writers OBJECT ${SRCS})
 
 install(FILES ${HDRS} DESTINATION include/vortexje/field-writers)

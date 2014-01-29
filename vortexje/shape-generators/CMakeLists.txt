@@ -6,8 +6,6 @@ set(SRCS
 set(HDRS
     ellipse-generator.hpp)
 
-add_library(shape-generators STATIC ${SRCS})
-
-target_link_libraries(shape-generators airfoils)
+add_library(shape-generators OBJECT ${SRCS})
 
 install(FILES ${HDRS} DESTINATION include/vortexje/shape-generators)

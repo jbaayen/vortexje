@@ -8,8 +8,6 @@ set(HDRS
     gmsh-surface-loader.hpp
     ply-surface-loader.hpp)
 
-add_library(surface-loaders STATIC ${SRCS})
-
-target_link_libraries(surface-loaders rply)
+add_library(surface-loaders OBJECT ${SRCS})
 
 install(FILES ${HDRS} DESTINATION include/vortexje/surface-loaders)
