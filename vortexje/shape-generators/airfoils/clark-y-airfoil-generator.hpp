@@ -15,26 +15,17 @@
 namespace Vortexje
 {
 
-namespace ShapeGenerators
-{
-
-namespace Airfoils
-{
-
 /**
    Class for generation of Clark-Y airfoils.
    
    @brief Clark-Y airfoil generation.
 */
-class ClarkYGenerator
+class ClarkYAirfoilGenerator
 {
 public:
     static std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > generate(double chord, int n_points, int &trailing_edge_point_id);
 };
 
-};
-
-};
 
 };
 

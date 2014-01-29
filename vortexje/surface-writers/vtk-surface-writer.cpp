@@ -15,7 +15,6 @@
 using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
-using namespace Vortexje::SurfaceWriters;
 
 /**
    Returns the VTK surface file extension (".vtk").

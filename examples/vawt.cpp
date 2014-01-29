@@ -10,7 +10,7 @@
 
 #include <vortexje/solver.hpp>
 #include <vortexje/lifting-surface-builder.hpp>
-#include <vortexje/shape-generators/airfoils/naca4-generator.hpp>
+#include <vortexje/shape-generators/airfoils/naca4-airfoil-generator.hpp>
 #include <vortexje/shape-generators/ellipse-generator.hpp>
 #include <vortexje/surface-writers/vtk-surface-writer.hpp>
 
@@ -50,7 +50,7 @@ public:
         
         for (int i = 0; i < n_airfoils; i++) {
             vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points =
-                ShapeGenerators::Airfoils::NACA4Generator::generate(0, 0, 0.12, true, chord, n_points_per_airfoil, trailing_edge_point_id);
+                NACA4AirfoilGenerator::generate(0, 0, 0.12, true, chord, n_points_per_airfoil, trailing_edge_point_id);
             for (int j = 0; j < (int) airfoil_points.size(); j++)
                 airfoil_points[j](2) += i * span / (double) (n_airfoils - 1);
                 
@@ -94,7 +94,7 @@ public:
         
         for (int i = 0; i < n_layers; i++) {
             vector<Vector3d, Eigen::aligned_allocator<Vector3d> > points =
-                ShapeGenerators::EllipseGenerator::generate(r, r, n_points);
+                EllipseGenerator::generate(r, r, n_points);
             for (int j = 0; j < (int) points.size(); j++)
                 points[j](2) += i * h / (double) (n_layers - 1);
                  
@@ -212,7 +212,7 @@ main (int argc, char **argv)
     solver.set_fluid_density(fluid_density);
     
     // Set up file format for logging:
-    SurfaceWriters::VTKSurfaceWriter surface_writer;
+    VTKSurfaceWriter surface_writer;
     
     // Log shaft moments:
     ofstream f;

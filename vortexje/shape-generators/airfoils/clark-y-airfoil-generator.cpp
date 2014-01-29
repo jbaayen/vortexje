@@ -8,11 +8,11 @@
 
 #include <iostream>
 
-#include <vortexje/shape-generators/airfoils/clark-y-generator.hpp>
+#include <vortexje/shape-generators/airfoils/clark-y-airfoil-generator.hpp>
 
 using namespace std;
 using namespace Eigen;
-using namespace Vortexje::ShapeGenerators::Airfoils;
+using namespace Vortexje;
 
 // Clark-Y airfoil generation:
 #define CLARKY_DATA_SIZE 61
@@ -168,7 +168,7 @@ cosine_rule(int n_points, int i)
    @returns List of points.
 */
 vector<Vector3d, Eigen::aligned_allocator<Vector3d> >
-ClarkYGenerator::generate(double chord, int n_points, int &trailing_edge_point_id)
+ClarkYAirfoilGenerator::generate(double chord, int n_points, int &trailing_edge_point_id)
 {
     if (n_points % 2 == 1) {
         cerr << "ClarkY::generate(): n_nodes must be even." << endl;

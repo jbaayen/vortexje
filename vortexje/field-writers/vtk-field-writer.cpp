@@ -15,7 +15,6 @@
 using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
-using namespace Vortexje::FieldWriters;
 
 /**
    Returns the VTK file extension (".vtk").

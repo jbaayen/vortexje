@@ -11,7 +11,7 @@
 #include <vortexje/solver.hpp>
 #include <vortexje/parameters.hpp>
 #include <vortexje/lifting-surface-builder.hpp>
-#include <vortexje/shape-generators/airfoils/clark-y-generator.hpp>
+#include <vortexje/shape-generators/airfoils/clark-y-airfoil-generator.hpp>
 #include <vortexje/surface-writers/vtk-surface-writer.hpp>
 #include <vortexje/field-writers/vtk-field-writer.hpp>
 
@@ -45,7 +45,7 @@ main (int argc, char **argv)
     
     for (int i = 0; i < n_airfoils; i++) {
         vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points =
-            ShapeGenerators::Airfoils::ClarkYGenerator::generate(chord, n_points_per_airfoil, trailing_edge_point_id);
+            ClarkYAirfoilGenerator::generate(chord, n_points_per_airfoil, trailing_edge_point_id);
         for (int j = 0; j < (int) airfoil_points.size(); j++)
             airfoil_points[j](2) += i * span / (double) (n_airfoils - 1);
              
@@ -85,10 +85,10 @@ main (int argc, char **argv)
     solver.set_fluid_density(fluid_density);
     
     // Set up surface writer:
-    SurfaceWriters::VTKSurfaceWriter surface_writer;
+    VTKSurfaceWriter surface_writer;
     
     // Set up field writer:
-    FieldWriters::VTKFieldWriter field_writer;
+    VTKFieldWriter field_writer;
     
     // Run simulation:
     double t = 0.0;

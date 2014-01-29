@@ -16,9 +16,6 @@
 namespace Vortexje
 {
 
-namespace SurfaceLoaders
-{
-
 /**
    Polygon File Format/Stanford Triangle Format loader.
    
@@ -43,8 +40,6 @@ private:
     
     Eigen::Vector3d current_point;
     std::vector<int> current_panel_nodes;  
-};
-
 };
 
 };

@@ -15,7 +15,6 @@
 using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
-using namespace Vortexje::SurfaceLoaders;
 
 /**
    Returns the PLY file extension (".msh").

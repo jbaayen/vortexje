@@ -22,7 +22,7 @@ int
 main (int argc, char **argv)
 {
     // Load sphere surface:
-    SurfaceLoaders::GmshSurfaceLoader surface_loader;
+    GmshSurfaceLoader surface_loader;
     
     Surface sphere;
     surface_loader.load(sphere, string("sphere.msh"));

@@ -17,9 +17,6 @@
 namespace Vortexje
 {
 
-namespace FieldWriters
-{
-
 /**
    VTK field file writer.
    
@@ -40,8 +37,6 @@ public:
                                         
 private:
     void write_preamble(std::ofstream &f) const;
-};
-
 };
 
 };

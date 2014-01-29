@@ -16,9 +16,6 @@
 namespace Vortexje
 {
 
-namespace SurfaceLoaders
-{
-
 /**
    Gmsh MSH file loader.
    
@@ -30,8 +27,6 @@ public:
     const char *file_extension() const;
     
     bool load(Surface &surface, const std::string &filename);
-};
-
 };
 
 };

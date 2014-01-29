@@ -12,7 +12,7 @@
 
 using namespace std;
 using namespace Eigen;
-using namespace Vortexje::ShapeGenerators;
+using namespace Vortexje;
 
 /**
    Generates points tracing an ellipse.

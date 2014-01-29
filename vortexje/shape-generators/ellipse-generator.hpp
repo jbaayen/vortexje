@@ -15,9 +15,6 @@
 namespace Vortexje
 {
 
-namespace ShapeGenerators
-{
-
 /**
    Class for generation of ellipses.
    
@@ -27,8 +24,6 @@ class EllipseGenerator
 {
 public:
     static std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > generate(double a, double b, int n_points);
-};
-
 };
 
 };
