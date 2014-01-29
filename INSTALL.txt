@@ -5,7 +5,11 @@ Dependencies:
 
    http://eigen.tuxfamily.org/
    
- * Doxygen, a documentation generator:
+ * CMake, to generate the build files:
+ 
+   http://cmake.org/
+   
+ * Optionally Doxygen, to generate the documentation:
  
    http://www.stack.nl/~dimitri/doxygen/
    
@@ -13,6 +17,10 @@ Dependencies:
 Installation:
 -------------
 
- * Edit 'config.mk' to match your system;
+ * Run CMake to generate the build files.
 
- * Run 'make'.
+ * Build Vortexje using the chosen build system.
+ 
+See the following website for details on the CMake build process:
+
+  http://www.cmake.org/cmake/help/runningcmake.html
