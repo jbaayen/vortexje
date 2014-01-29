@@ -1,6 +1,6 @@
 include ../../config.mk
 
-HPPDEPS = gmsh-surface-loader.hpp
+HPPDEPS = gmsh-surface-loader.hpp ply-surface-loader.hpp
 
 all:
 

@@ -15,9 +15,13 @@ CPPDEPS = \
 	shape-generators/airfoils/naca4-generator.cpp \
 	shape-generators/airfoils/clark-y-generator.cpp \
 	surface-loaders/gmsh-surface-loader.cpp \
+	surface-loaders/ply-surface-loader.cpp \
 	surface-writers/gmsh-surface-writer.cpp \
 	surface-writers/vtk-surface-writer.cpp \
 	field-writers/vtk-field-writer.cpp
+
+CDEPS = \
+	surface-loaders/rply/rply.c
 
 HPPDEPS = \
 	surface.hpp \
@@ -32,6 +36,7 @@ HPPDEPS = \
 	field-writer.hpp
 
 OBJS = $(CPPDEPS:.cpp=.o)
+OBJS += $(CDEPS:.c=.o)
 
 CPPFLAGS = $(EIGEN_CPPFLAGS) $(OPT_CPPFLAGS) -I..
 LDFLAGS  = $(EIGEN_LDFLAGS)
