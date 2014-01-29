@@ -24,7 +24,7 @@ namespace Airfoils
 /**
    Class for generation of Clark-Y airfoils.
    
-   @brief ClarkY airfoil generation.
+   @brief Clark-Y airfoil generation.
 */
 class ClarkYGenerator
 {
