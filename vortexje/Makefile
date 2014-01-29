@@ -9,9 +9,15 @@ CPPDEPS = \
 	body.cpp \
 	surface-builder.cpp \
 	lifting-surface-builder.cpp \
+	surface-writer.cpp \
+	field-writer.cpp \
 	shape-generators/ellipse-generator.cpp \
 	shape-generators/airfoils/naca4-generator.cpp \
-	shape-generators/airfoils/clark-y-generator.cpp
+	shape-generators/airfoils/clark-y-generator.cpp \
+	surface-loaders/gmsh-surface-loader.cpp \
+	surface-writers/gmsh-surface-writer.cpp \
+	surface-writers/vtk-surface-writer.cpp \
+	field-writers/vtk-field-writer.cpp
 
 HPPDEPS = \
 	surface.hpp \
@@ -20,7 +26,10 @@ HPPDEPS = \
 	lifting-surface.hpp \
 	wake.hpp body.hpp \
 	surface-builder.hpp \
-	lifting-surface-builder.hpp
+	lifting-surface-builder.hpp \
+	surface-writer.hpp \
+	surface-loader.hpp \
+	field-writer.hpp
 
 OBJS = $(CPPDEPS:.cpp=.o)
 
@@ -38,6 +47,9 @@ libvortexje.so.1.0.0: $(OBJS) $(HPPDEPS)
 
 install: libvortexje.so.1.0.0
 	cd shape-generators; $(MAKE) install
+	cd surface-loaders; $(MAKE) install
+	cd surface-writers; $(MAKE) install
+	cd field-writers; $(MAKE) install
 	cp libvortexje.so.1.0.0 $(PREFIX)/lib/libvortexje.so.1.0.0
 	ln -sf $(PREFIX)/lib/libvortexje.so.1.0.0 $(PREFIX)/lib/libvortexje.so.1
 	ln -sf $(PREFIX)/lib/libvortexje.so.1.0.0 $(PREFIX)/lib/libvortexje.so
@@ -46,4 +58,7 @@ install: libvortexje.so.1.0.0
 
 clean:
 	cd shape-generators; $(MAKE) clean
+	cd surface-loaders; $(MAKE) clean
+	cd surface-writers; $(MAKE) clean
+	cd field-writers; $(MAKE) clean
 	rm -f *.o *.a *.so *.so.1 *.so.1.0.0

@@ -12,6 +12,7 @@
 #include <vortexje/lifting-surface-builder.hpp>
 #include <vortexje/shape-generators/airfoils/naca4-generator.hpp>
 #include <vortexje/shape-generators/ellipse-generator.hpp>
+#include <vortexje/surface-writers/vtk-surface-writer.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -210,6 +211,9 @@ main (int argc, char **argv)
     double fluid_density = 1.2;
     solver.set_fluid_density(fluid_density);
     
+    // Set up file format for logging:
+    SurfaceWriters::VTKSurfaceWriter surface_writer;
+    
     // Log shaft moments:
     ofstream f;
     f.open("vawt-log/shaft_moment.txt");
@@ -225,7 +229,7 @@ main (int argc, char **argv)
         solver.update_coefficients(dt);
         
         // Log coefficients:
-        solver.log_coefficients(step_number, Surface::VTK);
+        solver.log_coefficients(step_number, surface_writer);
         
         // Log shaft moment:
         Vector3d M = solver.moment(vawt, position);

@@ -1076,19 +1076,8 @@ Solver::moment(const Body &body, const Eigen::Vector3d &x) const
    @param[in]   format        File format to log data in.
 */
 void
-Solver::log_coefficients(int step_number, Surface::FileFormat format) const
+Solver::log_coefficients(int step_number, SurfaceWriter &writer) const
 {   
-    // Decide file extension:
-    const char *extension;
-    switch (format) {
-    case Surface::VTK:
-        extension = ".vtk";
-        break;
-    case Surface::GMSH:
-        extension = ".msh";
-        break;
-    }
-    
     // Log coefficients: 
     int offset = 0;
     int save_node_offset = 0;
@@ -1126,9 +1115,9 @@ Solver::log_coefficients(int step_number, Surface::FileFormat format) const
             view_data.push_back(non_lifting_surface_pressure_coefficients);
             
             std::stringstream ss;
-            ss << log_folder << "/" << body->id << "/non_lifting_surface_" << j << "/step_" << step_number << extension;
+            ss << log_folder << "/" << body->id << "/non_lifting_surface_" << j << "/step_" << step_number << writer.file_extension();
 
-            non_lifting_surface->save(ss.str(), format, view_names, view_data, save_node_offset, save_panel_offset);
+            writer.write(*non_lifting_surface, ss.str(), save_node_offset, save_panel_offset, view_names, view_data);
             save_node_offset += non_lifting_surface->n_nodes();
             save_panel_offset += non_lifting_surface->n_panels();
         }   
@@ -1163,9 +1152,9 @@ Solver::log_coefficients(int step_number, Surface::FileFormat format) const
             view_data.push_back(lifting_surface_pressure_coefficients);
             
             std::stringstream ss;
-            ss << log_folder << "/" << body->id << "/lifting_surface_" << j << "/step_" << step_number << extension;
+            ss << log_folder << "/" << body->id << "/lifting_surface_" << j << "/step_" << step_number << writer.file_extension();
 
-            lifting_surface->save(ss.str(), format, view_names, view_data, save_node_offset, save_panel_offset);
+            writer.write(*lifting_surface, ss.str(), save_node_offset, save_panel_offset, view_names, view_data);
             save_node_offset += lifting_surface->n_nodes();
             save_panel_offset += lifting_surface->n_panels();
             
@@ -1181,320 +1170,10 @@ Solver::log_coefficients(int step_number, Surface::FileFormat format) const
             view_data.push_back(wake_doublet_coefficients);
             
             std::stringstream ss2;
-            ss2 << log_folder << "/" << body->id << "/wake_" << j << "/step_" << step_number << extension;
-            wake->save(ss2.str(), format, view_names, view_data, 0, save_panel_offset);
+            ss2 << log_folder << "/" << body->id << "/wake_" << j << "/step_" << step_number << writer.file_extension();
+            writer.write(*wake, ss2.str(), 0, save_panel_offset, view_names, view_data);
             save_node_offset += wake->n_nodes();
             save_panel_offset += wake->n_panels();
         }
-    }
-}
-
-/**
-   Logs velocity potential and velocity vector fields into Gmsh files in the logging folder.  The grid
-   is the smallest box encompassing all nodes of all surfaces, expanded in the X, Y, and Z directions by
-   the given margins.
-   
-   @param[in]   step_number   Step number used to name the output files.
-   @param[in]   dx            Grid step size in X-direction.
-   @param[in]   dy            Grid step size in Y-direction.
-   @param[in]   dz            Grid step size in Z-direction.
-   @param[in]   x_margin      Grid expansion margin in X-direction.
-   @param[in]   y_margin      Grid expansion margin in Y-direction.
-   @param[in]   z_margin      Grid expansion margin in Z-direction.
-*/
-void
-Solver::log_fields_gmsh(int step_number,
-                        double dx, double dy, double dz,
-                        double x_margin, double y_margin, double z_margin) const
-{ 
-    // Find extremal points:
-    double x_min = numeric_limits<double>::max();
-    double x_max = numeric_limits<double>::min();
-    double y_min = numeric_limits<double>::max();
-    double y_max = numeric_limits<double>::min();
-    double z_min = numeric_limits<double>::max();
-    double z_max = numeric_limits<double>::min();
-    
-    for (int i = 0; i < (int) surfaces.size(); i++) {
-        Surface *surface = surfaces[i];
-        
-        for (int j = 0; j < surface->n_nodes(); j++) {
-            Vector3d &node = surface->nodes[j];
-            
-            if (node(0) < x_min)
-                x_min = node(0);
-            if (node(0) > x_max)
-                x_max = node(0);
-            if (node(1) < y_min)
-                y_min = node(1);
-            if (node(1) > y_max)
-                y_max = node(1);
-            if (node(2) < z_min)
-                z_min = node(2);
-            if (node(2) > z_max)
-                z_max = node(2); 
-        }
-    }
-    
-    // Apply margin:
-    x_min -= x_margin;
-    x_max += x_margin;
-    y_min -= y_margin;
-    y_max += y_margin;
-    z_min -= z_margin;
-    z_max += z_margin;
-    
-    // Count points:
-    int nx = round((x_max - x_min) / dx) + 1;
-    int ny = round((y_max - y_min) / dy) + 1;
-    int nz = round((z_max - z_min) / dz) + 1;
-    
-    // Compose output file name:
-    std::stringstream s;
-    s << log_folder << "/fields_" << step_number << ".pos";
-    
-    // Write output in Gmsh post-processing format:
-    ofstream f;
-    f.open(s.str().c_str());
-    
-    double x, y, z;
-    
-    // Velocity potential field:
-    cout << "Solver: Computing and saving velocity potential field to " << s.str() << "." << endl;
-    
-    f << "View \"Velocity potential\" {" << endl;
-
-    z = z_min;
-    for (int i = 0; i < nz; i++) {
-        y = y_min;
-        for (int j = 0; j < ny; j++) {
-            x = z_min;
-            for (int k = 0; k < nx; k++) {
-                double p = velocity_potential(Vector3d(x, y, z));
-                
-                f << "SP(" << x << "," << y << "," << z << "){" << p << "};" << endl;
-            
-                x += dx;
-            }
-            
-            y += dy;
-        }
-        
-        z += dz;
-    }
-    
-    f << "};" << endl;
-    
-    // Velocity vector field;
-    cout << "Solver: Computing and saving velocity vector field to " << s.str() << "." << endl;
-    
-    f << "View \"Velocity\" {" << endl;
-
-    z = z_min;
-    for (int i = 0; i < nz; i++) {
-        y = y_min;
-        for (int j = 0; j < ny; j++) {
-            x = z_min;
-            for (int k = 0; k < nx; k++) {
-                Vector3d v = velocity(Vector3d(x, y, z));
-                
-                f << "VP(" << x << "," << y << "," << z << "){" << v(0) << "," << v(1) << "," << v(2) << "};" << endl;
-            
-                x += dx;
-            }
-            
-            y += dy;
-        }
-        
-        z += dz;
-    }
-    
-    f << "};" << endl;
-    
-    // Close file:
-    f.close();
-}
-
-/**
-   Logs velocity potential and velocity vector fields into VTK files in the logging folder.  The grid
-   is the smallest box encompassing all nodes of all surfaces, expanded in the X, Y, and Z directions by
-   the given margins.
-   
-   @param[in]   step_number   Step number used to name the output files.
-   @param[in]   dx            Grid step size in X-direction.
-   @param[in]   dy            Grid step size in Y-direction.
-   @param[in]   dz            Grid step size in Z-direction.
-   @param[in]   x_margin      Grid expansion margin in X-direction.
-   @param[in]   y_margin      Grid expansion margin in Y-direction.
-   @param[in]   z_margin      Grid expansion margin in Z-direction.
-*/
-void
-Solver::log_fields_vtk(int step_number,
-                       double dx, double dy, double dz,
-                       double x_margin, double y_margin, double z_margin) const
-{
-    // Find extremal points:
-    double x_min = numeric_limits<double>::max();
-    double x_max = numeric_limits<double>::min();
-    double y_min = numeric_limits<double>::max();
-    double y_max = numeric_limits<double>::min();
-    double z_min = numeric_limits<double>::max();
-    double z_max = numeric_limits<double>::min();
-    
-    for (int i = 0; i < (int) surfaces.size(); i++) {
-        Surface *surface = surfaces[i];
-        
-        for (int j = 0; j < surface->n_nodes(); j++) {
-            Vector3d &node = surface->nodes[j];
-            
-            if (node(0) < x_min)
-                x_min = node(0);
-            if (node(0) > x_max)
-                x_max = node(0);
-            if (node(1) < y_min)
-                y_min = node(1);
-            if (node(1) > y_max)
-                y_max = node(1);
-            if (node(2) < z_min)
-                z_min = node(2);
-            if (node(2) > z_max)
-                z_max = node(2); 
-        }
-    }
-    
-    // Apply margin:
-    x_min -= x_margin;
-    x_max += x_margin;
-    y_min -= y_margin;
-    y_max += y_margin;
-    z_min -= z_margin;
-    z_max += z_margin;
-    
-    // Count points:
-    int nx = round((x_max - x_min) / dx) + 1;
-    int ny = round((y_max - y_min) / dy) + 1;
-    int nz = round((z_max - z_min) / dz) + 1;
-
-    // Compose output file name:
-    std::stringstream s;
-    s << log_folder << "/fields_" << step_number << ".vtk";
-    
-    // Write output in VTK format:
-    ofstream f;
-    f.open(s.str().c_str());
-    
-    f << "# vtk DataFile Version 2.0" << endl;
-    f << "FieldData" << endl;
-    f << "ASCII" << endl;
-    f << "DATASET RECTILINEAR_GRID" << endl;
-    f << "DIMENSIONS " << nx << " " << ny << " " << nz << endl;
-    f << "X_COORDINATES " << nx << " double" << endl;
-    for (int i = 0; i < nx; i++) {
-        if (i > 0)
-            f << ' ';
-        f << x_min + i * dx;
-    }
-    f << endl;
-    f << "Y_COORDINATES " << ny << " double" << endl;
-    for (int i = 0; i < ny; i++) {
-        if (i > 0)
-            f << ' ';
-        f << y_min + i * dy;
-    }
-    f << endl;
-    f << "Z_COORDINATES " << nz << " double" << endl;
-    for (int i = 0; i < nz; i++) {
-        if (i > 0)
-            f << ' ';
-        f << z_min + i * dz;
-    }
-    f << endl;
-    
-    f << endl;
-    
-    f << "POINT_DATA " << nx * ny * nz << endl;
-    
-    double x, y, z;
-    
-    // Velocity potential field:
-    cout << "Solver: Computing and saving velocity potential field to " << s.str() << "." << endl;
-    
-    f << "SCALARS VelocityPotential double 1" << endl;
-    f << "LOOKUP_TABLE default" << endl;
-    
-    z = z_min;
-    for (int i = 0; i < nz; i++) {
-        y = y_min;
-        for (int j = 0; j < ny; j++) {
-            x = z_min;
-            for (int k = 0; k < nx; k++) {
-                double p = velocity_potential(Vector3d(x, y, z));
-                
-                f << p << endl;
-            
-                x += dx;
-            }
-            
-            y += dy;
-        }
-        
-        z += dz;
-    }
-    
-    // Velocity vector field;
-    cout << "Solver: Computing and saving velocity vector field to " << s.str() << "." << endl;
-    
-    f << "VECTORS Velocity double" << endl;
-    
-    z = z_min;
-    for (int i = 0; i < nz; i++) {
-        y = y_min;
-        for (int j = 0; j < ny; j++) {
-            x = x_min;
-            for (int k = 0; k < nx; k++) {
-                Vector3d v = velocity(Vector3d(x, y, z));
-                
-                f << v(0) << " " << v(1) << " " << v(2) << endl;
-            
-                x += dx;
-            }
-            
-            y += dy;
-        }
-        
-        z += dz;
-    }
-    
-    // Close file:
-    f.close();
-}
-
-/**
-   Logs velocity potential and velocity vector fields into VTK files in the logging folder.  The grid
-   is the smallest box encompassing all nodes of all surfaces, expanded in the X, Y, and Z directions by
-   the given margins.
-   
-   @param[in]   step_number   Step number used to name the output files.
-   @param[in]   format        File format.
-   @param[in]   dx            Grid step size in X-direction.
-   @param[in]   dy            Grid step size in Y-direction.
-   @param[in]   dz            Grid step size in Z-direction.
-   @param[in]   x_margin      Grid expansion margin in X-direction.
-   @param[in]   y_margin      Grid expansion margin in Y-direction.
-   @param[in]   z_margin      Grid expansion margin in Z-direction.
-*/
-void
-Solver::log_fields(int step_number,
-                   Surface::FileFormat format,
-                   double dx, double dy, double dz,
-                   double x_margin, double y_margin, double z_margin) const
-{   
-    switch (format) {
-    case Surface::VTK:
-        log_fields_vtk(step_number, dy, dy, dz, x_margin, y_margin, z_margin);
-        break;
-    case Surface::GMSH:
-        log_fields_gmsh(step_number, dy, dy, dz, x_margin, y_margin, z_margin);
-        break;
     }
 }

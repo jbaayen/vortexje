@@ -12,6 +12,8 @@
 #include <vortexje/parameters.hpp>
 #include <vortexje/lifting-surface-builder.hpp>
 #include <vortexje/shape-generators/airfoils/clark-y-generator.hpp>
+#include <vortexje/surface-writers/vtk-surface-writer.hpp>
+#include <vortexje/field-writers/vtk-field-writer.hpp>
 
 using namespace std;
 using namespace Eigen;
@@ -82,6 +84,12 @@ main (int argc, char **argv)
     double fluid_density = 1.2;
     solver.set_fluid_density(fluid_density);
     
+    // Set up surface writer:
+    SurfaceWriters::VTKSurfaceWriter surface_writer;
+    
+    // Set up field writer:
+    FieldWriters::VTKFieldWriter field_writer;
+    
     // Run simulation:
     double t = 0.0;
     double dt = 0.01;
@@ -93,10 +101,10 @@ main (int argc, char **argv)
         solver.update_coefficients(dt);
         
         // Log coefficients:
-        solver.log_coefficients(step_number, Surface::VTK);
+        solver.log_coefficients(step_number, surface_writer);
         
         // Enable below to log the velocity field:
-        //solver.log_fields(step_number, Surface::VTK, 0.1, 0.1, 0.1, 0.2, 0.2, 0.2);
+        // field_writer.write_velocity_field(solver, "velocity-field.vtk", 0.1, 0.1, 0.1, 0.2, 0.2, 0.2);
         
         // Update wake:
         solver.update_wakes(dt);

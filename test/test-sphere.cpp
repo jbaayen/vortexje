@@ -10,6 +10,7 @@
 #include <fstream>
 
 #include <vortexje/solver.hpp>
+#include <vortexje/surface-loaders/gmsh-surface-loader.hpp>
 
 using namespace std;
 using namespace Eigen;
@@ -21,7 +22,10 @@ int
 main (int argc, char **argv)
 {
     // Load sphere surface:
-    Surface sphere(string("sphere.msh"));
+    SurfaceLoaders::GmshSurfaceLoader surface_loader;
+    
+    Surface sphere;
+    surface_loader.load(sphere, string("sphere.msh"));
    
     // Create surface body:
     Body body(string("test-sphere"));

@@ -28,15 +28,7 @@ namespace Vortexje
 */
 class Surface
 {
-public:        
-    /**
-       Export file formats.
-    */
-    typedef enum {
-        VTK,  /*!< The VTK DataFile file format v2.0. */
-        GMSH  /*!< The Gmsh MSH file format v2.2. */
-    } FileFormat;
-    
+public:            
     /**
        Automatically generated surface identification number.
     */
@@ -45,18 +37,8 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     
     Surface();
-    Surface(std::string file);
     
     virtual ~Surface();
-    
-    bool load(const std::string file);
-    void save(const std::string file,
-              FileFormat format,
-              int node_offset = 0, int panel_offset = 0) const;
-    void save(const std::string file,
-              FileFormat format,
-              const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data,
-              int node_offset = 0, int panel_offset = 0) const;
               
     int add_triangle(int node_a, int node_b, int node_c);
     int add_quadrangle(int node_a, int node_b, int node_c, int node_d);

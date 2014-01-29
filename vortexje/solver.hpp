@@ -16,6 +16,7 @@
 #include <Eigen/StdVector>
 
 #include <vortexje/body.hpp>
+#include <vortexje/surface-writer.hpp>
 
 namespace Vortexje
 {
@@ -72,9 +73,7 @@ public:
     Eigen::Vector3d force(const Body &body) const;
     Eigen::Vector3d moment(const Body &body, const Eigen::Vector3d &x) const;
     
-    void log_coefficients(int step_number, Surface::FileFormat format) const;
-    
-    void log_fields(int step_number, Surface::FileFormat format, double dx, double dy, double dz, double x_margin, double y_margin, double z_margin) const;
+    void log_coefficients(int step_number, SurfaceWriter &writer) const;
 
 private:
     std::string log_folder;
