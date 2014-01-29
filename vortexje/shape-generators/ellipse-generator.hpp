@@ -19,9 +19,9 @@ namespace ShapeGenerators
 {
 
 /**
-   Class for generation of NACA 4-series airfoils.
+   Class for generation of ellipses.
    
-   @brief NACA-4 series airfoil generation.
+   @brief Ellipse generation.
 */
 class EllipseGenerator
 {

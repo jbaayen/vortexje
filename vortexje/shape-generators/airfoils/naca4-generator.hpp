@@ -22,9 +22,9 @@ namespace Airfoils
 {
 
 /**
-   Class for generation of NACA 4-series airfoils.
+   Class for generation of NACA 4-digit series airfoils.
    
-   @brief NACA-4 series airfoil generation.
+   @brief NACA 4-digit series airfoil generation.
 */
 class NACA4Generator
 {
