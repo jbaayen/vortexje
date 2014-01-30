@@ -98,10 +98,10 @@ main (int argc, char **argv)
     solver.initialize_wakes(dt);
     while (t < 60) {
         // Solve:
-        solver.update_coefficients(dt);
+        solver.solve(dt);
         
         // Log coefficients:
-        solver.log_coefficients(step_number, surface_writer);
+        solver.log(step_number, surface_writer);
         
         // Enable below to log the velocity field:
         // field_writer.write_velocity_field(solver, "velocity-field.vtk", 0.1, 0.1, 0.1, 0.2, 0.2, 0.2);

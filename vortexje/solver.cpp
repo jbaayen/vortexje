@@ -653,9 +653,11 @@ Solver::wake_influence(MatrixXd &A, Surface &surface, int offset) const
    Computes new source, doublet, and pressure distributions.
    
    @param[in]   dt   Time step size.
+   
+   @returns true on success.
 */
-void
-Solver::update_coefficients(double dt)
+bool
+Solver::solve(double dt)
 {
     // Compute source distribution:
     cout << "Solver: Computing source distribution with wake influence." << endl;
@@ -724,7 +726,8 @@ Solver::update_coefficients(double dt)
     if (solver.info() != Success) {
         cerr << "Solver: Computing doublet distribution failed (" << solver.iterations();
         cerr << " iterations with estimated error=" << solver.error() << ")." << endl;
-        exit(1);
+       
+        return false;
     }
     
     cout << "Solver: Done in " << solver.iterations() << " iterations with estimated error " << solver.error() << "." << endl;
@@ -856,6 +859,9 @@ Solver::update_coefficients(double dt)
             offset += lifting_surface->n_panels();      
         }
     }
+    
+    // Done:
+    return true;
 }
 
 /**
@@ -1113,13 +1119,14 @@ Solver::moment(const Body &body, const Eigen::Vector3d &x) const
 }
 
 /**
-   Logs source, doublet, and pressure coefficients into files in the logging folder.
+   Logs source and doublet distributions, as well as the pressure coefficients, into files in the logging folder
+   tagged with the specified step number.
    
    @param[in]   step_number   Step number used to name the output files.
    @param[in]   format        File format to log data in.
 */
 void
-Solver::log_coefficients(int step_number, SurfaceWriter &writer) const
+Solver::log(int step_number, SurfaceWriter &writer) const
 {   
     // Log coefficients: 
     int offset = 0;

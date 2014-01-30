@@ -56,11 +56,11 @@ public:
     
     void set_fluid_density(double value);
     
-    void initialize_wakes(double dt);
+    void initialize_wakes(double dt = 0.0);
     
-    void update_coefficients(double dt);
+    void update_wakes(double dt = 0.0);
     
-    void update_wakes(double dt);
+    bool solve(double dt = 0.0);
     
     double velocity_potential(const Eigen::Vector3d &x) const;
     
@@ -75,7 +75,7 @@ public:
     Eigen::Vector3d force(const Body &body) const;
     Eigen::Vector3d moment(const Body &body, const Eigen::Vector3d &x) const;
     
-    void log_coefficients(int step_number, SurfaceWriter &writer) const;
+    void log(int step_number, SurfaceWriter &writer) const;
 
 private:
     std::string log_folder;

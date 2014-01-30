@@ -42,7 +42,7 @@ main (int argc, char **argv)
     solver.set_fluid_density(fluid_density);
     
     // Run simulation:
-    solver.update_coefficients(0);
+    solver.solve();
     
     // Check pressure coefficients and surface potential values:
     for (int i = 0; i < sphere.n_panels(); i++) {

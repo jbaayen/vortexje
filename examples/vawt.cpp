@@ -226,10 +226,10 @@ main (int argc, char **argv)
     solver.initialize_wakes(dt);
     while (t < 60) {
         // Solve:
-        solver.update_coefficients(dt);
+        solver.solve(dt);
         
         // Log coefficients:
-        solver.log_coefficients(step_number, surface_writer);
+        solver.log(step_number, surface_writer);
         
         // Log shaft moment:
         Vector3d M = solver.moment(vawt, position);

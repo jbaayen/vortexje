@@ -79,8 +79,8 @@ run_test(double alpha)
     solver.set_fluid_density(fluid_density);
     
     // Compute:
-    solver.initialize_wakes(0);
-    solver.update_coefficients(0);
+    solver.initialize_wakes();
+    solver.solve();
     
     // Output lift and drag coefficients:
     Vector3d F_a = solver.force(body);
