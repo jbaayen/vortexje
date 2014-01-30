@@ -340,6 +340,30 @@ Surface::transform(const Eigen::Matrix3d &transformation)
 }
 
 /**
+   Transforms this surface.
+   
+   @param[in]   transformation   Affine transformation.
+*/
+void
+Surface::transform(const Eigen::Transform<double, 3, Eigen::Affine> &transformation)
+{
+    for (int i = 0; i < n_nodes(); i++)
+        nodes[i] = transformation * nodes[i];
+            
+    for (int j = 0; j < 2; j++) {
+        if (!panel_collocation_points[j].empty()) {
+            for (int i = 0; i < n_panels(); i++)
+                panel_collocation_points[j][i] = transformation * panel_collocation_points[j][i];
+        }
+    }
+    
+    if (!panel_normals.empty()) {
+        for (int i = 0; i < n_panels(); i++)
+            panel_normals[i] = transformation * panel_normals[i];
+    }
+}
+
+/**
    Translates this surface.
    
    @param[in]   translation   Translation vector.

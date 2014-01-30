@@ -151,6 +151,29 @@ Wake::transform_trailing_edge(const Eigen::Matrix3d &transformation)
 }
 
 /**
+   Transforms the nodes of the trailing edge.
+   
+   @param[in]   transformation   Affine transformation.
+*/
+void
+Wake::transform_trailing_edge(const Eigen::Transform<double, 3, Eigen::Affine> &transformation)
+{
+    if (n_nodes() < lifting_surface.n_spanwise_nodes())
+        return;
+        
+    int k0;
+    if (Parameters::convect_wake)
+        k0 = n_nodes() - lifting_surface.n_spanwise_nodes();
+    else
+        k0 = 0;
+        
+    for (int k = k0; k < n_nodes(); k++)                
+        nodes[k] = transformation * nodes[k];
+        
+    compute_geometry();
+}
+
+/**
    Updates the Ramasamy-Leishman vortex ring core radii.
   
    @param[in]   panel   Panel number.

@@ -34,8 +34,9 @@ Body::Body(string id) : id(id)
 */
 Body::~Body()
 {
-    for (int i = 0; i < (int) wakes.size(); i++)
-        delete wakes[i];
+    vector<Wake*>::iterator wi;
+    for (wi = wakes.begin(); wi != wakes.end(); wi++)
+        delete (*wi);
 }
 
 /**
@@ -73,24 +74,18 @@ Body::add_lifting_surface(LiftingSurface *lifting_surface)
 void
 Body::set_position(const Vector3d &position)
 {
-    // Compute differential:
+    // Compute differential translation:
     Vector3d dposition = position - this->position;
        
     // Apply for all non-wake surfacees:
-    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
-        Surface *surface = non_wake_surfaces[i];
-        
-        // Translate:
-        surface->translate(dposition);
-    }
-    
-    // Apply for trailing edge wake nodes:
-    for (int i = 0; i < (int) wakes.size(); i++) {
-        Wake *wake = wakes[i];
-        
-        // Translate:
-        wake->translate_trailing_edge(dposition);
-    }
+    vector<Surface*>::iterator si;
+    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++)
+        (*si)->translate(dposition);
+
+    // Apply to trailing edge wake nodes:
+    vector<Wake*>::iterator wi;
+    for (wi = wakes.begin(); wi != wakes.end(); wi++)
+        (*wi)->translate_trailing_edge(dposition);
     
     // Update state:
     this->position = position;
@@ -104,48 +99,18 @@ Body::set_position(const Vector3d &position)
 void
 Body::set_attitude(const Quaterniond &attitude)
 {   
-    Eigen::Vector3d translation;
-    Eigen::Matrix3d transformation;
+    // Compute differential transformation:
+    Transform<double, 3, Affine> transformation = Translation<double, 3>(position) * attitude * this->attitude.inverse() * Translation<double, 3>(-position);
     
     // Apply for all non-wake surfacees:
-    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
-        Surface *surface = non_wake_surfaces[i];
-        
-        // Translate to origin:
-        translation = -position;
-        surface->translate(translation);
-        
-        // Transform to canonical orientation:
-        transformation = this->attitude.inverse().toRotationMatrix();
-        surface->transform(transformation);
-        
-        // Transform to new orientation:
-        transformation = attitude.toRotationMatrix();
-        surface->transform(transformation);
-        
-        // Translate back:
-        surface->translate(position);
-    }
+    vector<Surface*>::iterator si;
+    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++)
+        (*si)->transform(transformation);
     
     // Apply for trailing edge wake nodes:
-    for (int i = 0; i < (int) wakes.size(); i++) {
-        Wake *wake = wakes[i];
-        
-        // Translate:
-        translation = -position;
-        wake->translate_trailing_edge(translation);
-        
-        // Transform to canonical orientation:
-        transformation = this->attitude.inverse().toRotationMatrix();
-        wake->transform_trailing_edge(transformation);
-        
-        // Transform to new orientation:
-        transformation = attitude.toRotationMatrix();
-        wake->transform_trailing_edge(transformation);
-        
-        // Translate back:
-        wake->translate_trailing_edge(position);
-    }
+    vector<Wake*>::iterator wi;
+    for (wi = wakes.begin(); wi != wakes.end(); wi++)
+        (*wi)->transform_trailing_edge(transformation);
     
     // Update state:
     this->attitude = attitude;

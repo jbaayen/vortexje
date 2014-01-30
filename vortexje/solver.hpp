@@ -57,7 +57,9 @@ public:
     void set_fluid_density(double value);
     
     void initialize_wakes(double dt);
+    
     void update_coefficients(double dt);
+    
     void update_wakes(double dt);
     
     double velocity_potential(const Eigen::Vector3d &x) const;

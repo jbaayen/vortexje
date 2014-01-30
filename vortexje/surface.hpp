@@ -13,6 +13,7 @@
 #include <string>
 
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 #include <Eigen/StdVector>
 
 #include <vortexje/parameters.hpp>
@@ -96,6 +97,7 @@ public:
     
     void rotate(const Eigen::Vector3d &axis, double angle);
     virtual void transform(const Eigen::Matrix3d &transformation);
+    virtual void transform(const Eigen::Transform<double, 3, Eigen::Affine> &transformation);
     virtual void translate(const Eigen::Vector3d &translation);
     
     double distance_to_panel(const Eigen::Vector3d &x, int panel) const;

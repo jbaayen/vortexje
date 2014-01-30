@@ -9,6 +9,7 @@
 #ifndef __WAKE_HPP__
 #define __WAKE_HPP__
 
+#include <Eigen/Geometry>
 #include <Eigen/StdVector>
 
 #include <vortexje/lifting-surface.hpp>
@@ -37,6 +38,7 @@ public:
     
     void translate_trailing_edge(const Eigen::Vector3d &translation);
     void transform_trailing_edge(const Eigen::Matrix3d &transformation);
+    void transform_trailing_edge(const Eigen::Transform<double, 3, Eigen::Affine> &transformation);
     
     void update_ramasamy_leishman_vortex_core_radii(int panel, double dt);
     
