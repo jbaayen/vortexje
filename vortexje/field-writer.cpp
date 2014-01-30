@@ -35,20 +35,23 @@ FieldWriter::compute_field_envelope(const Solver &solver, double dx, double dy, 
     z_min = numeric_limits<double>::max();
     z_max = numeric_limits<double>::min();
     
-    vector<Surface *> surfaces;
-    for (int i = 0; i < (int) solver.bodies.size(); i++) {
-        Body *body = solver.bodies[i];
+    vector<const Surface*> surfaces;
+    
+    vector<Body*>::const_iterator bi;
+    for (bi = solver.bodies.begin(); bi != solver.bodies.end(); bi++) {
+        const Body *body = *bi;
   
         surfaces.insert(surfaces.end(), body->lifting_surfaces.begin(), body->lifting_surfaces.end());
         surfaces.insert(surfaces.end(), body->wakes.begin(), body->wakes.end());
         surfaces.insert(surfaces.end(), body->non_lifting_surfaces.begin(), body->non_lifting_surfaces.end());
     }
+    
+    vector<const Surface*>::iterator si;
+    for (si = surfaces.begin(); si != surfaces.end(); si++) {
+        const Surface *surface = *si;
         
-    for (int i = 0; i < (int) surfaces.size(); i++) {
-        Surface *surface = surfaces[i];
-        
-        for (int j = 0; j < surface->n_nodes(); j++) {
-            Vector3d &node = surface->nodes[j];
+        for (int i = 0; i < surface->n_nodes(); i++) {
+            const Vector3d &node = surface->nodes[i];
             
             if (node(0) < x_min)
                 x_min = node(0);

@@ -75,17 +75,17 @@ void
 Body::set_position(const Vector3d &position)
 {
     // Compute differential translation:
-    Vector3d dposition = position - this->position;
+    Vector3d translation = position - this->position;
        
     // Apply for all non-wake surfacees:
     vector<Surface*>::iterator si;
     for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++)
-        (*si)->translate(dposition);
+        (*si)->translate(translation);
 
     // Apply to trailing edge wake nodes:
     vector<Wake*>::iterator wi;
     for (wi = wakes.begin(); wi != wakes.end(); wi++)
-        (*wi)->translate_trailing_edge(dposition);
+        (*wi)->translate_trailing_edge(translation);
     
     // Update state:
     this->position = position;

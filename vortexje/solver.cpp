@@ -77,24 +77,32 @@ Solver::add_body(Body &body)
 {
     bodies.push_back(&body);
     
-    for (int i = 0; i < (int) body.non_lifting_surfaces.size(); i++) {
-        surfaces.push_back(body.non_lifting_surfaces[i]);
-        non_wake_surfaces.push_back(body.non_lifting_surfaces[i]);
-           
-        surface_to_body[body.non_lifting_surfaces[i]] = &body;
+    vector<Surface*>::iterator si;
+    for (si = body.non_lifting_surfaces.begin(); si != body.non_lifting_surfaces.end(); si++) {
+        Surface *non_lifting_surface = *si;
         
-        n_non_wake_panels = n_non_wake_panels + body.non_lifting_surfaces[i]->n_panels();
+        surfaces.push_back(non_lifting_surface);
+        non_wake_surfaces.push_back(non_lifting_surface);
+           
+        surface_to_body[non_lifting_surface] = &body;
+        
+        n_non_wake_panels = n_non_wake_panels + non_lifting_surface->n_panels();
     }
     
-    for (int i = 0; i < (int) body.lifting_surfaces.size(); i++) {
-        surfaces.push_back(body.lifting_surfaces[i]);
-        surfaces.push_back(body.wakes[i]);
-        non_wake_surfaces.push_back(body.lifting_surfaces[i]);
-           
-        surface_to_body[body.lifting_surfaces[i]] = &body;
-        surface_to_body[body.wakes[i]] = &body;
+    vector<LiftingSurface*>::iterator lsi;
+    vector<Wake*>::iterator wi;
+    for (lsi = body.lifting_surfaces.begin(), wi = body.wakes.begin(); lsi != body.lifting_surfaces.end(); lsi++, wi++) {
+        LiftingSurface *lifting_surface = *lsi;
+        Wake *wake = *wi;
         
-        n_non_wake_panels = n_non_wake_panels + body.lifting_surfaces[i]->n_panels();
+        surfaces.push_back(lifting_surface);
+        surfaces.push_back(wake);
+        non_wake_surfaces.push_back(lifting_surface);
+           
+        surface_to_body[lifting_surface] = &body;
+        surface_to_body[wake] = &body;
+        
+        n_non_wake_panels = n_non_wake_panels + lifting_surface->n_panels();
     }
     
     doublet_coefficients.resize(n_non_wake_panels);
@@ -171,11 +179,13 @@ Solver::source_coefficient(const Surface &surface, int panel, const Vector3d &ki
     
     // Wake contribution:
     if (Parameters::convect_wake && include_wake_influence) {
-        for (int i = 0; i < (int) bodies.size(); i++) {
-            Body *body = bodies[i];
+        vector<Body*>::const_iterator bi;
+        for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+            const Body *body = *bi;
             
-            for (int j = 0; j < (int) body->wakes.size(); j++) {
-                Wake *wake = body->wakes[j];
+            vector<Wake*>::const_iterator wi;
+            for (wi = body->wakes.begin(); wi != body->wakes.end(); wi++) {
+                const Wake *wake = *wi;
                 
                 for (int k = 0; k < wake->n_panels(); k++) {
                     // Use doublet panel - vortex ring equivalence.  Any new wake panels have zero doublet
@@ -278,26 +288,30 @@ Solver::velocity_potential(const Vector3d &x) const
     
     // Iterate all non-wake surfaces:
     int offset = 0;
-    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
-        Surface *other_surface = non_wake_surfaces[i];
+    
+    vector<Surface*>::const_iterator si;
+    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
+        const Surface *other_surface = *si;
 
-        for (int j = 0; j < other_surface->n_panels(); j++) {
-            phi += other_surface->doublet_influence(x, j) * doublet_coefficients(offset + j);
-            phi += other_surface->source_influence(x, j) * source_coefficients(offset + j);
+        for (int i = 0; i < other_surface->n_panels(); i++) {
+            phi += other_surface->doublet_influence(x, i) * doublet_coefficients(offset + i);
+            phi += other_surface->source_influence(x, i) * source_coefficients(offset + i);
         }
         
         offset += other_surface->n_panels();
     }
     
     // Iterate wakes:
-    for (int i = 0; i < (int) bodies.size(); i++) {
-        Body *body = bodies[i];
+    vector<Body*>::const_iterator bi;
+    for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+        const Body *body = *bi;
         
-        for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
-            Wake *wake = body->wakes[j];
+        vector<Wake*>::const_iterator wi;
+        for (wi = body->wakes.begin(); wi != body->wakes.end(); wi++) {
+            const Wake *wake = *wi;
             
-            for (int k = 0; k < wake->n_panels(); k++)
-                phi += wake->doublet_influence(x, k) * wake->doublet_coefficients[k];
+            for (int i = 0; i < wake->n_panels(); i++)
+                phi += wake->doublet_influence(x, i) * wake->doublet_coefficients[i];
         }
     }
                     
@@ -347,23 +361,26 @@ Solver::surface_surface_velocity_potentials() const
     
     int offset = 0;  
  
-    for (int i = 0; i < (int) bodies.size(); i++) {
-        Body *body = bodies[i];
+    vector<Body*>::const_iterator bi;
+    for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+        const Body *body = *bi;
         
-        for (int j = 0; j < (int) body->non_lifting_surfaces.size(); j++) {
-            Surface *non_lifting_surface = body->non_lifting_surfaces[j];
+        vector<Surface*>::const_iterator si;
+        for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++) {
+            const Surface *non_lifting_surface = *si;
             
-            for (int k = 0; k < non_lifting_surface->n_panels(); k++)
-                surface_surface_velocity_potentials(offset + k) = surface_velocity_potential(*non_lifting_surface, offset, k);
+            for (int i = 0; i < non_lifting_surface->n_panels(); i++)
+                surface_surface_velocity_potentials(offset + i) = surface_velocity_potential(*non_lifting_surface, offset, i);
             
             offset += non_lifting_surface->n_panels();
         }
         
-        for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
-            LiftingSurface *lifting_surface = body->lifting_surfaces[j];
+        vector<LiftingSurface*>::const_iterator lsi;
+        for (lsi = body->lifting_surfaces.begin(); lsi != body->lifting_surfaces.end(); lsi++) {
+            const LiftingSurface *lifting_surface = *lsi;
             
-            for (int k = 0; k < lifting_surface->n_panels(); k++)
-                surface_surface_velocity_potentials(offset + k) = surface_velocity_potential(*lifting_surface, offset, k);
+            for (int i = 0; i < lifting_surface->n_panels(); i++)
+                surface_surface_velocity_potentials(offset + i) = surface_velocity_potential(*lifting_surface, offset, i);
             
             offset += lifting_surface->n_panels();
         }
@@ -386,34 +403,39 @@ Solver::disturbance_potential_gradient(const Eigen::Vector3d &x) const
     
     // Iterate all non-wake surfaces:
     int offset = 0;
-    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
-        Surface *other_surface = non_wake_surfaces[i];
+    
+    vector<Surface*>::const_iterator si;
+    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
+        const Surface *other_surface = *si;
 
-        for (int j = 0; j < other_surface->n_panels(); j++) {
-            gradient += other_surface->vortex_ring_unit_velocity(x, j) * doublet_coefficients(offset + j);
-            gradient += other_surface->source_unit_velocity(x, j) * source_coefficients(offset + j);
+        for (int i = 0; i < other_surface->n_panels(); i++) {
+            gradient += other_surface->vortex_ring_unit_velocity(x, i) * doublet_coefficients(offset + i);
+            gradient += other_surface->source_unit_velocity(x, i) * source_coefficients(offset + i);
         }
         
         offset += other_surface->n_panels();
     }
     
     // Iterate wakes:
-    for (int i = 0; i < (int) bodies.size(); i++) {
-        Body *body = bodies[i];
+    vector<Body*>::const_iterator bi;
+    for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+        const Body *body = *bi;
         
-        for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
-            Wake *wake = body->wakes[j];
-            LiftingSurface *lifting_surface = body->lifting_surfaces[j];
+        vector<LiftingSurface*>::const_iterator lsi;
+        vector<Wake*>::const_iterator wi;
+        for (lsi = body->lifting_surfaces.begin(), wi = body->wakes.begin(); lsi != body->lifting_surfaces.end(); lsi++, wi++) {
+            const LiftingSurface *lifting_surface = *lsi;
+            const Wake *wake = *wi;
             
             if (wake->n_panels() >= lifting_surface->n_spanwise_panels()) {
-                for (int k = wake->n_panels() - lifting_surface->n_spanwise_panels(); k < wake->n_panels(); k++)
-                    gradient += wake->vortex_ring_unit_velocity(x, k) * wake->doublet_coefficients[k];
+                for (int i = wake->n_panels() - lifting_surface->n_spanwise_panels(); i < wake->n_panels(); i++)
+                    gradient += wake->vortex_ring_unit_velocity(x, i) * wake->doublet_coefficients[i];
 
-                for (int k = 0; k < wake->n_panels() - lifting_surface->n_spanwise_panels(); k++) {
+                for (int i = 0; i < wake->n_panels() - lifting_surface->n_spanwise_panels(); i++) {
                     if (Parameters::use_ramasamy_leishman_vortex_sheet)
-                        gradient += wake->vortex_ring_ramasamy_leishman_velocity(x, k, wake->vortex_core_radii[k], wake->doublet_coefficients[k]);
+                        gradient += wake->vortex_ring_ramasamy_leishman_velocity(x, i, wake->vortex_core_radii[i], wake->doublet_coefficients[i]);
                     else
-                        gradient += wake->vortex_ring_unit_velocity(x, k) * wake->doublet_coefficients[k];
+                        gradient += wake->vortex_ring_unit_velocity(x, i) * wake->doublet_coefficients[i];
                 }
             }
         }
@@ -461,14 +483,15 @@ Solver::velocity(const Eigen::Vector3d &x) const
 {
     // Find closest surface and panel:
     double distance = numeric_limits<double>::max();
-    Surface *close_surface = NULL;
+    const Surface *close_surface = NULL;
     int close_panel = -1;
     int close_offset = - 1;
     bool close_near_trailing_edge = false;
     int offset = 0;
     
-    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
-        Surface *surface_candidate = non_wake_surfaces[i];
+    vector<Surface*>::const_iterator si;
+    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
+        const Surface *surface_candidate = *si;
         
         int panel_candidate;
         double distance_candidate;
@@ -482,7 +505,7 @@ Solver::velocity(const Eigen::Vector3d &x) const
             close_near_trailing_edge = near_trailing_edge;
         }
         
-        offset += non_wake_surfaces[i]->n_panels();
+        offset += surface_candidate->n_panels();
     }
  
     // Compute velocity potential gradients near the body:
@@ -551,20 +574,22 @@ void
 Solver::initialize_wakes(double dt)
 {
     // Add initial wake layers:
-    for (int i = 0; i < (int) bodies.size(); i++) {
-        Body *body = bodies[i];
+    vector<Body*>::iterator bi;
+    for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+        Body *body = *bi;
         
         Vector3d body_kinematic_velocity = body->velocity - freestream_velocity;
         
-        for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
-            Wake *wake = body->wakes[j];
+        vector<Wake*>::const_iterator wi;
+        for (wi = body->wakes.begin(); wi != body->wakes.end(); wi++) {
+            Wake *wake = *wi;
             
             wake->add_layer();
-            for (int k = 0; k < wake->n_nodes(); k++) {                                  
+            for (int i = 0; i < wake->n_nodes(); i++) {
                 if (Parameters::convect_wake)    
-                    wake->nodes[k] -= body_kinematic_velocity * dt;
+                    wake->nodes[i] -= body_kinematic_velocity * dt;
                 else
-                    wake->nodes[k] -= Parameters::static_wake_length * body_kinematic_velocity / body_kinematic_velocity.norm();
+                    wake->nodes[i] -= Parameters::static_wake_length * body_kinematic_velocity / body_kinematic_velocity.norm();
             }
             
             wake->add_layer();
@@ -594,28 +619,32 @@ Solver::doublet_coefficient_matrix_block(MatrixXd &doublet_influence_coefficient
 void
 Solver::wake_influence(MatrixXd &A, Surface &surface, int offset) const
 {
-    for (int j = 0; j < surface.n_panels(); j++) {
+    for (int i = 0; i < surface.n_panels(); i++) {
         int lifting_surface_offset = 0;
         
-        for (int k = 0; k < (int) bodies.size(); k++) {
-            Body *body = bodies[k];
+        vector<Body*>::const_iterator bi;
+        for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+            const Body *body = *bi;
             
-            for (int l = 0; l < (int) body->non_lifting_surfaces.size(); l++)
-                lifting_surface_offset += body->non_lifting_surfaces[l]->n_panels();
+            vector<Surface*>::const_iterator si;
+            for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++)
+                lifting_surface_offset += (*si)->n_panels();
             
-            for (int l = 0; l < (int) body->lifting_surfaces.size(); l++) {
-                LiftingSurface *lifting_surface = body->lifting_surfaces[l];
-                Wake *wake = body->wakes[l];
-                    
+            vector<LiftingSurface*>::const_iterator lsi;
+            vector<Wake*>::const_iterator wi;
+            for (lsi = body->lifting_surfaces.begin(), wi = body->wakes.begin(); lsi != body->lifting_surfaces.end(); lsi++, wi++) {
+                const LiftingSurface *lifting_surface = *lsi;
+                const Wake *wake = *wi;
+                
                 int wake_panel_offset = wake->n_panels() - lifting_surface->n_spanwise_panels();
-                for (int m = 0; m < lifting_surface->n_spanwise_panels(); m++) {  
-                    int pa = lifting_surface->trailing_edge_upper_panel(m);
-                    int pb = lifting_surface->trailing_edge_lower_panel(m);
+                for (int j = 0; j < lifting_surface->n_spanwise_panels(); j++) {  
+                    int pa = lifting_surface->trailing_edge_upper_panel(j);
+                    int pb = lifting_surface->trailing_edge_lower_panel(j);
                     
                     // Account for the influence of the new wake panels.  The doublet strength of these panels
                     // is set according to the Kutta condition;  see below.
-                    A(offset + j, lifting_surface_offset + pa) += wake->doublet_influence(surface, j, wake_panel_offset + m);
-                    A(offset + j, lifting_surface_offset + pb) -= wake->doublet_influence(surface, j, wake_panel_offset + m);
+                    A(offset + i, lifting_surface_offset + pa) += wake->doublet_influence(surface, i, wake_panel_offset + j);
+                    A(offset + i, lifting_surface_offset + pb) -= wake->doublet_influence(surface, i, wake_panel_offset + j);
                 }
                 
                 lifting_surface_offset += lifting_surface->n_panels();
@@ -637,31 +666,34 @@ Solver::update_coefficients(double dt)
     
     int idx = 0;
     
-    for (int i = 0; i < (int) bodies.size(); i++) {
-        Body *body = bodies[i];
+    vector<Body*>::iterator bi;
+    for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+        Body *body = *bi;
         
-        for (int j = 0; j < (int) body->non_lifting_surfaces.size(); j++) {
-            Surface *non_lifting_surface = body->non_lifting_surfaces[j];
+        vector<Surface*>::iterator si;
+        for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++) {
+            Surface *non_lifting_surface = *si;
             
-            for (int k = 0; k < non_lifting_surface->n_panels(); k++) {
-                Vector3d kinematic_velocity = non_lifting_surface->panel_deformation_velocity(k)
-                                              + body->panel_kinematic_velocity(*non_lifting_surface, k) 
+            for (int i = 0; i < non_lifting_surface->n_panels(); i++) {
+                Vector3d kinematic_velocity = non_lifting_surface->panel_deformation_velocity(i)
+                                              + body->panel_kinematic_velocity(*non_lifting_surface, i) 
                                               - freestream_velocity;
             
-                source_coefficients(idx) = source_coefficient(*non_lifting_surface, k, kinematic_velocity, true);
+                source_coefficients(idx) = source_coefficient(*non_lifting_surface, i, kinematic_velocity, true);
                 idx++;
             }
         }
         
-        for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
-            LiftingSurface *lifting_surface = body->lifting_surfaces[j];
+        vector<LiftingSurface*>::iterator lsi;
+        for (lsi = body->lifting_surfaces.begin(); lsi != body->lifting_surfaces.end(); lsi++) {
+            LiftingSurface *lifting_surface = *lsi;
             
-            for (int k = 0; k < lifting_surface->n_panels(); k++) {
-                Vector3d kinematic_velocity = lifting_surface->panel_deformation_velocity(k)
-                                              + body->panel_kinematic_velocity(*lifting_surface, k) 
+            for (int i = 0; i < lifting_surface->n_panels(); i++) {
+                Vector3d kinematic_velocity = lifting_surface->panel_deformation_velocity(i)
+                                              + body->panel_kinematic_velocity(*lifting_surface, i) 
                                               - freestream_velocity;
             
-                source_coefficients(idx) = source_coefficient(*lifting_surface, k, kinematic_velocity, true);
+                source_coefficients(idx) = source_coefficient(*lifting_surface, i, kinematic_velocity, true);
                 idx++;
             }
         }
@@ -707,25 +739,28 @@ Solver::update_coefficients(double dt)
     
     // Set new wake panel doublet coefficients:
     int offset = 0;
-    for (int i = 0; i < (int) bodies.size(); i++) {
-        Body *body = bodies[i];
+    for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+        Body *body = *bi;
         
-        for (int j = 0; j < (int) body->non_lifting_surfaces.size(); j++)
-            offset += body->non_lifting_surfaces[j]->n_panels();
+        vector<Surface*>::iterator si;
+        for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++)
+            offset += (*si)->n_panels();
         
-        for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
-            LiftingSurface *lifting_surface = body->lifting_surfaces[j];
-            Wake *wake = body->wakes[j];
+        vector<LiftingSurface*>::iterator lsi;
+        vector<Wake*>::iterator wi;
+        for (lsi = body->lifting_surfaces.begin(), wi = body->wakes.begin(); lsi != body->lifting_surfaces.end(); lsi++, wi++) {
+            LiftingSurface *lifting_surface = *lsi;
+            Wake *wake = *wi;
                      
             // Set panel doublet coefficient:
-            for (int k = 0; k < lifting_surface->n_spanwise_panels(); k++) {
-                double doublet_coefficient_top    = doublet_coefficients(offset + lifting_surface->trailing_edge_upper_panel(k));
-                double doublet_coefficient_bottom = doublet_coefficients(offset + lifting_surface->trailing_edge_lower_panel(k));
+            for (int i = 0; i < lifting_surface->n_spanwise_panels(); i++) {
+                double doublet_coefficient_top    = doublet_coefficients(offset + lifting_surface->trailing_edge_upper_panel(i));
+                double doublet_coefficient_bottom = doublet_coefficients(offset + lifting_surface->trailing_edge_lower_panel(i));
                 
                 // Use the trailing-edge Kutta condition to compute the doublet coefficients of the new wake panels.
                 double doublet_coefficient = doublet_coefficient_top - doublet_coefficient_bottom;
                 
-                int idx = wake->n_panels() - lifting_surface->n_spanwise_panels() + k;
+                int idx = wake->n_panels() - lifting_surface->n_spanwise_panels() + i;
                 wake->doublet_coefficients[idx] = doublet_coefficient;
             }
             
@@ -740,31 +775,33 @@ Solver::update_coefficients(double dt)
         
         idx = 0;
         
-        for (int i = 0; i < (int) bodies.size(); i++) {
-            Body *body = bodies[i];
+        for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+            Body *body = *bi;
             
-            for (int j = 0; j < (int) body->non_lifting_surfaces.size(); j++) {
-                Surface *non_lifting_surface = body->non_lifting_surfaces[j];
+            vector<Surface*>::iterator si;
+            for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++) {
+                Surface *non_lifting_surface = *si;
                 
-                for (int k = 0; k < non_lifting_surface->n_panels(); k++) {
-                    Vector3d kinematic_velocity = non_lifting_surface->panel_deformation_velocity(k)
-                                                  + body->panel_kinematic_velocity(*non_lifting_surface, k) 
+                for (int i = 0; i < non_lifting_surface->n_panels(); i++) {
+                    Vector3d kinematic_velocity = non_lifting_surface->panel_deformation_velocity(i)
+                                                  + body->panel_kinematic_velocity(*non_lifting_surface, i) 
                                                   - freestream_velocity;
                 
-                    source_coefficients(idx) = source_coefficient(*non_lifting_surface, k, kinematic_velocity, false);
+                    source_coefficients(idx) = source_coefficient(*non_lifting_surface, i, kinematic_velocity, false);
                     idx++;
                 }
             }
             
-            for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
-                LiftingSurface *lifting_surface = body->lifting_surfaces[j];
+            vector<LiftingSurface*>::iterator lsi;
+            for (lsi = body->lifting_surfaces.begin(); lsi != body->lifting_surfaces.end(); lsi++) {
+                LiftingSurface *lifting_surface = *lsi;
                 
-                for (int k = 0; k < lifting_surface->n_panels(); k++) {
-                    Vector3d kinematic_velocity = lifting_surface->panel_deformation_velocity(k)
-                                                  + body->panel_kinematic_velocity(*lifting_surface, k) 
+                for (int i = 0; i < lifting_surface->n_panels(); i++) {
+                    Vector3d kinematic_velocity = lifting_surface->panel_deformation_velocity(i)
+                                                  + body->panel_kinematic_velocity(*lifting_surface, i) 
                                                   - freestream_velocity;
                 
-                    source_coefficients(idx) = source_coefficient(*lifting_surface, k, kinematic_velocity, false);
+                    source_coefficients(idx) = source_coefficient(*lifting_surface, i, kinematic_velocity, false);
                     idx++;
                 }
             }
@@ -782,22 +819,23 @@ Solver::update_coefficients(double dt)
     
     offset = 0;
 
-    for (int i = 0; i < (int) bodies.size(); i++) {
-        const Body *body = bodies[i];
+    for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+        Body *body = *bi;
         
         double v_ref_squared = reference_velocity_squared(*body);
         
-        for (int j = 0; j < (int) body->non_lifting_surfaces.size(); j++) {
-            Surface *non_lifting_surface = body->non_lifting_surfaces[j];
+        vector<Surface*>::iterator si;
+        for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++) {
+            Surface *non_lifting_surface = *si;
             
             VectorXd doublet_coefficient_field(non_lifting_surface->n_panels());
-            for (int k = 0; k < non_lifting_surface->n_panels(); k++)
-                doublet_coefficient_field(k) = doublet_coefficients(offset + k); 
+            for (int i = 0; i < non_lifting_surface->n_panels(); i++)
+                doublet_coefficient_field(i) = doublet_coefficients(offset + i); 
                 
-            for (int k = 0; k < non_lifting_surface->n_panels(); k++) {
-                double dphidt = velocity_potential_time_derivative(surface_velocity_potentials, old_surface_velocity_potentials, offset, k, dt);
+            for (int i = 0; i < non_lifting_surface->n_panels(); i++) {
+                double dphidt = velocity_potential_time_derivative(surface_velocity_potentials, old_surface_velocity_potentials, offset, i, dt);
                 
-                Vector3d V = surface_velocity(*non_lifting_surface, k, doublet_coefficient_field);
+                Vector3d V = surface_velocity(*non_lifting_surface, i, doublet_coefficient_field);
                 surface_velocities.block<1, 3>(idx, 0) = V;
  
                 pressure_coefficients(idx) = pressure_coefficient(V, dphidt, v_ref_squared);
@@ -808,17 +846,18 @@ Solver::update_coefficients(double dt)
             offset += non_lifting_surface->n_panels();      
         }
         
-        for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
-            LiftingSurface *lifting_surface = body->lifting_surfaces[j];
+        vector<LiftingSurface*>::iterator lsi;
+        for (lsi = body->lifting_surfaces.begin(); lsi != body->lifting_surfaces.end(); lsi++) {
+            LiftingSurface *lifting_surface = *lsi;
             
             VectorXd doublet_coefficient_field(lifting_surface->n_panels());
-            for (int k = 0; k < lifting_surface->n_panels(); k++)
-                doublet_coefficient_field(k) = doublet_coefficients(offset + k); 
+            for (int i = 0; i < lifting_surface->n_panels(); i++)
+                doublet_coefficient_field(i) = doublet_coefficients(offset + i); 
                 
-            for (int k = 0; k < lifting_surface->n_panels(); k++) {
-                double dphidt = velocity_potential_time_derivative(surface_velocity_potentials, old_surface_velocity_potentials, offset, k, dt);
+            for (int i = 0; i < lifting_surface->n_panels(); i++) {
+                double dphidt = velocity_potential_time_derivative(surface_velocity_potentials, old_surface_velocity_potentials, offset, i, dt);
                 
-                Vector3d V = surface_velocity(*lifting_surface, k, doublet_coefficient_field);
+                Vector3d V = surface_velocity(*lifting_surface, i, doublet_coefficient_field);
                 surface_velocities.block<1, 3>(idx, 0) = V;
  
                 pressure_coefficients(idx) = pressure_coefficient(V, dphidt, v_ref_squared);
@@ -844,16 +883,18 @@ Solver::update_wakes(double dt)
         // Compute velocity values at wake nodes;
         std::vector<std::vector<Vector3d> > wake_velocities;
         
-        for (int i = 0; i < (int) bodies.size(); i++) {
-            Body *body = bodies[i];
+        vector<Body*>::iterator bi;
+        for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+            Body *body = *bi;
                  
-            for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
-                Wake *wake = body->wakes[j];
+            vector<Wake*>::iterator wi;
+            for (wi = body->wakes.begin(); wi != body->wakes.end(); wi++) {
+                Wake *wake = *wi;
                 
                 std::vector<Vector3d> local_wake_velocities;
                 
-                for (int k = 0; k < wake->n_nodes(); k++)
-                    local_wake_velocities.push_back(velocity(wake->nodes[k]));
+                for (int i = 0; i < wake->n_nodes(); i++)
+                    local_wake_velocities.push_back(velocity(wake->nodes[i]));
                 
                 wake_velocities.push_back(local_wake_velocities);
             }
@@ -862,12 +903,14 @@ Solver::update_wakes(double dt)
         // Add new wake panels at trailing edges, and convect all vertices:
         int idx = 0;
         
-        for (int i = 0; i < (int) bodies.size(); i++) {
-            Body *body = bodies[i];
+        for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+            Body *body = *bi;
             
-            for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
-                LiftingSurface *lifting_surface = body->lifting_surfaces[j];
-                Wake *wake = body->wakes[j];
+            vector<LiftingSurface*>::iterator lsi;
+            vector<Wake*>::iterator wi;
+            for (lsi = body->lifting_surfaces.begin(), wi = body->wakes.begin(); lsi != body->lifting_surfaces.end(); lsi++, wi++) {
+                LiftingSurface *lifting_surface = *lsi;
+                Wake *wake = *wi;
                 
                 // Retrieve local wake velocities:
                 std::vector<Vector3d> &local_wake_velocities = wake_velocities[idx];
@@ -876,21 +919,21 @@ Solver::update_wakes(double dt)
                 // Convect wake nodes that coincide with the trailing edge nodes with the freestream velocity.
                 // Alternative options are discussed in
                 //   K. Dixon, The Near Wake Structure of a Vertical Axis Wind Turbine, M.Sc. Thesis, TU Delft, 2008.
-                for (int k = wake->n_nodes() - lifting_surface->n_spanwise_nodes(); k < wake->n_nodes(); k++) {
-                     Vector3d kinematic_velocity = wake->node_deformation_velocities[k]
-                                                   + body->node_kinematic_velocity(*wake, k)
-                                                   - freestream_velocity;
+                for (int i = wake->n_nodes() - lifting_surface->n_spanwise_nodes(); i < wake->n_nodes(); i++) {
+                    Vector3d kinematic_velocity = wake->node_deformation_velocities[i]
+                                                  + body->node_kinematic_velocity(*wake, i)
+                                                  - freestream_velocity;
                                                                
-                     wake->nodes[k] -= kinematic_velocity * dt;
+                    wake->nodes[i] -= kinematic_velocity * dt;
                 }                
                 
                 // Convect all other wake nodes according to the local wake velocity:
-                for (int k = 0; k < wake->n_nodes() - lifting_surface->n_spanwise_nodes(); k++)         
-                    wake->nodes[k] += local_wake_velocities[k] * dt;
+                for (int i = 0; i < wake->n_nodes() - lifting_surface->n_spanwise_nodes(); i++)
+                    wake->nodes[i] += local_wake_velocities[i] * dt;
                     
                 // Update vortex core radii:
-                for (int k = 0; k < wake->n_panels(); k++)
-                    wake->update_ramasamy_leishman_vortex_core_radii(k, dt);
+                for (int i = 0; i < wake->n_panels(); i++)
+                    wake->update_ramasamy_leishman_vortex_core_radii(i, dt);
 
                 // Add new vertices:
                 // (This call also updates the geometry)
@@ -900,21 +943,24 @@ Solver::update_wakes(double dt)
         
     } else {
         // No wake convection.  Re-position wake:
-        for (int i = 0; i < (int) bodies.size(); i++) {
-            Body *body = bodies[i];
+        vector<Body*>::iterator bi;
+        for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+            Body *body = *bi;
             
             Vector3d body_kinematic_velocity = body->velocity - freestream_velocity;
             
-            for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
-                LiftingSurface *lifting_surface = body->lifting_surfaces[j];
-                Wake *wake = body->wakes[j];
+            vector<LiftingSurface*>::iterator lsi;
+            vector<Wake*>::iterator wi;
+            for (lsi = body->lifting_surfaces.begin(), wi = body->wakes.begin(); lsi != body->lifting_surfaces.end(); lsi++, wi++) {
+                LiftingSurface *lifting_surface = *lsi;
+                Wake *wake = *wi;
                 
-                for (int k = 0; k < lifting_surface->n_spanwise_nodes(); k++) {
+                for (int i = 0; i < lifting_surface->n_spanwise_nodes(); i++) {
                     // Connect wake to trailing edge nodes:                             
-                    wake->nodes[lifting_surface->n_spanwise_nodes() + k] = lifting_surface->nodes[lifting_surface->trailing_edge_node(k)];
+                    wake->nodes[lifting_surface->n_spanwise_nodes() + i] = lifting_surface->nodes[lifting_surface->trailing_edge_node(i)];
                     
                     // Point wake in direction of body kinematic velocity:
-                    wake->nodes[k] = lifting_surface->nodes[lifting_surface->trailing_edge_node(k)]
+                    wake->nodes[i] = lifting_surface->nodes[lifting_surface->trailing_edge_node(i)]
                                      - Parameters::static_wake_length * body_kinematic_velocity / body_kinematic_velocity.norm();
                 }
                 
@@ -938,8 +984,9 @@ Solver::surface_velocity_potential(const Surface &surface, int panel) const
 {
     int offset = 0;
     
-    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
-        Surface *tmp_surface = non_wake_surfaces[i];
+    vector<Surface*>::const_iterator si;
+    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
+        const Surface *tmp_surface = *si;
         
         if (&surface == tmp_surface)
             return surface_velocity_potentials(offset + panel);
@@ -965,8 +1012,9 @@ Solver::surface_velocity(const Surface &surface, int panel) const
 {
     int offset = 0;
     
-    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
-        Surface *tmp_surface = non_wake_surfaces[i];
+    vector<Surface*>::const_iterator si;
+    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
+        const Surface *tmp_surface = *si;
         
         if (&surface == tmp_surface)
             return surface_velocities.block<1, 3>(offset + panel, 0);
@@ -992,8 +1040,9 @@ Solver::pressure_coefficient(const Surface &surface, int panel) const
 {
     int offset = 0;
     
-    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
-        Surface *tmp_surface = non_wake_surfaces[i];
+    vector<Surface*>::const_iterator si;
+    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
+        const Surface *tmp_surface = *si;
         
         if (&surface == tmp_surface)
             return pressure_coefficients(offset + panel);
@@ -1023,18 +1072,20 @@ Solver::force(const Body &body) const
     Vector3d F(0, 0, 0);
     int offset = 0;
     
-    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
-        Surface *surface = non_wake_surfaces[i];
+    vector<Surface*>::const_iterator si;
+    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
+        const Surface *surface = *si;
         
-        for (int k = 0; k < surface->n_panels(); k++) {                                    
-            Vector3d normal = surface->panel_normal(k);            
-            double surface_area = surface->panel_surface_area(k);
-            F += q * surface_area * pressure_coefficients(offset + k) * normal;
+        for (int i = 0; i < surface->n_panels(); i++) {
+            Vector3d normal = surface->panel_normal(i);
+            double surface_area = surface->panel_surface_area(i);
+            F += q * surface_area * pressure_coefficients(offset + i) * normal;
         }
         
         offset += surface->n_panels();
     }
     
+    // Done:
     return F;      
 }
 
@@ -1056,20 +1107,22 @@ Solver::moment(const Body &body, const Eigen::Vector3d &x) const
     Vector3d M(0, 0, 0);
     int offset = 0;
     
-    for (int i = 0; i < (int) non_wake_surfaces.size(); i++) {
-        Surface *surface = non_wake_surfaces[i];
+    vector<Surface*>::const_iterator si;
+    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
+        const Surface *surface = *si;
         
-        for (int k = 0; k < surface->n_panels(); k++) {                                    
-            Vector3d normal = surface->panel_normal(k);            
-            double surface_area = surface->panel_surface_area(k);
-            Vector3d F = q * surface_area * pressure_coefficients(offset + k) * normal;
-            Vector3d r = surface->panel_collocation_point(k, false) - x;
+        for (int i = 0; i < surface->n_panels(); i++) {                                    
+            Vector3d normal = surface->panel_normal(i);
+            double surface_area = surface->panel_surface_area(i);
+            Vector3d F = q * surface_area * pressure_coefficients(offset + i) * normal;
+            Vector3d r = surface->panel_collocation_point(i, false) - x;
             M += r.cross(F);
         }
         
         offset += surface->n_panels();
     }
     
+    // Done:
     return M;
 }
 
@@ -1086,22 +1139,26 @@ Solver::log_coefficients(int step_number, SurfaceWriter &writer) const
     int offset = 0;
     int save_node_offset = 0;
     int save_panel_offset = 0;
+    int idx;
     
-    for (int i = 0; i < (int) bodies.size(); i++) {
-        Body *body = bodies[i];
+    vector<Body*>::const_iterator bi;
+    for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+        const Body *body = *bi;
         
         // Iterate non-lifting surfaces:
-        for (int j = 0; j < (int) body->non_lifting_surfaces.size(); j++) {
-            Surface *non_lifting_surface = body->non_lifting_surfaces[j];
+        idx = 0;
+        vector<Surface*>::const_iterator si;
+        for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++) {
+            const Surface *non_lifting_surface = *si;
             
             // Log non-lifting surface coefficients:
             VectorXd non_lifting_surface_doublet_coefficients(non_lifting_surface->n_panels());
             VectorXd non_lifting_surface_source_coefficients(non_lifting_surface->n_panels());
             VectorXd non_lifting_surface_pressure_coefficients(non_lifting_surface->n_panels());
-            for (int k = 0; k < non_lifting_surface->n_panels(); k++) {
-                non_lifting_surface_doublet_coefficients(k)  = doublet_coefficients(offset + k);
-                non_lifting_surface_source_coefficients(k)   = source_coefficients(offset + k);
-                non_lifting_surface_pressure_coefficients(k) = pressure_coefficients(offset + k);
+            for (int i = 0; i < non_lifting_surface->n_panels(); i++) {
+                non_lifting_surface_doublet_coefficients(i)  = doublet_coefficients(offset + i);
+                non_lifting_surface_source_coefficients(i)   = source_coefficients(offset + i);
+                non_lifting_surface_pressure_coefficients(i) = pressure_coefficients(offset + i);
             }
             
             offset += non_lifting_surface->n_panels();
@@ -1119,26 +1176,30 @@ Solver::log_coefficients(int step_number, SurfaceWriter &writer) const
             view_data.push_back(non_lifting_surface_pressure_coefficients);
             
             std::stringstream ss;
-            ss << log_folder << "/" << body->id << "/non_lifting_surface_" << j << "/step_" << step_number << writer.file_extension();
+            ss << log_folder << "/" << body->id << "/non_lifting_surface_" << idx << "/step_" << step_number << writer.file_extension();
 
             writer.write(*non_lifting_surface, ss.str(), save_node_offset, save_panel_offset, view_names, view_data);
+            
             save_node_offset += non_lifting_surface->n_nodes();
             save_panel_offset += non_lifting_surface->n_panels();
+            
+            idx++;
         }   
         
         // Iterate lifting surfaces:
-        for (int j = 0; j < (int) body->lifting_surfaces.size(); j++) {
-            LiftingSurface *lifting_surface = body->lifting_surfaces[j];
-            Wake *wake = body->wakes[j];
+        idx = 0;
+        vector<LiftingSurface*>::const_iterator lsi;
+        for (lsi = body->lifting_surfaces.begin(); lsi != body->lifting_surfaces.end(); lsi++) {
+            const LiftingSurface *lifting_surface = *lsi;
             
             // Log lifting surface coefficients:
             VectorXd lifting_surface_doublet_coefficients(lifting_surface->n_panels());
             VectorXd lifting_surface_source_coefficients(lifting_surface->n_panels());
             VectorXd lifting_surface_pressure_coefficients(lifting_surface->n_panels());
-            for (int k = 0; k < lifting_surface->n_panels(); k++) {
-                lifting_surface_doublet_coefficients(k)  = doublet_coefficients(offset + k);
-                lifting_surface_source_coefficients(k)   = source_coefficients(offset + k);
-                lifting_surface_pressure_coefficients(k) = pressure_coefficients(offset + k);
+            for (int i = 0; i < lifting_surface->n_panels(); i++) {
+                lifting_surface_doublet_coefficients(i)  = doublet_coefficients(offset + i);
+                lifting_surface_source_coefficients(i)   = source_coefficients(offset + i);
+                lifting_surface_pressure_coefficients(i) = pressure_coefficients(offset + i);
             }
             
             offset += lifting_surface->n_panels();
@@ -1156,28 +1217,42 @@ Solver::log_coefficients(int step_number, SurfaceWriter &writer) const
             view_data.push_back(lifting_surface_pressure_coefficients);
             
             std::stringstream ss;
-            ss << log_folder << "/" << body->id << "/lifting_surface_" << j << "/step_" << step_number << writer.file_extension();
+            ss << log_folder << "/" << body->id << "/lifting_surface_" << idx << "/step_" << step_number << writer.file_extension();
 
             writer.write(*lifting_surface, ss.str(), save_node_offset, save_panel_offset, view_names, view_data);
+            
             save_node_offset += lifting_surface->n_nodes();
             save_panel_offset += lifting_surface->n_panels();
             
+            idx++;
+        }
+        
+        // Iterate wakes:
+        idx = 0;
+        vector<Wake*>::const_iterator wi;
+        for (wi = body->wakes.begin(); wi != body->wakes.end(); wi++) {
+            const Wake *wake = *wi;
+    
             // Log wake surface and coefficients:
             VectorXd wake_doublet_coefficients(wake->doublet_coefficients.size());
-            for (int k = 0; k < (int) wake->doublet_coefficients.size(); k++)
-                wake_doublet_coefficients(k) = wake->doublet_coefficients[k];
+            for (int i = 0; i < (int) wake->doublet_coefficients.size(); i++)
+                wake_doublet_coefficients(i) = wake->doublet_coefficients[i];
 
-            view_names.clear();
-            view_data.clear();
+            vector<string> view_names;
+            vector<VectorXd> view_data;
             
             view_names.push_back("DoubletDistribution");
             view_data.push_back(wake_doublet_coefficients);
             
-            std::stringstream ss2;
-            ss2 << log_folder << "/" << body->id << "/wake_" << j << "/step_" << step_number << writer.file_extension();
-            writer.write(*wake, ss2.str(), 0, save_panel_offset, view_names, view_data);
+            std::stringstream ss;
+            ss << log_folder << "/" << body->id << "/wake_" << idx << "/step_" << step_number << writer.file_extension();
+            
+            writer.write(*wake, ss.str(), 0, save_panel_offset, view_names, view_data);
+            
             save_node_offset += wake->n_nodes();
             save_panel_offset += wake->n_panels();
+            
+            idx++;
         }
     }
 }
