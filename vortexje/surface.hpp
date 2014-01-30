@@ -108,7 +108,7 @@ public:
     
     virtual Eigen::Vector3d near_exterior_point(int node) const;
     
-    Eigen::Vector3d scalar_field_gradient(const Eigen::VectorXd &scalar_field, int this_panel) const;
+    Eigen::Vector3d scalar_field_gradient(const Eigen::VectorXd &scalar_field, int offset, int this_panel) const;
     
     double doublet_influence(const Eigen::Vector3d &x, int this_panel) const;
     double source_influence(const Eigen::Vector3d &x, int this_panel) const;

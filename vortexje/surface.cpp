@@ -588,12 +588,13 @@ x_to_y_rotation(const Vector3d &unit_x, const Vector3d &unit_y)
    Computes the on-body gradient of a scalar field.
    
    @param[in]   scalar_field   Scalar field, ordered by panel number.
+   @param[in]   offset         Scalar field offset
    @param[in]   panel          Panel on which the on-body gradient is evaluated.
    
    @returns On-body gradient.
 */
 Vector3d
-Surface::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int this_panel) const
+Surface::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int offset, int this_panel) const
 {
     // We compute the scalar field gradient by fitting a linear model.
     Vector3d this_normal = panel_normal(this_panel);
@@ -611,7 +612,7 @@ Surface::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int this_pan
     A(0, 0) = 0.0;
     A(0, 1) = 0.0;
     A(0, 2) = 1.0;
-    b(0) = scalar_field(this_panel);
+    b(0) = scalar_field(offset + this_panel);
     
     for (int i = 0; i < (int) panel_neighbors[this_panel].size(); i++) {
         int neighbor_panel = panel_neighbors[this_panel][i];
@@ -625,7 +626,7 @@ Surface::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int this_pan
             A(i + 1, 1) = neighbor_vector_normalized(1);
             A(i + 1, 2) = 1.0;
         
-            b(i + 1) = scalar_field(neighbor_panel);
+            b(i + 1) = scalar_field(offset + neighbor_panel);
         } else {
             // Don't differentiate along sharp edges, such as the trailing edge.
             A(i + 1, 0) = A(i + 1, 1) = A(i + 1, 2) = 0.0;

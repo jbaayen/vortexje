@@ -94,21 +94,21 @@ private:
     
     Eigen::VectorXd previous_surface_velocity_potentials;            
                                           
-    double source_coefficient(const Surface &surface, int panel, const Eigen::Vector3d &kinematic_velocity, bool include_wake_influence) const;
+    double compute_source_coefficient(const Body &body, const Surface &surface, int panel, bool include_wake_influence) const;
     
-    double surface_velocity_potential(const Surface &surface, int offset, int panel) const;
+    double compute_surface_velocity_potential(const Surface &surface, int offset, int panel) const;
     
-    double surface_velocity_potential_time_derivative(int offset, int panel, double dt) const;
+    double compute_surface_velocity_potential_time_derivative(int offset, int panel, double dt) const;
     
-    Eigen::Vector3d surface_velocity(const Surface &surface, int panel, const Eigen::VectorXd &doublet_coefficient_field) const;
+    Eigen::Vector3d compute_surface_velocity(const Surface &surface, int offset, int panel) const;
     
-    double reference_velocity_squared(const Body &body) const;
+    double compute_reference_velocity_squared(const Body &body) const;
 
-    double pressure_coefficient(const Eigen::Vector3d &surface_velocity, double dphidt, double v_ref) const;
+    double compute_pressure_coefficient(const Eigen::Vector3d &surface_velocity, double dphidt, double v_ref) const;
     
-    Eigen::Vector3d disturbance_velocity(const Eigen::Vector3d &x) const;
+    Eigen::Vector3d compute_disturbance_velocity(const Eigen::Vector3d &x) const;
     
-    double disturbance_velocity_potential(const Eigen::Vector3d &x) const;
+    double compute_disturbance_velocity_potential(const Eigen::Vector3d &x) const;
 };
 
 };

@@ -187,7 +187,7 @@ Solver::velocity_potential(const Vector3d &x) const
     // to be able to convect the wake.
     
     // Sum disturbance potential with freestream velocity potential:
-    return disturbance_velocity_potential(x) + freestream_velocity.dot(x);
+    return compute_disturbance_velocity_potential(x) + freestream_velocity.dot(x);
 }
 
 /**
@@ -235,11 +235,11 @@ Solver::velocity(const Eigen::Vector3d &x) const
             Vector3d near_exterior_point = close_surface->near_exterior_point(close_surface->panel_nodes[close_panel][i]);
             near_exterior_points.push_back(near_exterior_point);
             
-            disturbance_velocities.push_back(disturbance_velocity(near_exterior_point));
+            disturbance_velocities.push_back(compute_disturbance_velocity(near_exterior_point));
         }
         
     } else {
-        disturbance_velocities.push_back(disturbance_velocity(x));
+        disturbance_velocities.push_back(compute_disturbance_velocity(x));
         
         close_surface = NULL;
         close_panel   = -1;
@@ -251,10 +251,6 @@ Solver::velocity(const Eigen::Vector3d &x) const
         //   K. Dixon, C. S. Ferreira, C. Hofemann, G. van Brussel, G. van Kuik,
         //   A 3D Unsteady Panel Method for Vertical Axis Wind Turbines, DUWIND, 2008.
         Vector3d x = close_surface->panel_collocation_point(close_panel, false);
-        
-        VectorXd doublet_coefficient_field(close_surface->n_panels());
-        for (int i = 0; i < close_surface->n_panels(); i++)
-            doublet_coefficient_field(i) = doublet_coefficients(close_offset + i);
         
         Vector3d normal = close_surface->panel_normal(close_panel);
         
@@ -271,7 +267,7 @@ Solver::velocity(const Eigen::Vector3d &x) const
         }
         
         double weight = Parameters::interpolation_layer_thickness - distance;
-        velocity += weight * surface_velocity(*close_surface, close_panel, doublet_coefficient_field);
+        velocity += weight * compute_surface_velocity(*close_surface, close_offset, close_panel);
         total_weight += weight;
         
         velocity /= total_weight;
@@ -379,7 +375,7 @@ Eigen::Vector3d
 Solver::force(const Body &body) const
 {
     // Dynamic pressure:
-    double q = 0.5 * fluid_density * reference_velocity_squared(body);
+    double q = 0.5 * fluid_density * compute_reference_velocity_squared(body);
         
     // Total force on body:
     Vector3d F(0, 0, 0);
@@ -414,7 +410,7 @@ Eigen::Vector3d
 Solver::moment(const Body &body, const Eigen::Vector3d &x) const
 {
     // Dynamic pressure:
-    double q = 0.5 * fluid_density * reference_velocity_squared(body);
+    double q = 0.5 * fluid_density * compute_reference_velocity_squared(body);
         
     // Total moment on body:
     Vector3d M(0, 0, 0);
@@ -495,9 +491,7 @@ Solver::solve(double dt)
             Surface *non_lifting_surface = *si;
             
             for (int i = 0; i < non_lifting_surface->n_panels(); i++) {
-                Vector3d apparent_velocity = body->panel_kinematic_velocity(*non_lifting_surface, i) - freestream_velocity;
-            
-                source_coefficients(idx) = source_coefficient(*non_lifting_surface, i, apparent_velocity, true);
+                source_coefficients(idx) = compute_source_coefficient(*body, *non_lifting_surface, i, true);
                 idx++;
             }
         }
@@ -507,9 +501,7 @@ Solver::solve(double dt)
             LiftingSurface *lifting_surface = *lsi;
             
             for (int i = 0; i < lifting_surface->n_panels(); i++) {
-                Vector3d apparent_velocity = body->panel_kinematic_velocity(*lifting_surface, i) - freestream_velocity;
-            
-                source_coefficients(idx) = source_coefficient(*lifting_surface, i, apparent_velocity, true);
+                source_coefficients(idx) = compute_source_coefficient(*body, *lifting_surface, i, true);
                 idx++;
             }
         }
@@ -649,9 +641,7 @@ Solver::solve(double dt)
                 Surface *non_lifting_surface = *si;
                 
                 for (int i = 0; i < non_lifting_surface->n_panels(); i++) {
-                    Vector3d apparent_velocity = body->panel_kinematic_velocity(*non_lifting_surface, i) - freestream_velocity;
-                
-                    source_coefficients(idx) = source_coefficient(*non_lifting_surface, i, apparent_velocity, false);
+                    source_coefficients(idx) = compute_source_coefficient(*body, *non_lifting_surface, i, false);
                     idx++;
                 }
             }
@@ -661,9 +651,7 @@ Solver::solve(double dt)
                 LiftingSurface *lifting_surface = *lsi;
                 
                 for (int i = 0; i < lifting_surface->n_panels(); i++) {
-                    Vector3d apparent_velocity = body->panel_kinematic_velocity(*lifting_surface, i) - freestream_velocity;
-                
-                    source_coefficients(idx) = source_coefficient(*lifting_surface, i, apparent_velocity, false);
+                    source_coefficients(idx) = compute_source_coefficient(*body, *lifting_surface, i, false);
                     idx++;
                 }
             }
@@ -683,27 +671,23 @@ Solver::solve(double dt)
     for (bi = bodies.begin(); bi != bodies.end(); bi++) {
         Body *body = *bi;
         
-        double v_ref_squared = reference_velocity_squared(*body);
+        double v_ref_squared = compute_reference_velocity_squared(*body);
         
         vector<Surface*>::iterator si;
         for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++) {
             Surface *non_lifting_surface = *si;
-            
-            VectorXd doublet_coefficient_field(non_lifting_surface->n_panels());
-            for (int i = 0; i < non_lifting_surface->n_panels(); i++)
-                doublet_coefficient_field(i) = doublet_coefficients(offset + i); 
                 
             for (int i = 0; i < non_lifting_surface->n_panels(); i++) {
                 // Velocity potential:
-                surface_velocity_potentials(offset + i) = surface_velocity_potential(*non_lifting_surface, offset, i);
+                surface_velocity_potentials(offset + i) = compute_surface_velocity_potential(*non_lifting_surface, offset, i);
                 
                 // Surface velocity:
-                Vector3d V = surface_velocity(*non_lifting_surface, i, doublet_coefficient_field);
+                Vector3d V = compute_surface_velocity(*non_lifting_surface, offset, i);
                 surface_velocities.block<1, 3>(idx, 0) = V;
  
                 // Pressure coefficient:
-                double dphidt = surface_velocity_potential_time_derivative(offset, i, dt);
-                pressure_coefficients(idx) = pressure_coefficient(V, dphidt, v_ref_squared);
+                double dphidt = compute_surface_velocity_potential_time_derivative(offset, i, dt);
+                pressure_coefficients(idx) = compute_pressure_coefficient(V, dphidt, v_ref_squared);
                 
                 idx++;
             }   
@@ -713,23 +697,19 @@ Solver::solve(double dt)
         
         vector<LiftingSurface*>::iterator lsi;
         for (lsi = body->lifting_surfaces.begin(); lsi != body->lifting_surfaces.end(); lsi++) {
-            LiftingSurface *lifting_surface = *lsi;
-            
-            VectorXd doublet_coefficient_field(lifting_surface->n_panels());
-            for (int i = 0; i < lifting_surface->n_panels(); i++)
-                doublet_coefficient_field(i) = doublet_coefficients(offset + i); 
+            LiftingSurface *lifting_surface = *lsi; 
                 
             for (int i = 0; i < lifting_surface->n_panels(); i++) {
                 // Velocity potential:
-                surface_velocity_potentials(offset + i) = surface_velocity_potential(*lifting_surface, offset, i);
+                surface_velocity_potentials(offset + i) = compute_surface_velocity_potential(*lifting_surface, offset, i);
 
                 // Surface velocity:
-                Vector3d V = surface_velocity(*lifting_surface, i, doublet_coefficient_field);
+                Vector3d V = compute_surface_velocity(*lifting_surface, offset, i);
                 surface_velocities.block<1, 3>(idx, 0) = V;
  
                 // Pressure coefficient:
-                double dphidt = surface_velocity_potential_time_derivative(offset, i, dt);
-                pressure_coefficients(idx) = pressure_coefficient(V, dphidt, v_ref_squared);
+                double dphidt = compute_surface_velocity_potential_time_derivative(offset, i, dt);
+                pressure_coefficients(idx) = compute_pressure_coefficient(V, dphidt, v_ref_squared);
                 
                 idx++;
             }   
@@ -975,10 +955,10 @@ Solver::log(int step_number, SurfaceWriter &writer) const
 
 // Compute source coefficient for given surface and panel:
 double
-Solver::source_coefficient(const Surface &surface, int panel, const Vector3d &apparent_velocity, bool include_wake_influence) const
+Solver::compute_source_coefficient(const Body &body, const Surface &surface, int panel, bool include_wake_influence) const
 {
-    // Main velocity:
-    Vector3d velocity = -apparent_velocity;
+    // Start with apparent velocity:
+    Vector3d velocity = body.panel_kinematic_velocity(surface, panel) - freestream_velocity;
     
     // Wake contribution:
     if (Parameters::convect_wake && include_wake_influence) {
@@ -994,10 +974,10 @@ Solver::source_coefficient(const Surface &surface, int panel, const Vector3d &ap
                     // Use doublet panel - vortex ring equivalence.  Any new wake panels have zero doublet
                     // coefficient, and are therefore not accounted for here.
                     if (Parameters::use_ramasamy_leishman_vortex_sheet)
-                        velocity += wake->vortex_ring_ramasamy_leishman_velocity
+                        velocity -= wake->vortex_ring_ramasamy_leishman_velocity
                             (surface, panel, k, wake->vortex_core_radii[k], wake->doublet_coefficients[k]);
                     else
-                        velocity += wake->vortex_ring_unit_velocity(surface, panel, k) * wake->doublet_coefficients[k];
+                        velocity -= wake->vortex_ring_unit_velocity(surface, panel, k) * wake->doublet_coefficients[k];
                 }
             }
         }
@@ -1005,7 +985,7 @@ Solver::source_coefficient(const Surface &surface, int panel, const Vector3d &ap
     
     // Take normal component:
     Vector3d normal = surface.panel_normal(panel);
-    return -velocity.dot(normal);
+    return velocity.dot(normal);
 }
 
 /**
@@ -1014,7 +994,7 @@ Solver::source_coefficient(const Surface &surface, int panel, const Vector3d &ap
    @returns Surface potential value.
 */
 double
-Solver::surface_velocity_potential(const Surface &surface, int offset, int panel) const
+Solver::compute_surface_velocity_potential(const Surface &surface, int offset, int panel) const
 {
     if (Parameters::marcov_surface_velocity) {
         // Since we use N. Marcov's formula for surface velocity, we also compute the surface velocity
@@ -1046,7 +1026,7 @@ Solver::surface_velocity_potential(const Surface &surface, int offset, int panel
    @returns Velocity potential time derivative.
 */ 
 double
-Solver::surface_velocity_potential_time_derivative(int offset, int panel, double dt) const
+Solver::compute_surface_velocity_potential_time_derivative(int offset, int panel, double dt) const
 {
     double dphidt;
     
@@ -1064,13 +1044,13 @@ Solver::surface_velocity_potential_time_derivative(int offset, int panel, double
    Computes the surface velocity for the given panel.
    
    @param[in]   surface                     Reference surface.
+   @param[it]   offset                      Doublet coefficien vector offset.
    @param[in]   panel                       Reference panel.
-   @param[in]   doublet_coefficient_field   Doublet coefficient distribution on given surface.
    
    @returns Surface velocity.
 */
 Eigen::Vector3d
-Solver::surface_velocity(const Surface &surface, int panel, const Eigen::VectorXd &doublet_coefficient_field) const
+Solver::compute_surface_velocity(const Surface &surface, int offset, int panel) const
 {
     // Compute disturbance part of surface velocity.
     Vector3d tangential_velocity;
@@ -1078,10 +1058,10 @@ Solver::surface_velocity(const Surface &surface, int panel, const Eigen::VectorX
         Vector3d x = surface.panel_collocation_point(panel, false);
         
         // Use N. Marcov's formula for surface velocity, see L. Dragoş, Mathematical Methods in Aerodynamics, Springer, 2003.
-        Vector3d tangential_velocity = disturbance_velocity(x);
-        tangential_velocity -= 0.5 * surface.scalar_field_gradient(doublet_coefficient_field, panel);
+        Vector3d tangential_velocity = compute_disturbance_velocity(x);
+        tangential_velocity -= 0.5 * surface.scalar_field_gradient(doublet_coefficients, offset, panel);
     } else
-        tangential_velocity = -surface.scalar_field_gradient(doublet_coefficient_field, panel);
+        tangential_velocity = -surface.scalar_field_gradient(doublet_coefficients, offset, panel);
 
     // Add flow due to kinematic velocity:
     Body *body = surface_to_body.find(&surface)->second;
@@ -1105,7 +1085,7 @@ Solver::surface_velocity(const Surface &surface, int panel, const Eigen::VectorX
    @returns Square of the reference velocity.
 */
 double
-Solver::reference_velocity_squared(const Body &body) const
+Solver::compute_reference_velocity_squared(const Body &body) const
 {
     return (body.velocity - freestream_velocity).squaredNorm();
 }
@@ -1120,7 +1100,7 @@ Solver::reference_velocity_squared(const Body &body) const
    @returns Pressure coefficient.
 */
 double
-Solver::pressure_coefficient(const Vector3d &surface_velocity, double dphidt, double v_ref_squared) const
+Solver::compute_pressure_coefficient(const Vector3d &surface_velocity, double dphidt, double v_ref_squared) const
 {
     double C_p = 1 - (surface_velocity.squaredNorm() + 2 * dphidt) / v_ref_squared;
     
@@ -1135,7 +1115,7 @@ Solver::pressure_coefficient(const Vector3d &surface_velocity, double dphidt, do
    @returns Disturbance velocity potential.
 */
 double
-Solver::disturbance_velocity_potential(const Vector3d &x) const
+Solver::compute_disturbance_velocity_potential(const Vector3d &x) const
 {
     double phi = 0.0;
     
@@ -1180,7 +1160,7 @@ Solver::disturbance_velocity_potential(const Vector3d &x) const
    @returns Disturbance potential gradient.
 */ 
 Eigen::Vector3d
-Solver::disturbance_velocity(const Eigen::Vector3d &x) const
+Solver::compute_disturbance_velocity(const Eigen::Vector3d &x) const
 {
     Vector3d gradient(0, 0, 0);
     
