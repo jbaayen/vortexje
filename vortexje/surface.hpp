@@ -126,14 +126,6 @@ public:
     
 protected:
     void clear_node_panel_neighbors();
-    
-private:
-    void save_vtk(const std::string file,
-                  const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data) const;
-              
-    void save_gmsh(const std::string file,
-                   const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data,
-                   int node_offset = 0, int panel_offset = 0) const;
 };
 
 };

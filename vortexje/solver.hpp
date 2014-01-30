@@ -90,15 +90,15 @@ private:
         
     Eigen::VectorXd surface_velocity_potentials;
     Eigen::MatrixXd surface_velocities;
-    Eigen::VectorXd pressure_coefficients;
+    Eigen::VectorXd pressure_coefficients;  
     
-    void doublet_coefficient_matrix_block(Eigen::MatrixXd &doublet_influence_coefficients, 
-                                          Eigen::MatrixXd &source_influence_coefficients,
-                                          const Surface &surface_one, int offset_one, const Surface &surface_two, int offset_two) const;
-                                          
-    void wake_influence(Eigen::MatrixXd &A, Surface &surface, int offset) const;
+    Eigen::VectorXd previous_surface_velocity_potentials;            
                                           
     double source_coefficient(const Surface &surface, int panel, const Eigen::Vector3d &kinematic_velocity, bool include_wake_influence) const;
+    
+    double surface_velocity_potential(const Surface &surface, int offset, int panel) const;
+    
+    double surface_velocity_potential_time_derivative(int offset, int panel, double dt) const;
     
     Eigen::Vector3d surface_velocity(const Surface &surface, int panel, const Eigen::VectorXd &doublet_coefficient_field) const;
     
@@ -106,13 +106,9 @@ private:
 
     double pressure_coefficient(const Eigen::Vector3d &surface_velocity, double dphidt, double v_ref) const;
     
-    double surface_velocity_potential(const Surface &surface, int offset, int panel) const;
+    Eigen::Vector3d disturbance_velocity(const Eigen::Vector3d &x) const;
     
-    Eigen::VectorXd surface_surface_velocity_potentials() const;
-    
-    Eigen::Vector3d disturbance_potential_gradient(const Eigen::Vector3d &x) const;
-    
-    double velocity_potential_time_derivative(const Eigen::VectorXd &surface_velocity_potentials, const Eigen::VectorXd &old_surface_velocity_potentials, int offset, int panel, double dt) const;
+    double disturbance_velocity_potential(const Eigen::Vector3d &x) const;
 };
 
 };
