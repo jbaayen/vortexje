@@ -6,8 +6,6 @@
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
-#include <algorithm>
-
 #include <vortexje/lifting-surface.hpp>
 #include <vortexje/parameters.hpp>
 
