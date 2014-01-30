@@ -25,6 +25,9 @@ using namespace Vortexje;
 // Static counter to give every surface a unique ID.
 static int id_counter = 0;
 
+// Avoid having to divide by 4 pi all the time:
+static const double div_4pi = 1.0 / (4 * M_PI);
+
 /**
    Constructs an empty surface.
 */
@@ -709,7 +712,7 @@ Surface::doublet_influence(const Eigen::Vector3d &x, int this_panel) const
         influence += doublet_edge_influence(x_normalized, this_panel_collocation_point_normalized, node_a, node_b);
     }
     
-    return influence / (4 * M_PI);
+    return div_4pi * influence;
 }
 
 // Compute influence of source panel edge on given point.
@@ -776,7 +779,7 @@ Surface::source_influence(const Eigen::Vector3d &x, int this_panel) const
         influence += source_edge_influence(x_normalized, this_panel_collocation_point_normalized, node_a, node_b);
     }   
     
-    return -influence / (4 * M_PI);
+    return -div_4pi * influence;
 }
 
 // Compute velocity induced by an edge of a source panel:
@@ -851,7 +854,7 @@ Surface::source_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
     velocity = rotation.transpose() * velocity;
     
     // Done:
-    return velocity / (4 * M_PI);
+    return div_4pi * velocity;
 }
 
 /**
@@ -895,7 +898,7 @@ Surface::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) con
         velocity += r_1xr_2 / r_1xr_2_sqnorm * r_0.dot(r_1 / r_1_norm - r_2 / r_2_norm);
     }
 
-    return velocity / (4 * M_PI);
+    return div_4pi * velocity;
 }
 
 /**
@@ -1028,7 +1031,7 @@ Surface::vortex_ring_ramasamy_leishman_velocity(const Eigen::Vector3d &x, int th
         velocity += (1 - sum) * r_1xr_2 / r_1xr_2_sqnorm * r_0.dot(r_1 / r_1_norm - r_2 / r_2_norm);
     }
 
-    return vorticity * velocity / (4 * M_PI);    
+    return div_4pi * vorticity * velocity;
 }
 
 /**
