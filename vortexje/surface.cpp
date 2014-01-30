@@ -554,22 +554,6 @@ Surface::panel_diameter(int panel) const
 }
 
 /**
-   Computes the deformation velocity of the given panel.
-   
-   @param[in]   panel   Panel number.
-   
-   @returns Deformation velocity.
-*/
-Vector3d
-Surface::panel_deformation_velocity(int panel) const
-{
-    Vector3d deformation_velocity(0, 0, 0);
-    for (int i = 0; i < (int) panel_nodes[panel].size(); i++)
-        deformation_velocity += node_deformation_velocities[panel_nodes[panel][i]];
-    return deformation_velocity / (double) panel_nodes[panel].size();
-}
-
-/**
    Computes a point, located outside of the body, that lies close to a given node.
    
    This method is used by the wake-wake and wake-body interaction code to evaluate velocities and

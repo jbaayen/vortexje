@@ -46,17 +46,11 @@ LiftingSurfaceBuilder::create_panels_inside_airfoil(const vector<int> &airfoil_n
         Vector3d upper_point = lifting_surface.nodes[upper_node_id];
         Vector3d lower_point = lifting_surface.nodes[lower_node_id];
         
-        Vector3d upper_deformation_velocity = lifting_surface.node_deformation_velocities[upper_node_id];
-        Vector3d lower_deformation_velocity = lifting_surface.node_deformation_velocities[lower_node_id];
-        
         Vector3d middle_point = 0.5 * (upper_point + lower_point);
-        Vector3d middle_deformation_velocity = 0.5 * (upper_deformation_velocity + lower_deformation_velocity);
         
         int middle_node_id = lifting_surface.nodes.size();
 
         lifting_surface.nodes.push_back(middle_point);
-        
-        lifting_surface.node_deformation_velocities.push_back(middle_deformation_velocity);
         
         vector<int> *empty_vector = new vector<int>;
         lifting_surface.node_panel_neighbors.push_back(empty_vector);

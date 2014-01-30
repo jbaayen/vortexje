@@ -56,11 +56,6 @@ public:
     std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > nodes;
     
     /**
-       Node number to node deformation velocity map.
-    */
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > node_deformation_velocities;
-    
-    /**
        Node number to neigboring panel numbers map.
     */
     std::vector<std::vector<int> *> node_panel_neighbors;
@@ -110,8 +105,6 @@ public:
     double panel_surface_area(int panel) const;
     
     double panel_diameter(int panel) const;
-    
-    Eigen::Vector3d panel_deformation_velocity(int panel) const;
     
     virtual Eigen::Vector3d near_exterior_point(int node) const;
     

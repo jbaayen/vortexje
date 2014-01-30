@@ -44,8 +44,6 @@ SurfaceBuilder::create_nodes_for_points(const vector<Vector3d, Eigen::aligned_al
         
         vector<int> *empty_vector = new vector<int>;
         surface.node_panel_neighbors.push_back(empty_vector);
-        
-        surface.node_deformation_velocities.push_back(Vector3d(0, 0, 0));
             
         new_nodes.push_back(node_id);
     }
@@ -88,31 +86,17 @@ SurfaceBuilder::create_panels_between_shapes(const vector<int> &first_nodes, con
         Vector3d first_line  = surface.nodes[first_nodes[next_i]] - surface.nodes[first_nodes[i]];
         Vector3d second_line = surface.nodes[second_nodes[next_i]] - surface.nodes[second_nodes[i]];
         
-        Vector3d first_line_deformation_velocity = surface.node_deformation_velocities[first_nodes[next_i]] - surface.node_deformation_velocities[first_nodes[i]];
-        Vector3d second_line_deformation_velocity = surface.node_deformation_velocities[second_nodes[next_i]] - surface.node_deformation_velocities[second_nodes[i]];
-        
         Vector3d line_direction = first_line + second_line;
         line_direction.normalize();
         
-        Vector3d line_direction_deformation_velocity = (first_line_deformation_velocity + second_line_deformation_velocity) / (first_line + second_line).norm() - (first_line + second_line) * (first_line + second_line).dot(first_line_deformation_velocity + second_line_deformation_velocity) / pow((first_line + second_line).norm(), 3);
-        
         Vector3d first_mid  = 0.5 * (surface.nodes[first_nodes[i]] + surface.nodes[first_nodes[next_i]]);
         Vector3d second_mid = 0.5 * (surface.nodes[second_nodes[i]] + surface.nodes[second_nodes[next_i]]);
-        
-        Vector3d first_mid_deformation_velocity = 0.5 * (surface.node_deformation_velocities[first_nodes[i]] + surface.node_deformation_velocities[first_nodes[next_i]]);
-        Vector3d second_mid_deformation_velocity = 0.5 * (surface.node_deformation_velocities[second_nodes[i]] + surface.node_deformation_velocities[second_nodes[next_i]]);
         
         Vector3d vertices[4];
         vertices[0] = first_mid - 0.5 * first_line.norm() * line_direction;
         vertices[1] = first_mid + 0.5 * first_line.norm() * line_direction;
         vertices[2] = second_mid - 0.5 * second_line.norm() * line_direction;
         vertices[3] = second_mid + 0.5 * second_line.norm() * line_direction;
-        
-        Vector3d vertex_deformation_velocities[4];
-        vertex_deformation_velocities[0] = first_mid_deformation_velocity - 0.5 * (first_line.dot(first_line_deformation_velocity) / first_line.norm() * line_direction + first_line.norm() * line_direction_deformation_velocity);
-        vertex_deformation_velocities[1] = first_mid_deformation_velocity + 0.5 * (first_line.dot(first_line_deformation_velocity) / first_line.norm() * line_direction + first_line.norm() * line_direction_deformation_velocity);
-        vertex_deformation_velocities[2] = second_mid_deformation_velocity - 0.5 * (second_line.dot(second_line_deformation_velocity) / second_line.norm() * line_direction + second_line.norm() * line_direction_deformation_velocity);
-        vertex_deformation_velocities[3] = second_mid_deformation_velocity + 0.5 * (second_line.dot(second_line_deformation_velocity) / second_line.norm() * line_direction + second_line.norm() * line_direction_deformation_velocity);
         
         int new_nodes[4];
         for (int j = 0; j < 4; j++) {
@@ -123,8 +107,6 @@ SurfaceBuilder::create_panels_between_shapes(const vector<int> &first_nodes, con
                 new_nodes[j] = surface.nodes.size();
                 
                 surface.nodes.push_back(vertices[j]);
-                
-                surface.node_deformation_velocities.push_back(vertex_deformation_velocities[j]);
                 
                 surface.node_panel_neighbors.push_back(surface.node_panel_neighbors[original_nodes[j]]);
             }
@@ -156,8 +138,6 @@ SurfaceBuilder::create_panels_inside_shape(const vector<int> &nodes, const Vecto
     int tip_node = surface.nodes.size();
 
     surface.nodes.push_back(tip_point);
-    
-    surface.node_deformation_velocities.push_back(Vector3d(0, 0, 0));
     
     vector<int> *empty_vector = new vector<int>;
     surface.node_panel_neighbors.push_back(empty_vector);

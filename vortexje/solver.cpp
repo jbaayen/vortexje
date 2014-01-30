@@ -172,10 +172,10 @@ Solver::set_fluid_density(double value)
 
 // Compute source coefficient for given surface and panel:
 double
-Solver::source_coefficient(const Surface &surface, int panel, const Vector3d &kinematic_velocity, bool include_wake_influence) const
+Solver::source_coefficient(const Surface &surface, int panel, const Vector3d &apparent_velocity, bool include_wake_influence) const
 {
     // Main velocity:
-    Vector3d velocity = -kinematic_velocity;
+    Vector3d velocity = -apparent_velocity;
     
     // Wake contribution:
     if (Parameters::convect_wake && include_wake_influence) {
@@ -230,11 +230,9 @@ Solver::surface_velocity(const Surface &surface, int panel, const Eigen::VectorX
 
     // Add flow due to kinematic velocity:
     Body *body = surface_to_body.find(&surface)->second;
-    Vector3d kinematic_velocity = surface.panel_deformation_velocity(panel)
-                                      + body->panel_kinematic_velocity(surface, panel)
-                                      - freestream_velocity;
+    Vector3d apparent_velocity = body->panel_kinematic_velocity(surface, panel) - freestream_velocity;
                                           
-    tangential_velocity -= kinematic_velocity;
+    tangential_velocity -= apparent_velocity;
     
     // Remove any normal velocity.  This is the (implicit) contribution of the source term.
     Vector3d normal = surface.panel_normal(panel);
@@ -337,11 +335,9 @@ Solver::surface_velocity_potential(const Surface &surface, int offset, int panel
         
         // Add flow potential due to kinematic velocity:
         Body *body = surface_to_body.find(&surface)->second;
-        Vector3d kinematic_velocity = surface.panel_deformation_velocity(panel)
-                                          + body->panel_kinematic_velocity(surface, panel)
-                                          - freestream_velocity;
+        Vector3d apparent_velocity = body->panel_kinematic_velocity(surface, panel) - freestream_velocity;
         
-        phi -= kinematic_velocity.dot(surface.panel_collocation_point(panel, false));
+        phi -= apparent_velocity.dot(surface.panel_collocation_point(panel, false));
         
         return phi;
     }
@@ -578,7 +574,7 @@ Solver::initialize_wakes(double dt)
     for (bi = bodies.begin(); bi != bodies.end(); bi++) {
         Body *body = *bi;
         
-        Vector3d body_kinematic_velocity = body->velocity - freestream_velocity;
+        Vector3d body_apparent_velocity = body->velocity - freestream_velocity;
         
         vector<Wake*>::const_iterator wi;
         for (wi = body->wakes.begin(); wi != body->wakes.end(); wi++) {
@@ -587,9 +583,9 @@ Solver::initialize_wakes(double dt)
             wake->add_layer();
             for (int i = 0; i < wake->n_nodes(); i++) {
                 if (Parameters::convect_wake)    
-                    wake->nodes[i] -= body_kinematic_velocity * dt;
+                    wake->nodes[i] -= body_apparent_velocity * dt;
                 else
-                    wake->nodes[i] -= Parameters::static_wake_length * body_kinematic_velocity / body_kinematic_velocity.norm();
+                    wake->nodes[i] -= Parameters::static_wake_length * body_apparent_velocity / body_apparent_velocity.norm();
             }
             
             wake->add_layer();
@@ -675,11 +671,9 @@ Solver::update_coefficients(double dt)
             Surface *non_lifting_surface = *si;
             
             for (int i = 0; i < non_lifting_surface->n_panels(); i++) {
-                Vector3d kinematic_velocity = non_lifting_surface->panel_deformation_velocity(i)
-                                              + body->panel_kinematic_velocity(*non_lifting_surface, i) 
-                                              - freestream_velocity;
+                Vector3d apparent_velocity = body->panel_kinematic_velocity(*non_lifting_surface, i) - freestream_velocity;
             
-                source_coefficients(idx) = source_coefficient(*non_lifting_surface, i, kinematic_velocity, true);
+                source_coefficients(idx) = source_coefficient(*non_lifting_surface, i, apparent_velocity, true);
                 idx++;
             }
         }
@@ -689,11 +683,9 @@ Solver::update_coefficients(double dt)
             LiftingSurface *lifting_surface = *lsi;
             
             for (int i = 0; i < lifting_surface->n_panels(); i++) {
-                Vector3d kinematic_velocity = lifting_surface->panel_deformation_velocity(i)
-                                              + body->panel_kinematic_velocity(*lifting_surface, i) 
-                                              - freestream_velocity;
+                Vector3d apparent_velocity = body->panel_kinematic_velocity(*lifting_surface, i) - freestream_velocity;
             
-                source_coefficients(idx) = source_coefficient(*lifting_surface, i, kinematic_velocity, true);
+                source_coefficients(idx) = source_coefficient(*lifting_surface, i, apparent_velocity, true);
                 idx++;
             }
         }
@@ -783,11 +775,9 @@ Solver::update_coefficients(double dt)
                 Surface *non_lifting_surface = *si;
                 
                 for (int i = 0; i < non_lifting_surface->n_panels(); i++) {
-                    Vector3d kinematic_velocity = non_lifting_surface->panel_deformation_velocity(i)
-                                                  + body->panel_kinematic_velocity(*non_lifting_surface, i) 
-                                                  - freestream_velocity;
+                    Vector3d apparent_velocity = body->panel_kinematic_velocity(*non_lifting_surface, i) - freestream_velocity;
                 
-                    source_coefficients(idx) = source_coefficient(*non_lifting_surface, i, kinematic_velocity, false);
+                    source_coefficients(idx) = source_coefficient(*non_lifting_surface, i, apparent_velocity, false);
                     idx++;
                 }
             }
@@ -797,11 +787,9 @@ Solver::update_coefficients(double dt)
                 LiftingSurface *lifting_surface = *lsi;
                 
                 for (int i = 0; i < lifting_surface->n_panels(); i++) {
-                    Vector3d kinematic_velocity = lifting_surface->panel_deformation_velocity(i)
-                                                  + body->panel_kinematic_velocity(*lifting_surface, i) 
-                                                  - freestream_velocity;
+                    Vector3d apparent_velocity = body->panel_kinematic_velocity(*lifting_surface, i) - freestream_velocity;
                 
-                    source_coefficients(idx) = source_coefficient(*lifting_surface, i, kinematic_velocity, false);
+                    source_coefficients(idx) = source_coefficient(*lifting_surface, i, apparent_velocity, false);
                     idx++;
                 }
             }
@@ -920,11 +908,9 @@ Solver::update_wakes(double dt)
                 // Alternative options are discussed in
                 //   K. Dixon, The Near Wake Structure of a Vertical Axis Wind Turbine, M.Sc. Thesis, TU Delft, 2008.
                 for (int i = wake->n_nodes() - lifting_surface->n_spanwise_nodes(); i < wake->n_nodes(); i++) {
-                    Vector3d kinematic_velocity = wake->node_deformation_velocities[i]
-                                                  + body->node_kinematic_velocity(*wake, i)
-                                                  - freestream_velocity;
+                    Vector3d apparent_velocity = body->node_kinematic_velocity(*wake, i) - freestream_velocity;
                                                                
-                    wake->nodes[i] -= kinematic_velocity * dt;
+                    wake->nodes[i] -= apparent_velocity * dt;
                 }                
                 
                 // Convect all other wake nodes according to the local wake velocity:
@@ -947,7 +933,7 @@ Solver::update_wakes(double dt)
         for (bi = bodies.begin(); bi != bodies.end(); bi++) {
             Body *body = *bi;
             
-            Vector3d body_kinematic_velocity = body->velocity - freestream_velocity;
+            Vector3d body_apparent_velocity = body->velocity - freestream_velocity;
             
             vector<LiftingSurface*>::iterator lsi;
             vector<Wake*>::iterator wi;
@@ -961,7 +947,7 @@ Solver::update_wakes(double dt)
                     
                     // Point wake in direction of body kinematic velocity:
                     wake->nodes[i] = lifting_surface->nodes[lifting_surface->trailing_edge_node(i)]
-                                     - Parameters::static_wake_length * body_kinematic_velocity / body_kinematic_velocity.norm();
+                                     - Parameters::static_wake_length * body_apparent_velocity / body_apparent_velocity.norm();
                 }
                 
                 // Need to update geometry:

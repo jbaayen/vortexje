@@ -118,8 +118,6 @@ PLYSurfaceLoader::read_vertex_coordinate(int index, double value)
             
         vector<int> *neighbor_list = new vector<int>;
         surface->node_panel_neighbors.push_back(neighbor_list);
-        
-        surface->node_deformation_velocities.push_back(Vector3d(0, 0, 0));
     }
 }
 

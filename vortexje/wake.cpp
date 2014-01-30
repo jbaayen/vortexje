@@ -38,8 +38,6 @@ Wake::add_layer()
         int node = n_nodes();
         nodes.push_back(new_point);
         
-        node_deformation_velocities.push_back(Vector3d(0, 0, 0));
-        
         if (k > 0 && (int) nodes.size() > lifting_surface.n_spanwise_nodes() + 1) {
             vector<int> vertices;
             vertices.push_back(node - 1);
