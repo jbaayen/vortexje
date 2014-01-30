@@ -235,16 +235,16 @@ Solver::surface_velocity(const Surface &surface, int panel, const Eigen::VectorX
 }
 
 /**
-   Establishes the reference velocity the given body.
+   Returns the square of the reference velocity for the given body.
    
    @param[in]   body   Body to establish reference velocity for.
    
-   @returns Reference velocity.
+   @returns Square of the reference velocity.
 */
 double
-Solver::reference_velocity(const Body &body) const
+Solver::reference_velocity_squared(const Body &body) const
 {
-    return (body.velocity - freestream_velocity).norm();
+    return (body.velocity - freestream_velocity).squaredNorm();
 }
 
 /**
@@ -257,9 +257,9 @@ Solver::reference_velocity(const Body &body) const
    @returns Pressure coefficient.
 */
 double
-Solver::pressure_coefficient(const Vector3d &surface_velocity, double dphidt, double v_ref) const
+Solver::pressure_coefficient(const Vector3d &surface_velocity, double dphidt, double v_ref_squared) const
 {
-    double C_p = 1 - (surface_velocity.squaredNorm() + 2 * dphidt) / pow(v_ref, 2);
+    double C_p = 1 - (surface_velocity.squaredNorm() + 2 * dphidt) / v_ref_squared;
     
     return C_p;
 }
@@ -785,7 +785,7 @@ Solver::update_coefficients(double dt)
     for (int i = 0; i < (int) bodies.size(); i++) {
         const Body *body = bodies[i];
         
-        double v_ref = reference_velocity(*body);
+        double v_ref_squared = reference_velocity_squared(*body);
         
         for (int j = 0; j < (int) body->non_lifting_surfaces.size(); j++) {
             Surface *non_lifting_surface = body->non_lifting_surfaces[j];
@@ -800,7 +800,7 @@ Solver::update_coefficients(double dt)
                 Vector3d V = surface_velocity(*non_lifting_surface, k, doublet_coefficient_field);
                 surface_velocities.block<1, 3>(idx, 0) = V;
  
-                pressure_coefficients(idx) = pressure_coefficient(V, dphidt, v_ref);
+                pressure_coefficients(idx) = pressure_coefficient(V, dphidt, v_ref_squared);
                 
                 idx++;
             }   
@@ -821,7 +821,7 @@ Solver::update_coefficients(double dt)
                 Vector3d V = surface_velocity(*lifting_surface, k, doublet_coefficient_field);
                 surface_velocities.block<1, 3>(idx, 0) = V;
  
-                pressure_coefficients(idx) = pressure_coefficient(V, dphidt, v_ref);
+                pressure_coefficients(idx) = pressure_coefficient(V, dphidt, v_ref_squared);
                 
                 idx++;
             }   
@@ -1016,8 +1016,10 @@ Solver::pressure_coefficient(const Surface &surface, int panel) const
 Eigen::Vector3d
 Solver::force(const Body &body) const
 {
-    double v_ref = reference_velocity(body);
+    // Dynamic pressure:
+    double q = 0.5 * fluid_density * reference_velocity_squared(body);
         
+    // Total force on body:
     Vector3d F(0, 0, 0);
     int offset = 0;
     
@@ -1027,7 +1029,7 @@ Solver::force(const Body &body) const
         for (int k = 0; k < surface->n_panels(); k++) {                                    
             Vector3d normal = surface->panel_normal(k);            
             double surface_area = surface->panel_surface_area(k);
-            F += 0.5 * fluid_density * pow(v_ref, 2) * surface_area * pressure_coefficients(offset + k) * normal;
+            F += q * surface_area * pressure_coefficients(offset + k) * normal;
         }
         
         offset += surface->n_panels();
@@ -1047,8 +1049,10 @@ Solver::force(const Body &body) const
 Eigen::Vector3d
 Solver::moment(const Body &body, const Eigen::Vector3d &x) const
 {
-    double v_ref = reference_velocity(body);
+    // Dynamic pressure:
+    double q = 0.5 * fluid_density * reference_velocity_squared(body);
         
+    // Total moment on body:
     Vector3d M(0, 0, 0);
     int offset = 0;
     
@@ -1058,7 +1062,7 @@ Solver::moment(const Body &body, const Eigen::Vector3d &x) const
         for (int k = 0; k < surface->n_panels(); k++) {                                    
             Vector3d normal = surface->panel_normal(k);            
             double surface_area = surface->panel_surface_area(k);
-            Vector3d F = 0.5 * fluid_density * pow(v_ref, 2) * surface_area * pressure_coefficients(offset + k) * normal;
+            Vector3d F = q * surface_area * pressure_coefficients(offset + k) * normal;
             Vector3d r = surface->panel_collocation_point(k, false) - x;
             M += r.cross(F);
         }

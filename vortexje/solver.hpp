@@ -100,7 +100,7 @@ private:
     
     Eigen::Vector3d surface_velocity(const Surface &surface, int panel, const Eigen::VectorXd &doublet_coefficient_field) const;
     
-    double reference_velocity(const Body &body) const;
+    double reference_velocity_squared(const Body &body) const;
 
     double pressure_coefficient(const Eigen::Vector3d &surface_velocity, double dphidt, double v_ref) const;
     

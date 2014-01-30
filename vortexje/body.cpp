@@ -46,7 +46,6 @@ Body::~Body()
 void
 Body::add_non_lifting_surface(Surface *non_lifting_surface)
 {
-    // Non-lifting surfaces go in the front.
     non_lifting_surfaces.push_back(non_lifting_surface);
     non_wake_surfaces.push_back(non_lifting_surface);
 }
@@ -59,7 +58,6 @@ Body::add_non_lifting_surface(Surface *non_lifting_surface)
 void
 Body::add_lifting_surface(LiftingSurface *lifting_surface)
 {
-    // Lifting surfaces go in the back.
     lifting_surfaces.push_back(lifting_surface);
     non_wake_surfaces.push_back(lifting_surface);
         

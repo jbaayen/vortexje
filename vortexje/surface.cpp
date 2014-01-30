@@ -200,7 +200,7 @@ Surface::compute_geometry()
             normal = AC.cross(BD);
         }
 
-        normal = normal / normal.norm();
+        normal.normalize();
 
         panel_normals.push_back(normal);
     }
@@ -397,8 +397,8 @@ Surface::distance_to_panel(const Eigen::Vector3d &x, int panel) const
         const Vector3d &vertex = nodes[single_panel_nodes[i]];
         const Vector3d &prev_vertex = nodes[single_panel_nodes[prev_idx]];
         
-        Vector3d edge = vertex - prev_vertex;
-        Vector3d edge_direction = edge / edge.norm();
+        Vector3d edge_direction = vertex - prev_vertex;
+        edge_direction.normalize();
             
         Vector3d vector_to_vertex = vertex - x;
         Vector3d vector_to_edge = vector_to_vertex - vector_to_vertex.dot(edge_direction) * edge_direction;
@@ -430,8 +430,9 @@ Surface::distance_to_panel(const Eigen::Vector3d &x, int panel) const
         const Vector3d &vertex = nodes[single_panel_nodes[i]];
         const Vector3d &prev_vertex = nodes[single_panel_nodes[prev_idx]];
         
-        Vector3d edge = vertex - prev_vertex;
-        Vector3d edge_direction = edge / edge.norm();
+        Vector3d edge_direction = vertex - prev_vertex;
+        edge_direction.normalize();
+
         Vector3d edge_normal = normal.cross(edge_direction);
         
         Vector3d vector_to_edge = vertex - projection_on_plane;
