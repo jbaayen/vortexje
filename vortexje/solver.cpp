@@ -250,9 +250,9 @@ Solver::velocity(const Eigen::Vector3d &x) const
         // Compute stream velocity near the boundary using interpolation, see
         //   K. Dixon, C. S. Ferreira, C. Hofemann, G. van Brussel, G. van Kuik,
         //   A 3D Unsteady Panel Method for Vertical Axis Wind Turbines, DUWIND, 2008.
-        Vector3d x = close_surface->panel_collocation_point(close_panel, false);
+        const Vector3d &x = close_surface->panel_collocation_point(close_panel, false);
         
-        Vector3d normal = close_surface->panel_normal(close_panel);
+        const Vector3d &normal = close_surface->panel_normal(close_panel);
         
         double total_weight = 0.0;
         
@@ -386,7 +386,7 @@ Solver::force(const Body &body) const
         const Surface *surface = *si;
         
         for (int i = 0; i < surface->n_panels(); i++) {
-            Vector3d normal = surface->panel_normal(i);
+            const Vector3d &normal = surface->panel_normal(i);
             double surface_area = surface->panel_surface_area(i);
             F += q * surface_area * pressure_coefficients(offset + i) * normal;
         }
@@ -421,7 +421,7 @@ Solver::moment(const Body &body, const Eigen::Vector3d &x) const
         const Surface *surface = *si;
         
         for (int i = 0; i < surface->n_panels(); i++) {                                    
-            Vector3d normal = surface->panel_normal(i);
+            const Vector3d &normal = surface->panel_normal(i);
             double surface_area = surface->panel_surface_area(i);
             Vector3d F = q * surface_area * pressure_coefficients(offset + i) * normal;
             Vector3d r = surface->panel_collocation_point(i, false) - x;
@@ -984,7 +984,7 @@ Solver::compute_source_coefficient(const Body &body, const Surface &surface, int
     }
     
     // Take normal component:
-    Vector3d normal = surface.panel_normal(panel);
+    const Vector3d &normal = surface.panel_normal(panel);
     return velocity.dot(normal);
 }
 
@@ -1055,7 +1055,7 @@ Solver::compute_surface_velocity(const Surface &surface, int offset, int panel) 
     // Compute disturbance part of surface velocity.
     Vector3d tangential_velocity;
     if (Parameters::marcov_surface_velocity) {
-        Vector3d x = surface.panel_collocation_point(panel, false);
+        const Vector3d &x = surface.panel_collocation_point(panel, false);
         
         // Use N. Marcov's formula for surface velocity, see L. Dragoş, Mathematical Methods in Aerodynamics, Springer, 2003.
         Vector3d tangential_velocity = compute_disturbance_velocity(x);
@@ -1070,7 +1070,7 @@ Solver::compute_surface_velocity(const Surface &surface, int offset, int panel) 
     tangential_velocity -= apparent_velocity;
     
     // Remove any normal velocity.  This is the (implicit) contribution of the source term.
-    Vector3d normal = surface.panel_normal(panel);
+    const Vector3d &normal = surface.panel_normal(panel);
     tangential_velocity -= tangential_velocity.dot(normal) * normal;
     
     // Done:

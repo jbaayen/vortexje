@@ -442,7 +442,7 @@ Surface::distance_to_panel(const Eigen::Vector3d &x, int panel) const
     }
     
     // Distance to interior:
-    Vector3d normal = panel_normal(panel);
+    const Vector3d &normal = panel_normal(panel);
     Vector3d vector_to_plane = normal.dot(mid - x) * normal;
     Vector3d projection_on_plane = x + vector_to_plane;
     
@@ -511,7 +511,7 @@ Surface::closest_panel(const Eigen::Vector3d &x, int &panel, double &distance) c
    
    @returns Collocation point.
 */
-Vector3d
+const Vector3d &
 Surface::panel_collocation_point(int panel, bool below_surface) const
 {
     return panel_collocation_points[below_surface][panel];
@@ -524,7 +524,7 @@ Surface::panel_collocation_point(int panel, bool below_surface) const
    
    @returns Inward-pointing normal.
 */
-Vector3d
+const Vector3d &
 Surface::panel_normal(int panel) const
 {
     return panel_normals[panel];
@@ -577,7 +577,6 @@ Surface::near_exterior_point(int node) const
     return nodes[node] - Parameters::interpolation_layer_thickness * layer_direction;
 }
 
-
 // Compute a matrix that rotates x to y.
 static Matrix3d
 x_to_y_rotation(const Vector3d &unit_x, const Vector3d &unit_y)
@@ -600,7 +599,7 @@ Vector3d
 Surface::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int offset, int this_panel) const
 {
     // We compute the scalar field gradient by fitting a linear model.
-    Vector3d this_normal = panel_normal(this_panel);
+    const Vector3d &this_normal = panel_normal(this_panel);
 
     // Set up a transformation such that panel normal becomes unit Z vector:
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
@@ -620,7 +619,7 @@ Surface::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int offset, 
     for (int i = 0; i < (int) panel_neighbors[this_panel].size(); i++) {
         int neighbor_panel = panel_neighbors[this_panel][i];
         
-        Vector3d neighbor_normal = panel_normal(neighbor_panel);
+        const Vector3d &neighbor_normal = panel_normal(neighbor_panel);
         if (this_normal.dot(neighbor_normal) >= 0) {
             // Add neighbor relative to this_panel:
             Vector3d neighbor_vector_normalized = rotation * panel_collocation_point(neighbor_panel, false) - x_normalized;
@@ -754,7 +753,7 @@ source_edge_influence(const Vector3d &x, const Vector3d &this_panel_collocation_
 double
 Surface::source_influence(const Eigen::Vector3d &x, int this_panel) const
 {
-    // Transform such that panel normal becomes unit Z vector:
+    // Transform such that panel normal becomes unit Z vector:    
     Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
     
     Vector3d x_normalized = rotation * x;

@@ -149,7 +149,7 @@ Body::set_rotational_velocity(const Vector3d &rotational_velocity)
 Vector3d
 Body::panel_kinematic_velocity(const Surface &surface, int panel) const
 {
-    Vector3d panel_position = surface.panel_collocation_point(panel, false);
+    const Vector3d &panel_position = surface.panel_collocation_point(panel, false);
     Vector3d r = panel_position - position;
     return velocity + rotational_velocity.cross(r);
 }

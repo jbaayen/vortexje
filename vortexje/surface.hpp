@@ -98,9 +98,9 @@ public:
     double distance_to_panel(const Eigen::Vector3d &x, int panel) const;
     virtual bool closest_panel(const Eigen::Vector3d &x, int &panel, double &distance) const;
     
-    Eigen::Vector3d panel_collocation_point(int panel, bool below_surface) const;
+    const Eigen::Vector3d &panel_collocation_point(int panel, bool below_surface) const;
     
-    Eigen::Vector3d panel_normal(int panel) const;
+    const Eigen::Vector3d &panel_normal(int panel) const;
     
     double panel_surface_area(int panel) const;
     
