@@ -35,7 +35,7 @@ enable_testing()
 
 # Subdirectories.
 add_subdirectory(vortexje)
-add_subdirectory(test)
+add_subdirectory(tests)
 add_subdirectory(examples)
 add_subdirectory(doc)
 

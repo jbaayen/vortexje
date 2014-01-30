@@ -102,7 +102,7 @@ main (int argc, char **argv)
     std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > reference_results;
     
     ifstream f;
-    f.open("test-naca0012-reference.txt");
+    f.open("naca0012-reference-data.txt");
     
     while (f.good()) {
         string line;
