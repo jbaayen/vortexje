@@ -81,6 +81,16 @@ public:
     std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > panel_normals;
     
     /**
+       Panel number to panel coordinate transformation map.
+    */
+    std::vector<Eigen::Transform<double, 3, Eigen::Affine>, Eigen::aligned_allocator<Eigen::Transform<double, 3, Eigen::Affine> > > panel_coordinate_transformations;
+    
+    /**
+       Panel number to comprising vertex points (in the panel coordinate system) map.
+    */
+    std::vector<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > > panel_transformed_points;
+    
+    /**
        Panel number to surface area map.
     */
     std::vector<double> panel_surface_areas;
@@ -101,6 +111,8 @@ public:
     const Eigen::Vector3d &panel_collocation_point(int panel, bool below_surface) const;
     
     const Eigen::Vector3d &panel_normal(int panel) const;
+    
+    const Eigen::Transform<double, 3, Eigen::Affine> &panel_coordinate_transformation(int panel) const;
     
     double panel_surface_area(int panel) const;
     

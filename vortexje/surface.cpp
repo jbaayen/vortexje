@@ -232,6 +232,40 @@ Surface::compute_geometry()
         panel_collocation_points[1].push_back(below_surface_collocation_point);
     }
     
+    // Coordinate transformations:
+    cout << "Surface " << id << ": Generating panel coordinate transformations." << endl;
+        
+    panel_coordinate_transformations.clear();
+    panel_coordinate_transformations.reserve(n_panels());
+    
+    panel_transformed_points.clear();
+    panel_transformed_points.reserve(n_panels());
+    
+    for (int i = 0; i < n_panels(); i++) {
+        vector<int> &single_panel_nodes = panel_nodes[i];
+        
+        Vector3d AB = nodes[single_panel_nodes[1]] - nodes[single_panel_nodes[0]];
+        AB.normalize();
+        
+        const Vector3d &normal = panel_normal(i);
+        
+        Matrix3d rotation;
+        rotation.block<1, 3>(0, 0) = AB;
+        rotation.block<1, 3>(1, 0) = normal.cross(AB);
+        rotation.block<1, 3>(2, 0) = normal;
+        
+        Transform<double, 3, Affine> transformation = rotation * Translation<double, 3>(-panel_collocation_point(i, false));
+
+        panel_coordinate_transformations.push_back(transformation);
+        
+        // Create transformed points.
+        vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > single_panel_transformed_points;
+        single_panel_transformed_points.reserve(single_panel_nodes.size());
+        for (int j = 0; j < (int) single_panel_nodes.size(); j++)
+            single_panel_transformed_points.push_back(transformation * nodes[single_panel_nodes[j]]);
+        panel_transformed_points.push_back(single_panel_transformed_points);
+    }
+    
     // Surface areas:
     cout << "Surface " << id << ": Generating panel surface area cache." << endl;
     
@@ -314,8 +348,7 @@ Surface::n_panels() const
 void
 Surface::rotate(const Eigen::Vector3d &axis, double angle)
 {
-    Eigen::Matrix3d transformation = AngleAxis<double>(angle, axis).toRotationMatrix();
-    transform(transformation);
+    transform(AngleAxis<double>(angle, axis).toRotationMatrix());
 }
 
 /**
@@ -326,20 +359,7 @@ Surface::rotate(const Eigen::Vector3d &axis, double angle)
 void
 Surface::transform(const Eigen::Matrix3d &transformation)
 {
-    for (int i = 0; i < n_nodes(); i++)
-        nodes[i] = transformation * nodes[i];
-            
-    for (int j = 0; j < 2; j++) {
-        if (!panel_collocation_points[j].empty()) {
-            for (int i = 0; i < n_panels(); i++)
-                panel_collocation_points[j][i] = transformation * panel_collocation_points[j][i];
-        }
-    }
-    
-    if (!panel_normals.empty()) {
-        for (int i = 0; i < n_panels(); i++)
-            panel_normals[i] = transformation * panel_normals[i];
-    }
+    transform(Transform<double, 3, Eigen::Affine>(transformation));
 }
 
 /**
@@ -351,19 +371,17 @@ void
 Surface::transform(const Eigen::Transform<double, 3, Eigen::Affine> &transformation)
 {
     for (int i = 0; i < n_nodes(); i++)
-        nodes[i] = transformation * nodes[i];
+        nodes[i] = transformation * nodes[i];   
             
-    for (int j = 0; j < 2; j++) {
-        if (!panel_collocation_points[j].empty()) {
-            for (int i = 0; i < n_panels(); i++)
-                panel_collocation_points[j][i] = transformation * panel_collocation_points[j][i];
-        }
-    }
-    
-    if (!panel_normals.empty()) {
+    for (int j = 0; j < 2; j++)
         for (int i = 0; i < n_panels(); i++)
-            panel_normals[i] = transformation * panel_normals[i];
-    }
+            panel_collocation_points[j][i] = transformation * panel_collocation_points[j][i];
+    
+    for (int i = 0; i < n_panels(); i++)
+        panel_normals[i] = transformation * panel_normals[i];
+        
+    for (int i = 0; i < n_panels(); i++)
+        panel_coordinate_transformations[i] = panel_coordinate_transformations[i] * transformation.inverse();
 }
 
 /**
@@ -377,12 +395,12 @@ Surface::translate(const Eigen::Vector3d &translation)
     for (int i = 0; i < n_nodes(); i++)
         nodes[i] = nodes[i] + translation;
             
-    for (int j = 0; j < 2; j++) {
-        if (!panel_collocation_points[j].empty()) {
-            for (int i = 0; i < n_panels(); i++)
-                panel_collocation_points[j][i] = panel_collocation_points[j][i] + translation;
-        }
-    }
+    for (int j = 0; j < 2; j++)
+        for (int i = 0; i < n_panels(); i++)
+            panel_collocation_points[j][i] = panel_collocation_points[j][i] + translation;
+            
+    for (int i = 0; i < n_panels(); i++)
+        panel_coordinate_transformations[i] = panel_coordinate_transformations[i] * Translation<double, 3>(-translation);
 }
 
 /**
@@ -506,7 +524,7 @@ Surface::closest_panel(const Eigen::Vector3d &x, int &panel, double &distance) c
 /**
    Returns the collocation point of the given panel.
    
-   @param[in]   panel           Panel of which the collocation point is evaluated.
+   @param[in]   panel           Panel of which the collocation point is returned.
    @param[in]   below_surface   true to request the collocation point lying underneath the surface.
    
    @returns Collocation point.
@@ -520,7 +538,7 @@ Surface::panel_collocation_point(int panel, bool below_surface) const
 /**
    Returns the inward-pointing normal of the given panel.
    
-   @param[in]   panel   Panel of which the inward-pointing normal is evaluated.
+   @param[in]   panel   Panel of which the inward-pointing normal is returned.
    
    @returns Inward-pointing normal.
 */
@@ -531,9 +549,22 @@ Surface::panel_normal(int panel) const
 }
 
 /**
+   Returns the panel coordinate transformation for the given panel.
+   
+   @param[in]   panel   Panel of which the coordinate transformation is returned.
+   
+   @returns Panel coordinate transformation.
+*/
+const Transform<double, 3, Affine> &
+Surface::panel_coordinate_transformation(int panel) const
+{
+    return panel_coordinate_transformations[panel];
+}
+
+/**
    Returns the surface area of the given panel.
    
-   @param[in]   panel   Panel of which the surface area is evaluated.
+   @param[in]   panel   Panel of which the surface area is returned.
    
    @returns Panel surface area.
 */
@@ -546,7 +577,7 @@ Surface::panel_surface_area(int panel) const
 /**
    Returns the diameter of the given panel.
    
-   @param[in]   panel   Panel of which the diameter is evaluated.
+   @param[in]   panel   Panel of which the diameter is returned.
    
    @returns Panel diameter.
 */
@@ -577,15 +608,6 @@ Surface::near_exterior_point(int node) const
     return nodes[node] - Parameters::interpolation_layer_thickness * layer_direction;
 }
 
-// Compute a matrix that rotates x to y.
-static Matrix3d
-x_to_y_rotation(const Vector3d &unit_x, const Vector3d &unit_y)
-{   
-    Quaterniond q;
-    q.setFromTwoVectors(unit_x, unit_y);
-    return q.toRotationMatrix();
-}
-
 /**
    Computes the on-body gradient of a scalar field.
    
@@ -602,9 +624,7 @@ Surface::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int offset, 
     const Vector3d &this_normal = panel_normal(this_panel);
 
     // Set up a transformation such that panel normal becomes unit Z vector:
-    Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
-    
-    Vector3d x_normalized = rotation * panel_collocation_point(this_panel, false);
+    Transform<double, 3, Affine> transformation = panel_coordinate_transformation(this_panel);
     
     // Set up model equations:
     MatrixXd A(panel_neighbors[this_panel].size() + 1, 3);
@@ -622,7 +642,7 @@ Surface::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int offset, 
         const Vector3d &neighbor_normal = panel_normal(neighbor_panel);
         if (this_normal.dot(neighbor_normal) >= 0) {
             // Add neighbor relative to this_panel:
-            Vector3d neighbor_vector_normalized = rotation * panel_collocation_point(neighbor_panel, false) - x_normalized;
+            Vector3d neighbor_vector_normalized = transformation * panel_collocation_point(neighbor_panel, false);
         
             A(i + 1, 0) = neighbor_vector_normalized(0);
             A(i + 1, 1) = neighbor_vector_normalized(1);
@@ -644,14 +664,14 @@ Surface::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int offset, 
     Vector3d gradient_normalized = Vector3d(model_coefficients(0), model_coefficients(1), 0.0);
     
     // Transform gradient to global frame:
-    return rotation.transpose() * gradient_normalized;
+    return transformation.rotation().transpose() * gradient_normalized;
 }
 
 // Compute influence of doublet panel edge on given point.
 static double
-doublet_edge_influence(const Vector3d &x, const Vector3d &this_panel_collocation_point_normalized, const Vector3d &node_a, const Vector3d &node_b)
+doublet_edge_influence(const Vector3d &x, const Vector3d &node_a, const Vector3d &node_b)
 {   
-    double z = x(2) - this_panel_collocation_point_normalized(2);
+    double z = x(2);
     
     double r1 = sqrt(pow(x(0) - node_a(0), 2) + pow(x(1) - node_a(1), 2) + pow(z, 2));
     double r2 = sqrt(pow(x(0) - node_b(0), 2) + pow(x(1) - node_b(1), 2) + pow(z, 2));
@@ -687,28 +707,23 @@ double
 Surface::doublet_influence(const Eigen::Vector3d &x, int this_panel) const
 {
     // Transform such that panel normal becomes unit Z vector:
-    Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
+    const Transform<double, 3, Affine> &transformation = panel_coordinate_transformation(this_panel);
     
-    Vector3d x_normalized = rotation * x;
-    Vector3d this_panel_collocation_point_normalized = rotation * panel_collocation_point(this_panel, false);
-    
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > normalized_panel_nodes;
-    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
-        normalized_panel_nodes.push_back(rotation * nodes[panel_nodes[this_panel][i]]);
+    Vector3d x_normalized = transformation * x;
     
     // Compute influence coefficient according to Hess:
     double influence = 0.0;
-    for (int i = 0; i < (int) normalized_panel_nodes.size(); i++) {
+    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++) {
         int prev_idx;
         if (i == 0)
-            prev_idx = normalized_panel_nodes.size() - 1;
+            prev_idx = panel_nodes[this_panel].size() - 1;
         else
             prev_idx = i - 1;
             
-        const Vector3d &node_a = normalized_panel_nodes[prev_idx];
-        const Vector3d &node_b = normalized_panel_nodes[i];
+        const Vector3d &node_a = panel_transformed_points[this_panel][prev_idx];
+        const Vector3d &node_b = panel_transformed_points[this_panel][i];
         
-        influence += doublet_edge_influence(x_normalized, this_panel_collocation_point_normalized, node_a, node_b);
+        influence += doublet_edge_influence(x_normalized, node_a, node_b);
     }
     
     return div_4pi * influence;
@@ -716,14 +731,14 @@ Surface::doublet_influence(const Eigen::Vector3d &x, int this_panel) const
 
 // Compute influence of source panel edge on given point.
 static double
-source_edge_influence(const Vector3d &x, const Vector3d &this_panel_collocation_point_normalized, const Vector3d &node_a, const Vector3d &node_b)
+source_edge_influence(const Vector3d &x, const Vector3d &node_a, const Vector3d &node_b)
 {
     double d = sqrt(pow(node_b(0) - node_a(0), 2) + pow(node_b(1) - node_a(1), 2));
 
     if (d < Parameters::inversion_tolerance)
         return 0.0;
         
-    double z = x(2) - this_panel_collocation_point_normalized(2);
+    double z = x(2);
     
     double r1 = sqrt(pow(x(0) - node_a(0), 2) + pow(x(1) - node_a(1), 2) + pow(z, 2));
     double r2 = sqrt(pow(x(0) - node_b(0), 2) + pow(x(1) - node_b(1), 2) + pow(z, 2));
@@ -754,28 +769,23 @@ double
 Surface::source_influence(const Eigen::Vector3d &x, int this_panel) const
 {
     // Transform such that panel normal becomes unit Z vector:    
-    Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
+    const Transform<double, 3, Affine> &transformation = panel_coordinate_transformation(this_panel);
     
-    Vector3d x_normalized = rotation * x;
-    Vector3d this_panel_collocation_point_normalized = rotation * panel_collocation_point(this_panel, false);
-    
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > normalized_panel_nodes;
-    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
-        normalized_panel_nodes.push_back(rotation * nodes[panel_nodes[this_panel][i]]);
+    Vector3d x_normalized = transformation * x;
     
     // Compute influence coefficient according to Hess:
     double influence = 0.0;
-    for (int i = 0; i < (int) normalized_panel_nodes.size(); i++) {
+    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++) {
         int prev_idx;
         if (i == 0)
-            prev_idx = normalized_panel_nodes.size() - 1;
+            prev_idx = panel_nodes[this_panel].size() - 1;
         else
             prev_idx = i - 1;
             
-        const Vector3d &node_a = normalized_panel_nodes[prev_idx];
-        const Vector3d &node_b = normalized_panel_nodes[i];
+        const Vector3d &node_a = panel_transformed_points[this_panel][prev_idx];
+        const Vector3d &node_b = panel_transformed_points[this_panel][i];
         
-        influence += source_edge_influence(x_normalized, this_panel_collocation_point_normalized, node_a, node_b);
+        influence += source_edge_influence(x_normalized, node_a, node_b);
     }   
     
     return -div_4pi * influence;
@@ -783,14 +793,14 @@ Surface::source_influence(const Eigen::Vector3d &x, int this_panel) const
 
 // Compute velocity induced by an edge of a source panel:
 static Vector3d
-source_edge_unit_velocity(const Vector3d &x, const Vector3d &this_panel_collocation_point_normalized, const Vector3d &node_a, const Vector3d &node_b)
+source_edge_unit_velocity(const Vector3d &x, const Vector3d &node_a, const Vector3d &node_b)
 {   
     double d = sqrt(pow(node_b(0) - node_a(0), 2) + pow(node_b(1) - node_a(1), 2));
     
     if (d < Parameters::inversion_tolerance)
         return Vector3d(0, 0, 0);
         
-    double z = x(2) - this_panel_collocation_point_normalized(2);
+    double z = x(2);
     
     double r1 = sqrt(pow(x(0) - node_a(0), 2) + pow(x(1) - node_a(1), 2) + pow(z, 2));
     double r2 = sqrt(pow(x(0) - node_b(0), 2) + pow(x(1) - node_b(1), 2) + pow(z, 2));
@@ -825,32 +835,27 @@ Vector3d
 Surface::source_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
 {   
     // Transform such that panel normal becomes unit Z vector:
-    Matrix3d rotation = x_to_y_rotation(panel_normal(this_panel), Vector3d::UnitZ());
+    const Transform<double, 3, Affine> &transformation = panel_coordinate_transformation(this_panel);
     
-    Vector3d x_normalized = rotation * x;
-    Vector3d this_panel_collocation_point_normalized = rotation * panel_collocation_point(this_panel, false);
-    
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > normalized_panel_nodes;
-    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++)
-        normalized_panel_nodes.push_back(rotation * nodes[panel_nodes[this_panel][i]]);
+    Vector3d x_normalized = transformation * x;
     
     // Compute influence coefficient according to Hess:
     Vector3d velocity(0, 0, 0);
-    for (int i = 0; i < (int) normalized_panel_nodes.size(); i++) {
+    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++) {
         int prev_idx;
         if (i == 0)
-            prev_idx = normalized_panel_nodes.size() - 1;
+            prev_idx = panel_nodes[this_panel].size() - 1;
         else
             prev_idx = i - 1;
             
-        const Vector3d &node_a = normalized_panel_nodes[prev_idx];
-        const Vector3d &node_b = normalized_panel_nodes[i];
+        const Vector3d &node_a = panel_transformed_points[this_panel][prev_idx];
+        const Vector3d &node_b = panel_transformed_points[this_panel][i];
         
-        velocity += source_edge_unit_velocity(x_normalized, this_panel_collocation_point_normalized, node_a, node_b);
+        velocity += source_edge_unit_velocity(x_normalized, node_a, node_b);
     }   
     
     // Transform back:
-    velocity = rotation.transpose() * velocity;
+    velocity = transformation.rotation().transpose() * velocity;
     
     // Done:
     return div_4pi * velocity;
