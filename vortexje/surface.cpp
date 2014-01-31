@@ -690,7 +690,14 @@ doublet_edge_influence(const Vector3d &x, const Vector3d &node_a, const Vector3d
     double h2 = (x(0) - node_b(0)) * (x(1) - node_b(1));
 
     // IEEE-754 floating point division by zero results in +/- inf, and atan(inf) = pi / 2.
-    double delta_theta = atan((m * e1 - h1) / (z * r1)) - atan((m * e2 - h2) / (z * r2));
+    double u = (m * e1 - h1) / (z * r1);
+    double v = (m * e2 - h2) / (z * r2);
+    
+    double delta_theta;
+    if (u == v)
+        delta_theta = 0.0;
+    else
+        delta_theta = atan2(u - v, 1 + u * v);
     
     return delta_theta;
 }
@@ -752,7 +759,14 @@ source_edge_influence(const Vector3d &x, const Vector3d &node_a, const Vector3d 
     double h2 = (x(0) - node_b(0)) * (x(1) - node_b(1));
     
     // IEEE-754 floating point division by zero results in +/- inf, and atan(inf) = pi / 2.
-    double delta_theta = atan((m * e1 - h1) / (z * r1)) - atan((m * e2 - h2) / (z * r2));
+    double u = (m * e1 - h1) / (z * r1);
+    double v = (m * e2 - h2) / (z * r2);
+    
+    double delta_theta;
+    if (u == v)
+        delta_theta = 0.0;
+    else
+        delta_theta = atan2(u - v, 1 + u * v);
     
     return ((x(0) - node_a(0)) * (node_b(1) - node_a(1)) - (x(1) - node_a(1)) * (node_b(0) - node_a(0))) / d * log((r1 + r2 + d) / (r1 + r2 - d)) - fabs(z) * delta_theta; 
 }
