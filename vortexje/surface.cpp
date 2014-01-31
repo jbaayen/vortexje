@@ -876,24 +876,24 @@ Surface::vortex_ring_ramasamy_leishman_velocity(const Eigen::Vector3d &x, int th
         b[1] = ramasamy_leishman_data[11].b_2;
         b[2] = ramasamy_leishman_data[11].b_3;
     } else {
-        double delta_vortex_reynolds_number =
-            ramasamy_leishman_data[less_than_idx].vortex_reynolds_number - ramasamy_leishman_data[less_than_idx - 1].vortex_reynolds_number;
+        double one_over_delta_vortex_reynolds_number =
+            1.0 / (ramasamy_leishman_data[less_than_idx].vortex_reynolds_number - ramasamy_leishman_data[less_than_idx - 1].vortex_reynolds_number);
         double x = vortex_reynolds_number - ramasamy_leishman_data[less_than_idx - 1].vortex_reynolds_number;
         double slope;
         
-        slope = (ramasamy_leishman_data[less_than_idx].a_1 - ramasamy_leishman_data[less_than_idx - 1].a_1) / delta_vortex_reynolds_number;
+        slope = (ramasamy_leishman_data[less_than_idx].a_1 - ramasamy_leishman_data[less_than_idx - 1].a_1) * one_over_delta_vortex_reynolds_number;
         a[0] = ramasamy_leishman_data[less_than_idx - 1].a_1 + slope * x;
         
-        slope = (ramasamy_leishman_data[less_than_idx].a_2 - ramasamy_leishman_data[less_than_idx - 1].a_2) / delta_vortex_reynolds_number;
+        slope = (ramasamy_leishman_data[less_than_idx].a_2 - ramasamy_leishman_data[less_than_idx - 1].a_2) * one_over_delta_vortex_reynolds_number;
         a[1] = ramasamy_leishman_data[less_than_idx - 1].a_2 + slope * x;
         
-        slope = (ramasamy_leishman_data[less_than_idx].b_1 - ramasamy_leishman_data[less_than_idx - 1].b_1) / delta_vortex_reynolds_number;
+        slope = (ramasamy_leishman_data[less_than_idx].b_1 - ramasamy_leishman_data[less_than_idx - 1].b_1) * one_over_delta_vortex_reynolds_number;
         b[0] = ramasamy_leishman_data[less_than_idx - 1].b_1 + slope * x;
         
-        slope = (ramasamy_leishman_data[less_than_idx].b_2 - ramasamy_leishman_data[less_than_idx - 1].b_2) / delta_vortex_reynolds_number;
+        slope = (ramasamy_leishman_data[less_than_idx].b_2 - ramasamy_leishman_data[less_than_idx - 1].b_2) * one_over_delta_vortex_reynolds_number;
         b[1] = ramasamy_leishman_data[less_than_idx - 1].b_2 + slope * x;
         
-        slope = (ramasamy_leishman_data[less_than_idx].b_3 - ramasamy_leishman_data[less_than_idx - 1].b_3) / delta_vortex_reynolds_number;
+        slope = (ramasamy_leishman_data[less_than_idx].b_3 - ramasamy_leishman_data[less_than_idx - 1].b_3) * one_over_delta_vortex_reynolds_number;
         b[2] = ramasamy_leishman_data[less_than_idx - 1].b_3 + slope * x;
     }
     
@@ -931,10 +931,12 @@ Surface::vortex_ring_ramasamy_leishman_velocity(const Eigen::Vector3d &x, int th
             continue;
             
         double d = r_1xr_2_norm / r_0_norm;
+        
+        double dr = pow(d / core_radii[i], 2);
             
         double sum = 0;
         for (int j = 0; j < 3; j++)
-            sum += a[j] * exp(-b[j] * pow(d / core_radii[i], 2));
+            sum += a[j] * exp(-b[j] * dr);
 
         velocity += (1 - sum) * r_1xr_2 / r_1xr_2_sqnorm * r_0.dot(r_1 / r_1_norm - r_2 / r_2_norm);
     }
