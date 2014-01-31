@@ -508,6 +508,8 @@ Solver::solve(double dt)
     }
   
     // Populate the matrices of influence coefficients:
+    cout << "Solver: Computing matrices of influence coefficients." << endl;
+    
     MatrixXd A(n_non_wake_panels, n_non_wake_panels);
     MatrixXd source_influence_coefficients(n_non_wake_panels, n_non_wake_panels);
     
@@ -576,14 +578,14 @@ Solver::solve(double dt)
     }
     
     // Compute the doublet distribution:
+    cout << "Solver: Computing doublet distribution." << endl;
+    
     VectorXd b = source_influence_coefficients * source_coefficients;
     
     BiCGSTAB<MatrixXd> solver(A);
     solver.setMaxIterations(Parameters::linear_solver_max_iterations);
     solver.setTolerance(Parameters::linear_solver_tolerance);
 
-    cout << "Solver: Computing doublet distribution." << endl;
-    
     doublet_coefficients = solver.solveWithGuess(b, doublet_coefficients);
     
     if (solver.info() != Success) {
@@ -732,6 +734,8 @@ Solver::update_wakes(double dt)
 {
     // Do we convect wake panels?
     if (Parameters::convect_wake) {
+        cout << "Solver: Convecting wakes." << endl;
+        
         // Compute velocity values at wake nodes;
         std::vector<std::vector<Vector3d> > wake_velocities;
         
@@ -792,6 +796,8 @@ Solver::update_wakes(double dt)
         }
         
     } else {
+        cout << "Solver: Re-positioning wakes." << endl;
+        
         // No wake convection.  Re-position wake:
         vector<Body*>::iterator bi;
         for (bi = bodies.begin(); bi != bodies.end(); bi++) {
