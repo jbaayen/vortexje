@@ -122,8 +122,10 @@ public:
     
     Eigen::Vector3d scalar_field_gradient(const Eigen::VectorXd &scalar_field, int offset, int this_panel) const;
     
-    double doublet_influence(const Eigen::Vector3d &x, int this_panel) const;
+    void source_and_doublet_influence(const Eigen::Vector3d &x, int this_panel, double &source_influence, double &doublet_influence) const;
+    
     double source_influence(const Eigen::Vector3d &x, int this_panel) const;
+    double doublet_influence(const Eigen::Vector3d &x, int this_panel) const;
     
     Eigen::Vector3d source_unit_velocity(const Eigen::Vector3d &x, int this_panel) const;
     Eigen::Vector3d vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) const;
@@ -131,6 +133,8 @@ public:
     
     double doublet_influence(const Surface &other, int other_panel, int this_panel) const;
     double source_influence(const Surface &other, int other_panel, int this_panel) const;
+    
+    void source_and_doublet_influence(const Surface &other, int other_panel, int this_panel, double &source_influence, double &doublet_influence) const;
     
     Eigen::Vector3d source_unit_velocity(const Surface &other, int other_panel, int this_panel) const;
     Eigen::Vector3d vortex_ring_unit_velocity(const Surface &other, int other_panel, int this_panel) const;

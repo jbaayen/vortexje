@@ -667,19 +667,25 @@ Surface::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int offset, 
     return transformation.rotation().transpose() * gradient_normalized;
 }
 
-// Compute influence of doublet panel edge on given point.
-static double
-doublet_edge_influence(const Vector3d &x, const Vector3d &node_a, const Vector3d &node_b)
-{   
+// Simultaneously compute influence of source and doublet panel edges on given point.
+static void
+source_and_doublet_edge_influence(const Vector3d &x, const Vector3d &node_a, const Vector3d &node_b, double *source_edge_influence, double *doublet_edge_influence)
+{
+    double d = sqrt(pow(node_b(0) - node_a(0), 2) + pow(node_b(1) - node_a(1), 2));
+
+    if (d < Parameters::inversion_tolerance) {
+        if (source_edge_influence != NULL)
+            *source_edge_influence = 0.0;
+        if (doublet_edge_influence != NULL)
+            *doublet_edge_influence = 0.0;
+            
+        return;
+    }
+        
     double z = x(2);
     
     double r1 = sqrt(pow(x(0) - node_a(0), 2) + pow(x(1) - node_a(1), 2) + pow(z, 2));
     double r2 = sqrt(pow(x(0) - node_b(0), 2) + pow(x(1) - node_b(1), 2) + pow(z, 2));
-    
-    double d = sqrt(pow(node_b(0) - node_a(0), 2) + pow(node_b(1) - node_a(1), 2));
-    
-    if (d < Parameters::inversion_tolerance)
-        return 0.0;
     
     double m = (node_b(1) - node_a(1)) / (node_b(0) - node_a(0));
     
@@ -688,7 +694,7 @@ doublet_edge_influence(const Vector3d &x, const Vector3d &node_a, const Vector3d
     
     double h1 = (x(0) - node_a(0)) * (x(1) - node_a(1));
     double h2 = (x(0) - node_b(0)) * (x(1) - node_b(1));
-
+    
     // IEEE-754 floating point division by zero results in +/- inf, and atan(inf) = pi / 2.
     double u = (m * e1 - h1) / (z * r1);
     double v = (m * e2 - h2) / (z * r2);
@@ -699,27 +705,32 @@ doublet_edge_influence(const Vector3d &x, const Vector3d &node_a, const Vector3d
     else
         delta_theta = atan2(u - v, 1 + u * v);
     
-    return delta_theta;
+    if (source_edge_influence != NULL)
+        *source_edge_influence  = ((x(0) - node_a(0)) * (node_b(1) - node_a(1)) - (x(1) - node_a(1)) * (node_b(0) - node_a(0))) / d * log((r1 + r2 + d) / (r1 + r2 - d)) - fabs(z) * delta_theta; 
+    if (doublet_edge_influence != NULL)
+        *doublet_edge_influence = delta_theta;
 }
 
 /**
-   Computes the potential influence induced by a doublet panel of unit strength.  
+   Simultaneously computes the potential influences induced by source and doublet panels of unit strength.  
    
-   @param[in]   x            Point at which the influence coefficient is evaluated.
-   @param[in]   this_panel   Panel on which the doublet panel is located.
-   
-   @returns Influence coefficient.
+   @param[in]   x                   Point at which the influence coefficient is evaluated.
+   @param[in]   this_panel          Panel on which the doublet panel is located.
+   @param[out]  source_influence    Source influence value.
+   @param[out]  doublet_influence   Doublet influence value.
 */
-double
-Surface::doublet_influence(const Eigen::Vector3d &x, int this_panel) const
+void
+Surface::source_and_doublet_influence(const Eigen::Vector3d &x, int this_panel, double &source_influence, double &doublet_influence) const
 {
-    // Transform such that panel normal becomes unit Z vector:
+    // Transform such that panel normal becomes unit Z vector:    
     const Transform<double, 3, Affine> &transformation = panel_coordinate_transformation(this_panel);
     
     Vector3d x_normalized = transformation * x;
     
     // Compute influence coefficient according to Hess:
-    double influence = 0.0;
+    source_influence  = 0.0;
+    doublet_influence = 0.0;
+    
     for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++) {
         int prev_idx;
         if (i == 0)
@@ -730,45 +741,16 @@ Surface::doublet_influence(const Eigen::Vector3d &x, int this_panel) const
         const Vector3d &node_a = panel_transformed_points[this_panel][prev_idx];
         const Vector3d &node_b = panel_transformed_points[this_panel][i];
         
-        influence += doublet_edge_influence(x_normalized, node_a, node_b);
-    }
-    
-    return div_4pi * influence;
-}
-
-// Compute influence of source panel edge on given point.
-static double
-source_edge_influence(const Vector3d &x, const Vector3d &node_a, const Vector3d &node_b)
-{
-    double d = sqrt(pow(node_b(0) - node_a(0), 2) + pow(node_b(1) - node_a(1), 2));
-
-    if (d < Parameters::inversion_tolerance)
-        return 0.0;
+        double source_edge_influence, doublet_edge_influence;
         
-    double z = x(2);
+        source_and_doublet_edge_influence(x_normalized, node_a, node_b, &source_edge_influence, &doublet_edge_influence);
+        
+        source_influence  += source_edge_influence;
+        doublet_influence += doublet_edge_influence;
+    }   
     
-    double r1 = sqrt(pow(x(0) - node_a(0), 2) + pow(x(1) - node_a(1), 2) + pow(z, 2));
-    double r2 = sqrt(pow(x(0) - node_b(0), 2) + pow(x(1) - node_b(1), 2) + pow(z, 2));
-    
-    double m = (node_b(1) - node_a(1)) / (node_b(0) - node_a(0));
-    
-    double e1 = pow(x(0) - node_a(0), 2) + pow(z, 2);
-    double e2 = pow(x(0) - node_b(0), 2) + pow(z, 2);
-    
-    double h1 = (x(0) - node_a(0)) * (x(1) - node_a(1));
-    double h2 = (x(0) - node_b(0)) * (x(1) - node_b(1));
-    
-    // IEEE-754 floating point division by zero results in +/- inf, and atan(inf) = pi / 2.
-    double u = (m * e1 - h1) / (z * r1);
-    double v = (m * e2 - h2) / (z * r2);
-    
-    double delta_theta;
-    if (u == v)
-        delta_theta = 0.0;
-    else
-        delta_theta = atan2(u - v, 1 + u * v);
-    
-    return ((x(0) - node_a(0)) * (node_b(1) - node_a(1)) - (x(1) - node_a(1)) * (node_b(0) - node_a(0))) / d * log((r1 + r2 + d) / (r1 + r2 - d)) - fabs(z) * delta_theta; 
+    source_influence  *= -div_4pi;
+    doublet_influence *=  div_4pi;
 }
 
 /**
@@ -799,10 +781,50 @@ Surface::source_influence(const Eigen::Vector3d &x, int this_panel) const
         const Vector3d &node_a = panel_transformed_points[this_panel][prev_idx];
         const Vector3d &node_b = panel_transformed_points[this_panel][i];
         
-        influence += source_edge_influence(x_normalized, node_a, node_b);
+        double edge_influence;
+        source_and_doublet_edge_influence(x_normalized, node_a, node_b, &edge_influence, NULL);
+        
+        influence += edge_influence;
     }   
     
     return -div_4pi * influence;
+}
+
+/**
+   Computes the potential influence induced by a doublet panel of unit strength.  
+   
+   @param[in]   x            Point at which the influence coefficient is evaluated.
+   @param[in]   this_panel   Panel on which the doublet panel is located.
+   
+   @returns Influence coefficient.
+*/
+double
+Surface::doublet_influence(const Eigen::Vector3d &x, int this_panel) const
+{
+    // Transform such that panel normal becomes unit Z vector:
+    const Transform<double, 3, Affine> &transformation = panel_coordinate_transformation(this_panel);
+    
+    Vector3d x_normalized = transformation * x;
+    
+    // Compute influence coefficient according to Hess:
+    double influence = 0.0;
+    for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++) {
+        int prev_idx;
+        if (i == 0)
+            prev_idx = panel_nodes[this_panel].size() - 1;
+        else
+            prev_idx = i - 1;
+            
+        const Vector3d &node_a = panel_transformed_points[this_panel][prev_idx];
+        const Vector3d &node_b = panel_transformed_points[this_panel][i];
+        
+        double edge_influence;
+        source_and_doublet_edge_influence(x_normalized, node_a, node_b, NULL, &edge_influence);
+        
+        influence += edge_influence;
+    }
+    
+    return div_4pi * influence;
 }
 
 // Compute velocity induced by an edge of a source panel:
@@ -1066,7 +1088,10 @@ Surface::vortex_ring_ramasamy_leishman_velocity(const Eigen::Vector3d &x, int th
 double
 Surface::doublet_influence(const Surface &other, int other_panel, int this_panel) const
 { 
-    return doublet_influence(other.panel_collocation_point(other_panel, true), this_panel);
+    if ((this == &other) && (this_panel == other_panel))
+        return -0.5;
+    else
+        return doublet_influence(other.panel_collocation_point(other_panel, true), this_panel);
 }
 
 /**
@@ -1084,6 +1109,27 @@ double
 Surface::source_influence(const Surface &other, int other_panel, int this_panel) const
 {
     return source_influence(other.panel_collocation_point(other_panel, true), this_panel);
+}
+
+/**
+   Simultaneously computes the potential influences induced by source and doublet panels of unit strength.  
+   
+   @param[in]   other               Surface on which the velocity is evaluated.
+   @param[in]   other_panel         Panel on which the velocity is evaluated.
+   @param[in]   this_panel          Panel on which the doublet panel is located.
+   @param[out]  source_influence    Source influence value.
+   @param[out]  doublet_influence   Doublet influence value.
+*/
+void
+Surface::source_and_doublet_influence(const Surface &other, int other_panel, int this_panel, double &source_influence, double &doublet_influence) const
+{
+    if ((this == &other) && (this_panel == other_panel)) {
+        doublet_influence = -0.5;
+        
+        source_influence = this->source_influence(other, other_panel, this_panel);
+        
+    } else
+        source_and_doublet_influence(other.panel_collocation_point(other_panel, true), this_panel, source_influence, doublet_influence);
 }
 
 /**

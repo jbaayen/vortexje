@@ -528,12 +528,9 @@ Solver::solve(double dt)
                                              
             for (int i = 0; i < surface_row->n_panels(); i++) {
                 for (int j = 0; j < surface_col->n_panels(); j++) {
-                    if ((&surface_row == &surface_col) && (i == j))
-                        A(offset_row + i, offset_col + j) = -0.5;
-                    else
-                        A(offset_row + i, offset_col + j) = surface_col->doublet_influence(*surface_row, i, j);
-                    
-                    source_influence_coefficients(offset_row + i, offset_col + j) = surface_col->source_influence(*surface_row, i, j);
+                    surface_col->source_and_doublet_influence(*surface_row, i, j,
+                                                              source_influence_coefficients(offset_row + i, offset_col + j), 
+                                                              A(offset_row + i, offset_col + j));
                 }
             }
             
@@ -1133,8 +1130,12 @@ Solver::compute_disturbance_velocity_potential(const Vector3d &x) const
         const Surface *other_surface = *si;
 
         for (int i = 0; i < other_surface->n_panels(); i++) {
-            phi += other_surface->doublet_influence(x, i) * doublet_coefficients(offset + i);
-            phi += other_surface->source_influence(x, i) * source_coefficients(offset + i);
+            double source_influence, doublet_influence;
+            
+            other_surface->source_and_doublet_influence(x, i, source_influence, doublet_influence);
+            
+            phi += doublet_influence * doublet_coefficients(offset + i);
+            phi += source_influence * source_coefficients(offset + i);
         }
         
         offset += other_surface->n_panels();
