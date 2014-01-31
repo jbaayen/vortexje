@@ -850,13 +850,18 @@ source_edge_unit_velocity(const Vector3d &x, const Vector3d &node_a, const Vecto
     double h2 = (x(0) - node_b(0)) * (x(1) - node_b(1));
     
     // IEEE-754 floating point division by zero results in +/- inf, and atan(inf) = pi / 2.
-    double delta_theta = atan((m * e1 - h1) / (z * r1)) - atan((m * e2 - h2) / (z * r2));
+    double u = (m * e1 - h1) / (z * r1);
+    double v = (m * e2 - h2) / (z * r2);
     
-    double u = (node_b(1) - node_a(1)) / d * log((r1 + r2 - d) / (r1 + r2 + d));
-    double v = (node_a(0) - node_b(0)) / d * log((r1 + r2 - d) / (r1 + r2 + d));
-    double w = delta_theta;
+    double delta_theta;
+    if (u == v)
+        delta_theta = 0.0;
+    else
+        delta_theta = atan2(u - v, 1 + u * v);
     
-    return Vector3d(u, v, w);
+    return Vector3d((node_b(1) - node_a(1)) / d * log((r1 + r2 - d) / (r1 + r2 + d)),
+                    (node_a(0) - node_b(0)) / d * log((r1 + r2 - d) / (r1 + r2 + d)),
+                    delta_theta);
 }
 
 /**
