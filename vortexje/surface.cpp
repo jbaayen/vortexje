@@ -545,13 +545,13 @@ source_and_doublet_edge_influence(const Vector3d &x, const Vector3d &node_a, con
         
     double z = x(2);
     
-    double r1 = sqrt(pow(x(0) - node_a(0), 2) + pow(x(1) - node_a(1), 2) + pow(z, 2));
-    double r2 = sqrt(pow(x(0) - node_b(0), 2) + pow(x(1) - node_b(1), 2) + pow(z, 2));
-    
     double m = (node_b(1) - node_a(1)) / (node_b(0) - node_a(0));
     
     double e1 = pow(x(0) - node_a(0), 2) + pow(z, 2);
     double e2 = pow(x(0) - node_b(0), 2) + pow(z, 2);
+    
+    double r1 = sqrt(e1 + pow(x(1) - node_a(1), 2));
+    double r2 = sqrt(e2 + pow(x(1) - node_b(1), 2));
     
     double h1 = (x(0) - node_a(0)) * (x(1) - node_a(1));
     double h2 = (x(0) - node_b(0)) * (x(1) - node_b(1));
@@ -699,13 +699,13 @@ source_edge_unit_velocity(const Vector3d &x, const Vector3d &node_a, const Vecto
         
     double z = x(2);
     
-    double r1 = sqrt(pow(x(0) - node_a(0), 2) + pow(x(1) - node_a(1), 2) + pow(z, 2));
-    double r2 = sqrt(pow(x(0) - node_b(0), 2) + pow(x(1) - node_b(1), 2) + pow(z, 2));
-    
     double m = (node_b(1) - node_a(1)) / (node_b(0) - node_a(0));
     
     double e1 = pow(x(0) - node_a(0), 2) + pow(z, 2);
     double e2 = pow(x(0) - node_b(0), 2) + pow(z, 2);
+    
+    double r1 = sqrt(e1 + pow(x(1) - node_a(1), 2));
+    double r2 = sqrt(e2 + pow(x(1) - node_b(1), 2));
     
     double h1 = (x(0) - node_a(0)) * (x(1) - node_a(1));
     double h2 = (x(0) - node_b(0)) * (x(1) - node_b(1));
@@ -719,9 +719,11 @@ source_edge_unit_velocity(const Vector3d &x, const Vector3d &node_a, const Vecto
         delta_theta = 0.0;
     else
         delta_theta = atan2(u - v, 1 + u * v);
+        
+    double l = log((r1 + r2 - d) / (r1 + r2 + d));
     
-    return Vector3d((node_b(1) - node_a(1)) / d * log((r1 + r2 - d) / (r1 + r2 + d)),
-                    (node_a(0) - node_b(0)) / d * log((r1 + r2 - d) / (r1 + r2 + d)),
+    return Vector3d((node_b(1) - node_a(1)) / d * l,
+                    (node_a(0) - node_b(0)) / d * l,
                     delta_theta);
 }
 
