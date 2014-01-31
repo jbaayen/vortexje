@@ -105,9 +105,6 @@ public:
     virtual void transform(const Eigen::Transform<double, 3, Eigen::Affine> &transformation);
     virtual void translate(const Eigen::Vector3d &translation);
     
-    double distance_to_panel(const Eigen::Vector3d &x, int panel) const;
-    virtual bool closest_panel(const Eigen::Vector3d &x, int &panel, double &distance) const;
-    
     const Eigen::Vector3d &panel_collocation_point(int panel, bool below_surface) const;
     
     const Eigen::Vector3d &panel_normal(int panel) const;
@@ -117,8 +114,6 @@ public:
     double panel_surface_area(int panel) const;
     
     double panel_diameter(int panel) const;
-    
-    virtual Eigen::Vector3d near_exterior_point(int node) const;
     
     Eigen::Vector3d scalar_field_gradient(const Eigen::VectorXd &scalar_field, int offset, int this_panel) const;
     

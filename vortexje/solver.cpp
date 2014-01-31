@@ -183,9 +183,6 @@ Solver::set_fluid_density(double value)
 double
 Solver::velocity_potential(const Vector3d &x) const
 {
-    // We don't interpolate here, as we will not need the velocity potential values close to the surfaces
-    // to be able to convect the wake.
-    
     // Sum disturbance potential with freestream velocity potential:
     return compute_disturbance_velocity_potential(x) + freestream_velocity.dot(x);
 }
@@ -200,84 +197,8 @@ Solver::velocity_potential(const Vector3d &x) const
 Eigen::Vector3d
 Solver::velocity(const Eigen::Vector3d &x) const
 {
-    // Find closest surface and panel:
-    double distance = numeric_limits<double>::max();
-    const Surface *close_surface = NULL;
-    int close_panel = -1;
-    int close_offset = - 1;
-    bool close_near_trailing_edge = false;
-    int offset = 0;
-    
-    vector<Surface*>::const_iterator si;
-    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
-        const Surface *surface_candidate = *si;
-        
-        int panel_candidate;
-        double distance_candidate;
-        bool near_trailing_edge = surface_candidate->closest_panel(x, panel_candidate, distance_candidate);
-        
-        if (distance_candidate < distance) {
-            distance                 = distance_candidate;
-            close_surface            = surface_candidate;
-            close_panel              = panel_candidate;
-            close_offset             = offset;
-            close_near_trailing_edge = near_trailing_edge;
-        }
-        
-        offset += surface_candidate->n_panels();
-    }
- 
-    // Compute velocity potential gradients near the body:
-    vector<Vector3d> disturbance_velocities;
-    vector<Vector3d> near_exterior_points;
-    if (distance < Parameters::interpolation_layer_thickness && !close_near_trailing_edge) {   
-        for (int i = 0; i < (int) close_surface->panel_nodes[close_panel].size(); i++) {
-            Vector3d near_exterior_point = close_surface->near_exterior_point(close_surface->panel_nodes[close_panel][i]);
-            near_exterior_points.push_back(near_exterior_point);
-            
-            disturbance_velocities.push_back(compute_disturbance_velocity(near_exterior_point));
-        }
-        
-    } else {
-        disturbance_velocities.push_back(compute_disturbance_velocity(x));
-        
-        close_surface = NULL;
-        close_panel   = -1;
-    }
-    
-    Vector3d velocity(0, 0, 0);
-    if (close_surface != NULL) { 
-        // Compute stream velocity near the boundary using interpolation, see
-        //   K. Dixon, C. S. Ferreira, C. Hofemann, G. van Brussel, G. van Kuik,
-        //   A 3D Unsteady Panel Method for Vertical Axis Wind Turbines, DUWIND, 2008.
-        const Vector3d &x = close_surface->panel_collocation_point(close_panel, false);
-        
-        const Vector3d &normal = close_surface->panel_normal(close_panel);
-        
-        double total_weight = 0.0;
-        
-        for (int i = 0; i < (int) disturbance_velocities.size(); i++) {
-            Vector3d layer_point_distance = x - near_exterior_points[i];
-            layer_point_distance = layer_point_distance - layer_point_distance.dot(normal) * normal;
-            
-            double weight = distance * (close_surface->panel_diameter(close_panel) - layer_point_distance.norm());
-                 
-            velocity += weight * (disturbance_velocities[i] + freestream_velocity);
-            total_weight += weight;
-        }
-        
-        double weight = Parameters::interpolation_layer_thickness - distance;
-        velocity += weight * compute_surface_velocity(*close_surface, close_offset, close_panel);
-        total_weight += weight;
-        
-        velocity /= total_weight;
-        
-    } else {
-        // We are not close to the boundary.  Use sum of disturbance potential and freestream velocity.
-        velocity = disturbance_velocities[0] + freestream_velocity;
-    }
-    
-    return velocity;
+    // Sum disturbance velocity with freestream velocity:
+    return compute_disturbance_velocity(x) + freestream_velocity;
 }
 
 /**

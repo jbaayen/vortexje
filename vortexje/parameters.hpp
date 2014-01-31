@@ -88,22 +88,6 @@ public:
     static double a_prime;
     
     /**
-       Interpolation layer thickness for evaluation of panel influence and induced velocities close to the body.
-       
-       @note See K. Dixon, C. S. Ferreira, C. Hofemann, G. van Brussel, G. van Kuik,
-       A 3D Unsteady Panel Method for Vertical Axis Wind Turbines, DUWIND, 2008.
-    */
-    static double interpolation_layer_thickness;
-    
-    /**
-       Interpolation layer trailing edge nodge angle for evaluation of panel influence and induced velocities close to the body.
-       
-       @note See K. Dixon, C. S. Ferreira, C. Hofemann, G. van Brussel, G. van Kuik,
-       A 3D Unsteady Panel Method for Vertical Axis Wind Turbines, DUWIND, 2008.
-    */
-    static double interpolation_layer_notch_angle;
-    
-    /**
        Quantities below this threshold will be treated as nil.
     */
     static double inversion_tolerance;

@@ -57,10 +57,6 @@ public:
     int trailing_edge_node(int index) const;
     int trailing_edge_upper_panel(int index) const;
     int trailing_edge_lower_panel(int index) const;
-      
-    bool closest_panel(const Eigen::Vector3d &x, int &panel, double &distance) const;
-    
-    Eigen::Vector3d near_exterior_point(int node) const;
 };
 
 };

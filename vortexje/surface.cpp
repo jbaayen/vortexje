@@ -404,124 +404,6 @@ Surface::translate(const Eigen::Vector3d &translation)
 }
 
 /**
-   Computes the distance between a point and a given panel.
-   
-   @param[in]   x       Reference point.
-   @param[in]   panel   Panel to measure distance to.
-   
-   @returns Distance between reference point and panel.
-*/
-double
-Surface::distance_to_panel(const Eigen::Vector3d &x, int panel) const
-{
-    double distance = numeric_limits<double>::max();
-    
-    const vector<int> &single_panel_nodes = panel_nodes[panel];
-    
-    // Distance to vertices:
-    Vector3d mid(0, 0, 0);
-    for (int i = 0; i < (int) single_panel_nodes.size(); i++) {           
-        const Vector3d &vertex = nodes[single_panel_nodes[i]];
-        
-        double vertex_distance = (x - vertex).norm();
-        if (vertex_distance < distance)
-            distance = vertex_distance;
-            
-        mid += vertex;
-    }
-    mid /= single_panel_nodes.size();
-    
-    // Distance to edges:
-    for (int i = 0; i < (int) single_panel_nodes.size(); i++) {
-        int prev_idx;
-        if (i == 0)
-            prev_idx = single_panel_nodes.size() - 1;
-        else
-            prev_idx = i - 1;
-            
-        const Vector3d &vertex = nodes[single_panel_nodes[i]];
-        const Vector3d &prev_vertex = nodes[single_panel_nodes[prev_idx]];
-        
-        Vector3d edge_direction = vertex - prev_vertex;
-        edge_direction.normalize();
-            
-        Vector3d vector_to_vertex = vertex - x;
-        Vector3d vector_to_edge = vector_to_vertex - vector_to_vertex.dot(edge_direction) * edge_direction;
-        
-        Vector3d projection_on_edge = x + vector_to_edge;
-        
-        Vector3d delta_vertex = projection_on_edge - vertex;
-        Vector3d delta_prev_vertex = projection_on_edge - prev_vertex;
-        if (delta_vertex.dot(delta_prev_vertex) <= 0) {
-            double edge_distance = vector_to_edge.norm();
-            if (edge_distance < distance)
-                distance = edge_distance;
-        }
-    }
-    
-    // Distance to interior:
-    const Vector3d &normal = panel_normal(panel);
-    Vector3d vector_to_plane = normal.dot(mid - x) * normal;
-    Vector3d projection_on_plane = x + vector_to_plane;
-    
-    int n_right_of_side = 0;
-    for (int i = 0; i < (int) single_panel_nodes.size(); i++) {
-        int prev_idx;
-        if (i == 0)
-            prev_idx = single_panel_nodes.size() - 1;
-        else
-            prev_idx = i - 1;
-            
-        const Vector3d &vertex = nodes[single_panel_nodes[i]];
-        const Vector3d &prev_vertex = nodes[single_panel_nodes[prev_idx]];
-        
-        Vector3d edge_direction = vertex - prev_vertex;
-        edge_direction.normalize();
-
-        Vector3d edge_normal = normal.cross(edge_direction);
-        
-        Vector3d vector_to_edge = vertex - projection_on_plane;
-        if (vector_to_edge.dot(edge_normal) >= 0)
-            n_right_of_side++;
-    }
-    
-    if (n_right_of_side == (int) single_panel_nodes.size()) {
-        double plane_distance = vector_to_plane.norm();
-        if (plane_distance < distance)
-            distance = plane_distance;
-    }
-    
-    // Done:
-    return distance;
-}
-
-/**
-   Finds the panel closest to the given point, and reports the distance.
-   
-   @param[in]   x          Reference point.
-   @param[out]  panel      Closest panel number.
-   @param[out]  distance   Distance to closest panel.
-   
-   @returns true if the closest panel borders a trailing edge.
-*/
-bool
-Surface::closest_panel(const Eigen::Vector3d &x, int &panel, double &distance) const
-{
-    distance = numeric_limits<double>::max();
-    panel = -1;
-    
-    for (int i = 0; i < n_panels(); i++) {
-        double distance_candidate = distance_to_panel(x, i);
-        if (distance_candidate < distance) {
-            panel    = i;
-            distance = distance_candidate;
-        }
-    }
-
-    return false;
-}
-
-/**
    Returns the collocation point of the given panel.
    
    @param[in]   panel           Panel of which the collocation point is returned.
@@ -588,27 +470,6 @@ Surface::panel_diameter(int panel) const
 }
 
 /**
-   Computes a point, located outside of the body, that lies close to a given node.
-   
-   This method is used by the wake-wake and wake-body interaction code to evaluate velocities and
-   influence coefficients close to the body, where the solutions would otherwise become numerically singular.
-   
-   @param[in]   node   Node number.
-   
-   @returns Point, located outside of the body, close to the given node.
-*/
-Vector3d
-Surface::near_exterior_point(int node) const
-{
-    Vector3d layer_direction(0, 0, 0);
-    for (int i = 0; i < (int) node_panel_neighbors[node]->size(); i++)
-        layer_direction += panel_normal((*node_panel_neighbors[node])[i]);
-    layer_direction.normalize();
-    
-    return nodes[node] - Parameters::interpolation_layer_thickness * layer_direction;
-}
-
-/**
    Computes the on-body gradient of a scalar field.
    
    @param[in]   scalar_field   Scalar field, ordered by panel number.
@@ -664,7 +525,7 @@ Surface::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int offset, 
     Vector3d gradient_normalized = Vector3d(model_coefficients(0), model_coefficients(1), 0.0);
     
     // Transform gradient to global frame:
-    return transformation.rotation().transpose() * gradient_normalized;
+    return transformation.linear().transpose() * gradient_normalized;
 }
 
 // Simultaneously compute influence of source and doublet panel edges on given point.
@@ -896,7 +757,7 @@ Surface::source_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
     }   
     
     // Transform back:
-    velocity = transformation.rotation().transpose() * velocity;
+    velocity = transformation.linear().transpose() * velocity;
     
     // Done:
     return div_4pi * velocity;

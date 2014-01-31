@@ -35,10 +35,6 @@ double Parameters::lambs_constant                     = 1.25643;
 
 double Parameters::a_prime                            = 6.5e-5;
 
-double Parameters::interpolation_layer_thickness      = 0.075;
-
-double Parameters::interpolation_layer_notch_angle    = 2 * M_PI / 3;
-
 double Parameters::inversion_tolerance                = 1e-7;
 
 double Parameters::collocation_point_delta            = 1e-7;
