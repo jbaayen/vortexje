@@ -401,7 +401,7 @@ Solver::solve(double dt)
     // Compute source distribution:
     cout << "Solver: Computing source distribution with wake influence." << endl;
     
-    int idx = 0;
+    int offset = 0;
     
     vector<Body*>::iterator bi;
     for (bi = bodies.begin(); bi != bodies.end(); bi++) {
@@ -410,21 +410,31 @@ Solver::solve(double dt)
         vector<Surface*>::iterator si;
         for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++) {
             Surface *non_lifting_surface = *si;
+            int i;
             
-            for (int i = 0; i < non_lifting_surface->n_panels(); i++) {
-                source_coefficients(idx) = compute_source_coefficient(*body, *non_lifting_surface, i, true);
-                idx++;
+            #pragma omp parallel
+            {
+                #pragma omp for schedule(dynamic, 1)
+                for (i = 0; i < non_lifting_surface->n_panels(); i++)
+                    source_coefficients(offset + i) = compute_source_coefficient(*body, *non_lifting_surface, i, true);
             }
+            
+            offset += non_lifting_surface->n_panels();
         }
         
         vector<LiftingSurface*>::iterator lsi;
         for (lsi = body->lifting_surfaces.begin(); lsi != body->lifting_surfaces.end(); lsi++) {
             LiftingSurface *lifting_surface = *lsi;
+            int i;
             
-            for (int i = 0; i < lifting_surface->n_panels(); i++) {
-                source_coefficients(idx) = compute_source_coefficient(*body, *lifting_surface, i, true);
-                idx++;
+            #pragma omp parallel
+            {  
+                #pragma omp for schedule(dynamic, 1)
+                for (i = 0; i < lifting_surface->n_panels(); i++)
+                    source_coefficients(offset + i) = compute_source_coefficient(*body, *lifting_surface, i, true);
             }
+            
+            offset += lifting_surface->n_panels();
         }
     }
   
@@ -445,13 +455,18 @@ Solver::solve(double dt)
         // Influence coefficients between all non-wake surfaces:
         vector<Surface*>::iterator si_col;
         for (si_col = non_wake_surfaces.begin(); si_col != non_wake_surfaces.end(); si_col++) {
-            Surface *surface_col = *si_col;
-                                             
-            for (int i = 0; i < surface_row->n_panels(); i++) {
-                for (int j = 0; j < surface_col->n_panels(); j++) {
-                    surface_col->source_and_doublet_influence(*surface_row, i, j,
-                                                              source_influence_coefficients(offset_row + i, offset_col + j), 
-                                                              A(offset_row + i, offset_col + j));
+            Surface *surface_col = *si_col;                         
+            int i, j;
+            
+            #pragma omp parallel private(j) 
+            {
+                #pragma omp for schedule(dynamic, 1)
+                for (i = 0; i < surface_row->n_panels(); i++) {
+                    for (j = 0; j < surface_col->n_panels(); j++) {
+                        surface_col->source_and_doublet_influence(*surface_row, i, j,
+                                                                  source_influence_coefficients(offset_row + i, offset_col + j), 
+                                                                  A(offset_row + i, offset_col + j));
+                    }
                 }
             }
             
@@ -459,39 +474,48 @@ Solver::solve(double dt)
         }
         
         // The influence of the wakes:
-        for (int i = 0; i < surface_row->n_panels(); i++) {
-            int lifting_surface_offset = 0;
-            
-            vector<Body*>::const_iterator bi;
-            for (bi = bodies.begin(); bi != bodies.end(); bi++) {
-                const Body *body = *bi;
+        int i, j, lifting_surface_offset, wake_panel_offset, pa, pb;
+        vector<Body*>::const_iterator bi;
+        vector<Surface*>::const_iterator si;
+        vector<LiftingSurface*>::const_iterator lsi;
+        vector<Wake*>::const_iterator wi;
+        const Body *body;
+        const LiftingSurface *lifting_surface;
+        const Wake *wake;
+        
+        #pragma omp parallel private(bi, si, lsi, wi, lifting_surface_offset, j, wake_panel_offset, pa, pb, body, lifting_surface, wake)
+        {
+            #pragma omp for schedule(dynamic, 1)
+            for (i = 0; i < surface_row->n_panels(); i++) {
+                lifting_surface_offset = 0;      
                 
-                vector<Surface*>::const_iterator si;
-                for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++)
-                    lifting_surface_offset += (*si)->n_panels();
-                
-                vector<LiftingSurface*>::const_iterator lsi;
-                vector<Wake*>::const_iterator wi;
-                for (lsi = body->lifting_surfaces.begin(), wi = body->wakes.begin(); lsi != body->lifting_surfaces.end(); lsi++, wi++) {
-                    const LiftingSurface *lifting_surface = *lsi;
-                    const Wake *wake = *wi;
+                for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+                    body = *bi;
                     
-                    int wake_panel_offset = wake->n_panels() - lifting_surface->n_spanwise_panels();
-                    for (int j = 0; j < lifting_surface->n_spanwise_panels(); j++) {  
-                        int pa = lifting_surface->trailing_edge_upper_panel(j);
-                        int pb = lifting_surface->trailing_edge_lower_panel(j);
+                    for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++)
+                        lifting_surface_offset += (*si)->n_panels();
+                                  
+                    for (lsi = body->lifting_surfaces.begin(), wi = body->wakes.begin(); lsi != body->lifting_surfaces.end(); lsi++, wi++) {
+                        lifting_surface = *lsi;
+                        wake = *wi;
                         
-                        // Account for the influence of the new wake panels.  The doublet strength of these panels
-                        // is set according to the Kutta condition.
-                        A(offset_row + i, lifting_surface_offset + pa) += wake->doublet_influence(*surface_row, i, wake_panel_offset + j);
-                        A(offset_row + i, lifting_surface_offset + pb) -= wake->doublet_influence(*surface_row, i, wake_panel_offset + j);
+                        wake_panel_offset = wake->n_panels() - lifting_surface->n_spanwise_panels();
+                        for (j = 0; j < lifting_surface->n_spanwise_panels(); j++) {  
+                            pa = lifting_surface->trailing_edge_upper_panel(j);
+                            pb = lifting_surface->trailing_edge_lower_panel(j);
+                            
+                            // Account for the influence of the new wake panels.  The doublet strength of these panels
+                            // is set according to the Kutta condition.
+                            A(offset_row + i, lifting_surface_offset + pa) += wake->doublet_influence(*surface_row, i, wake_panel_offset + j);
+                            A(offset_row + i, lifting_surface_offset + pb) -= wake->doublet_influence(*surface_row, i, wake_panel_offset + j);
+                        }
+                        
+                        lifting_surface_offset += lifting_surface->n_panels();
                     }
-                    
-                    lifting_surface_offset += lifting_surface->n_panels();
                 }
             }
         }
-        
+            
         offset_row = offset_row + surface_row->n_panels();
     }
     
@@ -516,7 +540,7 @@ Solver::solve(double dt)
     cout << "Solver: Done in " << solver.iterations() << " iterations with estimated error " << solver.error() << "." << endl;
     
     // Set new wake panel doublet coefficients:
-    int offset = 0;
+    offset = 0;
     for (bi = bodies.begin(); bi != bodies.end(); bi++) {
         Body *body = *bi;
         
@@ -551,29 +575,39 @@ Solver::solve(double dt)
         // Recompute source distribution without wake influence:
         cout << "Solver: Recomputing source distribution without wake influence." << endl;
         
-        idx = 0;
-        
+        offset = 0;
+           
         for (bi = bodies.begin(); bi != bodies.end(); bi++) {
             Body *body = *bi;
-            
+        
             vector<Surface*>::iterator si;
             for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++) {
                 Surface *non_lifting_surface = *si;
+                int i;
                 
-                for (int i = 0; i < non_lifting_surface->n_panels(); i++) {
-                    source_coefficients(idx) = compute_source_coefficient(*body, *non_lifting_surface, i, false);
-                    idx++;
+                #pragma omp parallel
+                {
+                    #pragma omp for schedule(dynamic, 1)
+                    for (i = 0; i < non_lifting_surface->n_panels(); i++)
+                        source_coefficients(offset + i) = compute_source_coefficient(*body, *non_lifting_surface, i, false);
                 }
+                
+                offset += non_lifting_surface->n_panels();
             }
             
             vector<LiftingSurface*>::iterator lsi;
             for (lsi = body->lifting_surfaces.begin(); lsi != body->lifting_surfaces.end(); lsi++) {
                 LiftingSurface *lifting_surface = *lsi;
+                int i;
                 
-                for (int i = 0; i < lifting_surface->n_panels(); i++) {
-                    source_coefficients(idx) = compute_source_coefficient(*body, *lifting_surface, i, false);
-                    idx++;
+                #pragma omp parallel
+                {  
+                    #pragma omp for schedule(dynamic, 1)
+                    for (i = 0; i < lifting_surface->n_panels(); i++)
+                        source_coefficients(offset + i) = compute_source_coefficient(*body, *lifting_surface, i, false);
                 }
+                
+                offset += lifting_surface->n_panels();
             }
         }
     }
@@ -583,8 +617,6 @@ Solver::solve(double dt)
 
     // Compute pressure distribution:
     cout << "Solver: Computing pressure distribution." << endl;
-
-    idx = 0;
     
     offset = 0;
 
@@ -596,43 +628,49 @@ Solver::solve(double dt)
         vector<Surface*>::iterator si;
         for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++) {
             Surface *non_lifting_surface = *si;
+            int i;
                 
-            for (int i = 0; i < non_lifting_surface->n_panels(); i++) {
-                // Velocity potential:
-                surface_velocity_potentials(offset + i) = compute_surface_velocity_potential(*non_lifting_surface, offset, i);
-                
-                // Surface velocity:
-                Vector3d V = compute_surface_velocity(*non_lifting_surface, offset, i);
-                surface_velocities.block<1, 3>(idx, 0) = V;
- 
-                // Pressure coefficient:
-                double dphidt = compute_surface_velocity_potential_time_derivative(offset, i, dt);
-                pressure_coefficients(idx) = compute_pressure_coefficient(V, dphidt, v_ref_squared);
-                
-                idx++;
-            }   
+            #pragma omp parallel
+            {
+                #pragma omp for schedule(dynamic, 1)
+                for (i = 0; i < non_lifting_surface->n_panels(); i++) {
+                    // Velocity potential:
+                    surface_velocity_potentials(offset + i) = compute_surface_velocity_potential(*non_lifting_surface, offset, i);
+                    
+                    // Surface velocity:
+                    Vector3d V = compute_surface_velocity(*non_lifting_surface, offset, i);
+                    surface_velocities.block<1, 3>(offset + i, 0) = V;
+     
+                    // Pressure coefficient:
+                    double dphidt = compute_surface_velocity_potential_time_derivative(offset, i, dt);
+                    pressure_coefficients(offset + i) = compute_pressure_coefficient(V, dphidt, v_ref_squared);
+                }
+            }
             
             offset += non_lifting_surface->n_panels();      
         }
         
         vector<LiftingSurface*>::iterator lsi;
         for (lsi = body->lifting_surfaces.begin(); lsi != body->lifting_surfaces.end(); lsi++) {
-            LiftingSurface *lifting_surface = *lsi; 
-                
-            for (int i = 0; i < lifting_surface->n_panels(); i++) {
-                // Velocity potential:
-                surface_velocity_potentials(offset + i) = compute_surface_velocity_potential(*lifting_surface, offset, i);
+            LiftingSurface *lifting_surface = *lsi;
+            int i;
+              
+            #pragma omp parallel
+            {
+                #pragma omp for schedule(dynamic, 1)
+                for (i = 0; i < lifting_surface->n_panels(); i++) {
+                    // Velocity potential:
+                    surface_velocity_potentials(offset + i) = compute_surface_velocity_potential(*lifting_surface, offset, i);
 
-                // Surface velocity:
-                Vector3d V = compute_surface_velocity(*lifting_surface, offset, i);
-                surface_velocities.block<1, 3>(idx, 0) = V;
- 
-                // Pressure coefficient:
-                double dphidt = compute_surface_velocity_potential_time_derivative(offset, i, dt);
-                pressure_coefficients(idx) = compute_pressure_coefficient(V, dphidt, v_ref_squared);
-                
-                idx++;
-            }   
+                    // Surface velocity:
+                    Vector3d V = compute_surface_velocity(*lifting_surface, offset, i);
+                    surface_velocities.block<1, 3>(offset + i, 0) = V;
+     
+                    // Pressure coefficient:
+                    double dphidt = compute_surface_velocity_potential_time_derivative(offset, i, dt);
+                    pressure_coefficients(offset + i) = compute_pressure_coefficient(V, dphidt, v_ref_squared);
+                }
+            }  
             
             offset += lifting_surface->n_panels();      
         }
@@ -654,7 +692,7 @@ Solver::update_wakes(double dt)
     if (Parameters::convect_wake) {
         cout << "Solver: Convecting wakes." << endl;
         
-        // Compute velocity values at wake nodes;
+        // Compute velocity values at wake nodes, with the wakes in their original state:
         std::vector<std::vector<Vector3d> > wake_velocities;
         
         vector<Body*>::iterator bi;
@@ -666,9 +704,16 @@ Solver::update_wakes(double dt)
                 Wake *wake = *wi;
                 
                 std::vector<Vector3d> local_wake_velocities;
+                local_wake_velocities.resize(wake->n_nodes());
                 
-                for (int i = 0; i < wake->n_nodes(); i++)
-                    local_wake_velocities.push_back(velocity(wake->nodes[i]));
+                int i;
+                
+                #pragma omp parallel
+                {
+                    #pragma omp for schedule(dynamic, 1)
+                    for (i = 0; i < wake->n_nodes(); i++)
+                        local_wake_velocities[i] = velocity(wake->nodes[i]);
+                }
                 
                 wake_velocities.push_back(local_wake_velocities);
             }
@@ -700,12 +745,22 @@ Solver::update_wakes(double dt)
                 }                
                 
                 // Convect all other wake nodes according to the local wake velocity:
-                for (int i = 0; i < wake->n_nodes() - lifting_surface->n_spanwise_nodes(); i++)
-                    wake->nodes[i] += local_wake_velocities[i] * dt;
+                int i;
+                
+                #pragma omp parallel
+                {
+                    #pragma omp for schedule(dynamic, 1)
+                    for (i = 0; i < wake->n_nodes() - lifting_surface->n_spanwise_nodes(); i++)
+                        wake->nodes[i] += local_wake_velocities[i] * dt;
+                }
                     
                 // Update vortex core radii:
-                for (int i = 0; i < wake->n_panels(); i++)
-                    wake->update_ramasamy_leishman_vortex_core_radii(i, dt);
+                #pragma omp parallel
+                {
+                    #pragma omp for schedule(dynamic, 1)
+                    for (i = 0; i < wake->n_panels(); i++)
+                        wake->update_ramasamy_leishman_vortex_core_radii(i, dt);
+                }
 
                 // Add new vertices:
                 // (This call also updates the geometry)
