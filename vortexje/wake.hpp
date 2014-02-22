@@ -51,7 +51,8 @@ public:
        Radii of the vortex filaments forming the vortex rings.
     */ 
     std::vector<std::vector<double> > vortex_core_radii;
-    
+  
+private:  
     /**
        Initial lengths of the vortex filaments forming the vortex rings.
     */

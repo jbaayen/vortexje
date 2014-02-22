@@ -102,7 +102,17 @@ public:
        
        @note See L. Dragoş, Mathematical Methods in Aerodynamics, Springer, 2003.
     */
-    static bool marcov_surface_velocity;
+    static bool   marcov_surface_velocity;
+    
+    /**
+       Maximum number of potential and boundary layer computation iterations.
+    */
+    static int    max_boundary_layer_iterations;
+    
+    /**
+       Boundary layer iteration tolerance.
+    */
+    static double boundary_layer_iteration_tolerance;
 };
 
 };

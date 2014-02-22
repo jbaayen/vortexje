@@ -1,3 +1,4 @@
+add_subdirectory(boundary-layers)
 add_subdirectory(surface-loaders)
 add_subdirectory(surface-writers)
 add_subdirectory(field-writers)
@@ -20,7 +21,8 @@ set(HDRS
 	solver.hpp 
 	parameters.hpp 
 	lifting-surface.hpp 
-	wake.hpp 
+	wake.hpp
+	boundary-layer.hpp
 	body.hpp 
 	surface-builder.hpp 
 	lifting-surface-builder.hpp 
@@ -29,6 +31,7 @@ set(HDRS
 	field-writer.hpp)
 
 add_library(vortexje SHARED ${SRCS}
+    $<TARGET_OBJECTS:boundary-layers>
     $<TARGET_OBJECTS:surface-loaders>
     $<TARGET_OBJECTS:surface-writers>
     $<TARGET_OBJECTS:field-writers>

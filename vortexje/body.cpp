@@ -7,19 +7,23 @@
 //
 
 #include <vortexje/body.hpp>
+#include <vortexje/boundary-layers/dummy-boundary-layer.hpp>
 
 #include <iostream>
 
 using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
+
+// Dummy boundary layer singleton object.  Used when no boundary model is specified.
+static DummyBoundaryLayer dummy_boundary_layer;
     
 /**
    Constructs a new Body.
    
    @param[in]   id   Name for this body.
 */
-Body::Body(string id) : id(id)
+Body::Body(const string &id) : id(id)
 {
     // Initialize kinematics:
     position = Vector3d(0, 0, 0);
@@ -34,21 +38,36 @@ Body::Body(string id) : id(id)
 */
 Body::~Body()
 {
-    vector<Wake*>::iterator wi;
-    for (wi = wakes.begin(); wi != wakes.end(); wi++)
-        delete (*wi);
+    vector<SurfaceData*>::iterator si;
+    for (si = non_lifting_surfaces.begin(); si != non_lifting_surfaces.end(); si++)
+        delete (*si);
+        
+    vector<LiftingSurfaceData*>::iterator lsi;
+    for (lsi = lifting_surfaces.begin(); lsi != lifting_surfaces.end(); lsi++)
+        delete (*lsi);
 }
 
 /**
    Adds a non-lifting surface to this body.
    
-   @param[in]   surface   Non-lifting surface.
+   @param[in]   non_lifting_surface   Non-lifting surface.
 */
 void
-Body::add_non_lifting_surface(Surface *non_lifting_surface)
+Body::add_non_lifting_surface(Surface &non_lifting_surface)
 {
-    non_lifting_surfaces.push_back(non_lifting_surface);
-    non_wake_surfaces.push_back(non_lifting_surface);
+    add_non_lifting_surface(non_lifting_surface, dummy_boundary_layer);
+}
+
+/**
+   Adds a non-lifting surface and its boundary layer to this body.
+   
+   @param[in]   non_lifting_surface   Non-lifting surface.
+   @param[in]   boundary_layer        Boundary layer.
+*/
+void
+Body::add_non_lifting_surface(Surface &non_lifting_surface, BoundaryLayer &boundary_layer)
+{
+    non_lifting_surfaces.push_back(new SurfaceData(non_lifting_surface, boundary_layer));
 }
 
 /**
@@ -57,13 +76,21 @@ Body::add_non_lifting_surface(Surface *non_lifting_surface)
    @param[in]   lifting_surface   Lifting surface.
 */
 void
-Body::add_lifting_surface(LiftingSurface *lifting_surface)
+Body::add_lifting_surface(LiftingSurface &lifting_surface)
+{   
+    add_lifting_surface(lifting_surface, dummy_boundary_layer);
+}
+
+/**
+   Adds a lifting surface and its boundary layer to this body.
+   
+   @param[in]   non_lifting_surface   Non-lifting surface.
+   @param[in]   boundary_layer        Boundary layer.
+*/
+void
+Body::add_lifting_surface(LiftingSurface &lifting_surface, BoundaryLayer &boundary_layer)
 {
-    lifting_surfaces.push_back(lifting_surface);
-    non_wake_surfaces.push_back(lifting_surface);
-        
-    Wake *wake = new Wake(*lifting_surface);
-    wakes.push_back(wake);
+    lifting_surfaces.push_back(new LiftingSurfaceData(lifting_surface, boundary_layer));
 }
 
 /**
@@ -77,15 +104,22 @@ Body::set_position(const Vector3d &position)
     // Compute differential translation:
     Vector3d translation = position - this->position;
        
-    // Apply for all non-wake surfacees:
-    vector<Surface*>::iterator si;
-    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++)
-        (*si)->translate(translation);
-
-    // Apply to trailing edge wake nodes:
-    vector<Wake*>::iterator wi;
-    for (wi = wakes.begin(); wi != wakes.end(); wi++)
-        (*wi)->translate_trailing_edge(translation);
+    // Apply:
+    vector<SurfaceData*>::iterator si;
+    for (si = non_lifting_surfaces.begin(); si != non_lifting_surfaces.end(); si++) {
+        SurfaceData *d = *si;
+        
+        d->surface.translate(translation);
+    }
+    
+    vector<LiftingSurfaceData*>::iterator lsi;
+    for (lsi = lifting_surfaces.begin(); lsi != lifting_surfaces.end(); lsi++) {
+        LiftingSurfaceData *d = *lsi;
+        
+        d->surface.translate(translation);
+        
+        d->wake.translate_trailing_edge(translation);
+    }
     
     // Update state:
     this->position = position;
@@ -102,15 +136,22 @@ Body::set_attitude(const Quaterniond &attitude)
     // Compute differential transformation:
     Transform<double, 3, Affine> transformation = Translation<double, 3>(position) * attitude * this->attitude.inverse() * Translation<double, 3>(-position);
     
-    // Apply for all non-wake surfacees:
-    vector<Surface*>::iterator si;
-    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++)
-        (*si)->transform(transformation);
+    // Apply:
+    vector<SurfaceData*>::iterator si;
+    for (si = non_lifting_surfaces.begin(); si != non_lifting_surfaces.end(); si++) {
+        SurfaceData *d = *si;
+        
+        d->surface.transform(transformation);
+    }
     
-    // Apply for trailing edge wake nodes:
-    vector<Wake*>::iterator wi;
-    for (wi = wakes.begin(); wi != wakes.end(); wi++)
-        (*wi)->transform_trailing_edge(transformation);
+    vector<LiftingSurfaceData*>::iterator lsi;
+    for (lsi = lifting_surfaces.begin(); lsi != lifting_surfaces.end(); lsi++) {
+        LiftingSurfaceData *d = *lsi;
+        
+        d->surface.transform(transformation);
+        
+        d->wake.transform_trailing_edge(transformation);
+    }
     
     // Update state:
     this->attitude = attitude;

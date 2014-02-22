@@ -66,7 +66,7 @@ run_test(double alpha)
     
     // Create surface body:
     Body body(string("test-wing"));
-    body.add_lifting_surface(&wing);
+    body.add_lifting_surface(wing);
     
     // Set up solver:
     Solver solver("test-naca0012-log");

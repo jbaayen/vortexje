@@ -63,7 +63,7 @@ main (int argc, char **argv)
     
     // Create body:
     Body body(string("section"));
-    body.add_lifting_surface(&wing);
+    body.add_lifting_surface(wing);
     
     // Set up oscillation:
     double alpha_max = 10.0 / 180.0 * M_PI;

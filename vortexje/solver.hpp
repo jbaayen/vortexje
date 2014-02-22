@@ -79,11 +79,11 @@ public:
 
 private:
     std::string log_folder;
-    std::vector<Surface*> surfaces;
-    std::vector<Surface*> non_wake_surfaces;
+    
+    std::vector<Body::SurfaceData*> non_wake_surfaces;
     int n_non_wake_panels;
     
-    std::map<const Surface*, Body*> surface_to_body;
+    std::map<int, Body*> surface_id_to_body;
     
     Eigen::VectorXd source_coefficients;   
     Eigen::VectorXd doublet_coefficients;
@@ -92,9 +92,9 @@ private:
     Eigen::MatrixXd surface_velocities;
     Eigen::VectorXd pressure_coefficients;  
     
-    Eigen::VectorXd previous_surface_velocity_potentials;            
+    Eigen::VectorXd previous_surface_velocity_potentials;  
                                           
-    double compute_source_coefficient(const Body &body, const Surface &surface, int panel, bool include_wake_influence) const;
+    double compute_source_coefficient(const Body &body, const Surface &surface, int panel, const BoundaryLayer &boundary_layer, bool include_wake_influence) const;
     
     double compute_surface_velocity_potential(const Surface &surface, int offset, int panel) const;
     

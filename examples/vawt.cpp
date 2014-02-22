@@ -137,7 +137,7 @@ public:
 #ifdef INCLUDE_TOWER
         // Initialize tower:
         Surface *tower = new Tower();
-        non_lifting_surfaces.push_back(tower);
+        add_non_lifting_surface(*tower);
 #endif
         
         // Initialize blades:
@@ -152,11 +152,7 @@ public:
             
             blade->translate(position);
             
-            lifting_surfaces.push_back(blade);
-            non_wake_surfaces.push_back(blade);
-            
-            Wake *wake = new Wake(*blade);
-            wakes.push_back(wake);
+            add_lifting_surface(*blade);
         }
     }
 
@@ -168,10 +164,8 @@ public:
             delete non_lifting_surfaces[i];
 #endif
             
-        for (int i = 0; i < (int) lifting_surfaces.size(); i++) {
-            delete lifting_surfaces[i];
-            delete wakes[i];
-        }     
+        for (int i = 0; i < (int) lifting_surfaces.size(); i++)
+            delete lifting_surfaces[i]; 
     }
 
     // Rotate:

@@ -72,7 +72,7 @@ main (int argc, char **argv)
     
     // Create surface body:
     Body body(string("section"));
-    body.add_lifting_surface(&wing);
+    body.add_lifting_surface(wing);
     
     // Set up solver:
     Solver solver("clark-y-section-log");

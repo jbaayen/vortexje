@@ -18,6 +18,7 @@
 #include <vortexje/surface.hpp>
 #include <vortexje/lifting-surface.hpp>
 #include <vortexje/wake.hpp>
+#include <vortexje/boundary-layer.hpp>
 
 namespace Vortexje
 {
@@ -39,29 +40,52 @@ public:
     std::string id;
     
     /**
+       Data structure grouping a non-lifting surface with its boundary layer.
+    */
+    class SurfaceData {
+    public:
+        SurfaceData(Surface &surface, BoundaryLayer &boundary_layer) :
+            surface(surface), boundary_layer(boundary_layer) {}
+        
+        Surface &surface;
+        
+        BoundaryLayer &boundary_layer;
+    };
+    
+    /**
+       Data structure grouping a lifting surface with its boundary layer, and with its wake.
+    */
+    class LiftingSurfaceData : public SurfaceData {
+    public:
+        LiftingSurfaceData(LiftingSurface &lifting_surface, BoundaryLayer &boundary_layer) :
+            SurfaceData(lifting_surface, boundary_layer), lifting_surface(lifting_surface), wake(Wake(lifting_surface)) { }
+        
+        LiftingSurface &lifting_surface;
+        
+        Wake wake;
+    };
+    
+    /**
        List of non-lifting surfaces.
     */
-    std::vector<Surface*> non_lifting_surfaces;
+    std::vector<SurfaceData*> non_lifting_surfaces;
     
     /**
-       List of surfaces.
+       List of lifting surfaces.
     */
-    std::vector<LiftingSurface*> lifting_surfaces;
-    
-    /**
-       List of wakes associated with the lifting surfaces, in the same order.
-    */
-    std::vector<Wake*> wakes;
+    std::vector<LiftingSurfaceData*> lifting_surfaces;
     
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     
-    Body(std::string id);
-         
+    Body(const std::string &id);
+    
     ~Body();
 
-    virtual void add_non_lifting_surface(Surface *surface);
+    void add_non_lifting_surface(Surface &surface);
+    void add_non_lifting_surface(Surface &surface, BoundaryLayer &boundary_layer);
     
-    virtual void add_lifting_surface(LiftingSurface *lifting_surface);
+    void add_lifting_surface(LiftingSurface &lifting_surface);    
+    void add_lifting_surface(LiftingSurface &lifting_surface, BoundaryLayer &boundary_layer);
     
     /**
        Linear position of the entire body.
@@ -92,12 +116,6 @@ public:
     Eigen::Vector3d panel_kinematic_velocity(const Surface &surface, int panel) const;
     
     Eigen::Vector3d node_kinematic_velocity(const Surface &surface, int node) const;
-    
-protected:
-    /**
-       List of all non-wake surfaces.  For internal use.
-    */
-    std::vector<Surface*> non_wake_surfaces;
 };
 
 };

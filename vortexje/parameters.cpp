@@ -40,3 +40,7 @@ double Parameters::inversion_tolerance                = 1e-7;
 double Parameters::collocation_point_delta            = 1e-7;
 
 bool   Parameters::marcov_surface_velocity            = false;
+
+int    Parameters::max_boundary_layer_iterations      = 100;
+
+double Parameters::boundary_layer_iteration_tolerance = 1e-3;

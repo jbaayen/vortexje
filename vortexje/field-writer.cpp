@@ -40,10 +40,21 @@ FieldWriter::compute_field_envelope(const Solver &solver, double dx, double dy, 
     vector<Body*>::const_iterator bi;
     for (bi = solver.bodies.begin(); bi != solver.bodies.end(); bi++) {
         const Body *body = *bi;
-  
-        surfaces.insert(surfaces.end(), body->lifting_surfaces.begin(), body->lifting_surfaces.end());
-        surfaces.insert(surfaces.end(), body->wakes.begin(), body->wakes.end());
-        surfaces.insert(surfaces.end(), body->non_lifting_surfaces.begin(), body->non_lifting_surfaces.end());
+        
+        vector<Body::SurfaceData*>::const_iterator si;
+        for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++) {
+            const Body::SurfaceData *d = *si;
+            
+            surfaces.push_back((const Surface *) &d->surface);
+        }
+        
+        vector<Body::LiftingSurfaceData*>::const_iterator lsi;
+        for (lsi = body->lifting_surfaces.begin(); lsi != body->lifting_surfaces.end(); lsi++) {
+            const Body::LiftingSurfaceData *d = *lsi;
+            
+            surfaces.push_back((const Surface *) &d->surface);
+            surfaces.push_back((const Surface *) &d->wake);
+        }
     }
     
     vector<const Surface*>::iterator si;

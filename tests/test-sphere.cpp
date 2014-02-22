@@ -29,7 +29,7 @@ main (int argc, char **argv)
    
     // Create surface body:
     Body body(string("test-sphere"));
-    body.add_non_lifting_surface(&sphere);
+    body.add_non_lifting_surface(sphere);
     
     // Set up solver:
     Solver solver("test-sphere-log");
