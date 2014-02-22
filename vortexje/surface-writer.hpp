@@ -24,13 +24,30 @@ namespace Vortexje
 class SurfaceWriter
 {
 public:
+    /**
+       Returns the appropriate file extension for this SurfaceWriter.
+   
+       @returns The file extension.
+    */
     virtual const char *file_extension() const = 0;
     
     bool write(const Surface &surface, const std::string &filename);
     
     bool write(const Surface &surface, const std::string &filename,
                int node_offset, int panel_offset);
-                    
+      
+    /**
+       Saves the given surface to a file, including data vectors associating numerical values to each panel.
+      
+       @param[in]   surface        Surface to write.
+       @param[in]   filename       Destination filename.
+       @param[in]   node_offset    Node numbering offset in output file.
+       @param[in]   panel_offset   Panel numbering offset in output file.
+       @param[in]   view_names     List of names of data vectors to be stored.
+       @param[in]   view_data      List of data vectors to be stored.
+       
+       @returns true on success.
+    */               
     virtual bool write(const Surface &surface, const std::string &filename,
                        int node_offset, int panel_offset,
                        const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data) = 0;

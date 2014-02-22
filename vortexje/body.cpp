@@ -84,8 +84,8 @@ Body::add_lifting_surface(LiftingSurface &lifting_surface)
 /**
    Adds a lifting surface and its boundary layer to this body.
    
-   @param[in]   non_lifting_surface   Non-lifting surface.
-   @param[in]   boundary_layer        Boundary layer.
+   @param[in]   lifting_surface   Lifting surface.
+   @param[in]   boundary_layer    Boundary layer.
 */
 void
 Body::add_lifting_surface(LiftingSurface &lifting_surface, BoundaryLayer &boundary_layer)

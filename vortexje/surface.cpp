@@ -474,7 +474,7 @@ Surface::panel_diameter(int panel) const
    
    @param[in]   scalar_field   Scalar field, ordered by panel number.
    @param[in]   offset         Scalar field offset
-   @param[in]   panel          Panel on which the on-body gradient is evaluated.
+   @param[in]   this_panel     Panel on which the on-body gradient is evaluated.
    
    @returns On-body gradient.
 */

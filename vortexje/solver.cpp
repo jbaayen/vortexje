@@ -202,8 +202,8 @@ Solver::velocity(const Eigen::Vector3d &x) const
 /**
    Returns the surface velocity potential for the given panel.
    
-   @param[in]   body    Reference body.
-   @param[in]   panel   Reference panel.
+   @param[in]   surface   Reference surface.
+   @param[in]   panel     Reference panel.
   
    @returns Surface velocity potential.
 */
@@ -230,8 +230,8 @@ Solver::surface_velocity_potential(const Surface &surface, int panel) const
 /**
    Returns the surface velocity for the given panel.
    
-   @param[in]   body    Reference body.
-   @param[in]   panel   Reference panel.
+   @param[in]   surface   Reference surface.
+   @param[in]   panel     Reference panel.
   
    @returns Surface velocity.
 */
@@ -258,8 +258,8 @@ Solver::surface_velocity(const Surface &surface, int panel) const
 /**
    Returns the pressure coefficient for the given panel.
    
-   @param[in]   body    Reference body.
-   @param[in]   panel   Reference panel.
+   @param[in]   surface   Reference saceurf.
+   @param[in]   panel     Reference panel.
   
    @returns Pressure coefficient.
 */
@@ -807,7 +807,7 @@ Solver::update_wakes(double dt)
    tagged with the specified step number.
    
    @param[in]   step_number   Step number used to name the output files.
-   @param[in]   format        File format to log data in.
+   @param[in]   writer        SurfaceWriter object to use.
 */
 void
 Solver::log(int step_number, SurfaceWriter &writer) const

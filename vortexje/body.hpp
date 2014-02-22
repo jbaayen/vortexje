@@ -44,11 +44,23 @@ public:
     */
     class SurfaceData {
     public:
+        /**
+           Constructs a SurfaceData object.
+          
+           @param[in]   surface          Surface object.
+           @param[in]   boundary_layer   Boundary layer object for this surface. 
+        */
         SurfaceData(Surface &surface, BoundaryLayer &boundary_layer) :
             surface(surface), boundary_layer(boundary_layer) {}
         
+        /**
+           Associated surface object.
+        */
         Surface &surface;
         
+        /**
+           Associated boundary layer object.
+        */
         BoundaryLayer &boundary_layer;
     };
     
@@ -57,11 +69,23 @@ public:
     */
     class LiftingSurfaceData : public SurfaceData {
     public:
+        /**
+           Constructs a LiftingSurfaceData object.
+
+           @param[in]   lifting_surface   Lifting surface object.
+           @param[in]   boundary_layer    Boundary layer object for this surface. 
+        */
         LiftingSurfaceData(LiftingSurface &lifting_surface, BoundaryLayer &boundary_layer) :
             SurfaceData(lifting_surface, boundary_layer), lifting_surface(lifting_surface), wake(Wake(lifting_surface)) { }
         
+        /**
+           Associated lifting surface object.
+        */
         LiftingSurface &lifting_surface;
         
+        /**
+           Associated wake object.
+        */
         Wake wake;
     };
     

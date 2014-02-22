@@ -24,8 +24,21 @@ namespace Vortexje
 class SurfaceLoader
 {
 public:
+    /**
+       Returns the appropriate file extension for this FieldWriter.
+   
+       @returns The file extension.
+    */
     virtual const char *file_extension() const = 0;
     
+    /**
+       Loads and parses the contents of a file into a Surface.
+
+       @param[in]   surface    Surface to load to.
+       @param[in]   filename   Filename pointing to the file to load.
+       
+       @returns true on success.
+    */
     virtual bool load(Surface &surface, const std::string &filename) = 0;
 };
 

@@ -16,6 +16,9 @@ using namespace Vortexje;
    Computes the field envelope for a given Solver.
   
    @param[in]   solver     Solver whose state to output.
+   @param[in]   dx         Grid inrement in X-direction.
+   @param[in]   dy         Grid inrement in X-direction.
+   @param[in]   dz         Grid inrement in X-direction.
    @param[in]   x_margin   Grid expansion margin in X-direction.
    @param[in]   y_margin   Grid expansion margin in Y-direction.
    @param[in]   z_margin   Grid expansion margin in Z-direction.
