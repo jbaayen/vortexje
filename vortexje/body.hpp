@@ -41,6 +41,8 @@ public:
     
     /**
        Data structure grouping a non-lifting surface with its boundary layer.
+       
+       @brief Surface data.
     */
     class SurfaceData {
     public:
@@ -66,6 +68,8 @@ public:
     
     /**
        Data structure grouping a lifting surface with its boundary layer, and with its wake.
+       
+       @brief Lifting surface data.
     */
     class LiftingSurfaceData : public SurfaceData {
     public:
