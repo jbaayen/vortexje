@@ -78,9 +78,10 @@ public:
 
            @param[in]   lifting_surface   Lifting surface object.
            @param[in]   boundary_layer    Boundary layer object for this surface. 
+           @param[in]   wake              Wake object for this surface.
         */
-        LiftingSurfaceData(LiftingSurface &lifting_surface, BoundaryLayer &boundary_layer) :
-            SurfaceData(lifting_surface, boundary_layer), lifting_surface(lifting_surface), wake(Wake(lifting_surface)) { }
+        LiftingSurfaceData(LiftingSurface &lifting_surface, BoundaryLayer &boundary_layer, Wake &wake) :
+            SurfaceData(lifting_surface, boundary_layer), lifting_surface(lifting_surface), wake(wake) { }
         
         /**
            Associated lifting surface object.
@@ -90,7 +91,7 @@ public:
         /**
            Associated wake object.
         */
-        Wake wake;
+        Wake &wake;
     };
     
     /**
@@ -113,7 +114,7 @@ public:
     void add_non_lifting_surface(Surface &surface, BoundaryLayer &boundary_layer);
     
     void add_lifting_surface(LiftingSurface &lifting_surface);    
-    void add_lifting_surface(LiftingSurface &lifting_surface, BoundaryLayer &boundary_layer);
+    void add_lifting_surface(LiftingSurface &lifting_surface, BoundaryLayer &boundary_layer, Wake &wake);
     
     /**
        Linear position of the entire body.
@@ -144,6 +145,17 @@ public:
     Eigen::Vector3d panel_kinematic_velocity(const Surface &surface, int panel) const;
     
     Eigen::Vector3d node_kinematic_velocity(const Surface &surface, int node) const;
+    
+protected:
+    /**
+       List of allocated surfaces.
+    */
+    std::vector<Surface*> allocated_surfaces;
+    
+    /**
+       List of allocated boundary layers.
+    */
+    std::vector<BoundaryLayer*> allocated_boundary_layers;
 };
 
 };

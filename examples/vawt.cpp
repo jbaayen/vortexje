@@ -13,6 +13,8 @@
 #include <vortexje/shape-generators/airfoils/naca4-airfoil-generator.hpp>
 #include <vortexje/shape-generators/ellipse-generator.hpp>
 #include <vortexje/surface-writers/vtk-surface-writer.hpp>
+#include <vortexje/boundary-layers/dummy-boundary-layer.hpp>
+#include <vortexje/empirical-wakes/ramasamy-leishman-wake.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -138,6 +140,8 @@ public:
         // Initialize tower:
         Surface *tower = new Tower();
         add_non_lifting_surface(*tower);
+        
+        allocated_surfaces.push_back(tower);
 #endif
         
         // Initialize blades:
@@ -152,22 +156,18 @@ public:
             
             blade->translate(position);
             
-            add_lifting_surface(*blade);
+            BoundaryLayer *boundary_layer = new DummyBoundaryLayer();
+            
+            Wake *wake = new RamasamyLeishmanWake(*blade);
+            
+            add_lifting_surface(*blade, *boundary_layer, *wake);
+            
+            allocated_boundary_layers.push_back(boundary_layer);
+            allocated_surfaces.push_back(blade);
+            allocated_surfaces.push_back(wake);
         }
     }
-
-    // Destructor:
-    ~VAWT()
-    {
-#ifdef INCLUDE_TOWER
-        for (int i = 0; i < (int) non_lifting_surfaces.size(); i++)
-            delete non_lifting_surfaces[i];
-#endif
-            
-        for (int i = 0; i < (int) lifting_surfaces.size(); i++)
-            delete lifting_surfaces[i]; 
-    }
-
+    
     // Rotate:
     void
     rotate(double dt)
@@ -181,9 +181,8 @@ public:
 int
 main (int argc, char **argv)
 {    
-    // Set simulation parameters for dynamic wake convection with Ramasamy-Leishman vortex model:
-    Parameters::convect_wake                       = true;
-    Parameters::use_ramasamy_leishman_vortex_sheet = true;
+    // Set simulation parameters:
+    Parameters::convect_wake = true;
     
     // Set up VAWT:
     Vector3d position(0, 0, 0);

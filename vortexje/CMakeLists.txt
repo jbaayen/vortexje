@@ -1,4 +1,5 @@
 add_subdirectory(boundary-layers)
+add_subdirectory(empirical-wakes)
 add_subdirectory(surface-loaders)
 add_subdirectory(surface-writers)
 add_subdirectory(field-writers)
@@ -32,6 +33,7 @@ set(HDRS
 
 add_library(vortexje SHARED ${SRCS}
     $<TARGET_OBJECTS:boundary-layers>
+    $<TARGET_OBJECTS:empirical-wakes>
     $<TARGET_OBJECTS:surface-loaders>
     $<TARGET_OBJECTS:surface-writers>
     $<TARGET_OBJECTS:field-writers>

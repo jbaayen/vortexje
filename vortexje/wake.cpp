@@ -8,8 +8,6 @@
 
 #include <iostream>
 
-#include <Eigen/Geometry>
-
 #include <vortexje/wake.hpp>
 
 using namespace std;
@@ -31,6 +29,13 @@ Wake::Wake(LiftingSurface &lifting_surface): lifting_surface(lifting_surface)
 void
 Wake::add_layer()
 {
+    // Is this the first layer?
+    bool first_layer;
+    if (n_nodes() < lifting_surface.n_spanwise_nodes())
+        first_layer = true;
+    else
+        first_layer = false;
+        
     // Add layer of nodes at trailing edge, and add panels if necessary:
     for (int k = 0; k < lifting_surface.n_spanwise_nodes(); k++) {
         Vector3d new_point = lifting_surface.nodes[lifting_surface.trailing_edge_node(k)];
@@ -38,7 +43,7 @@ Wake::add_layer()
         int node = n_nodes();
         nodes.push_back(new_point);
         
-        if (k > 0 && (int) nodes.size() > lifting_surface.n_spanwise_nodes() + 1) {
+        if (k > 0 && !first_layer) {
             vector<int> vertices;
             vertices.push_back(node - 1);
             vertices.push_back(node - 1 - lifting_surface.n_spanwise_nodes());
@@ -71,27 +76,6 @@ Wake::add_layer()
             }
             
             doublet_coefficients.push_back(0);
-            
-            vector<double> panel_vortex_core_radii;
-            for (int i = 0; i < 4; i++)
-                panel_vortex_core_radii.push_back(Parameters::initial_vortex_core_radius);
-            vortex_core_radii.push_back(panel_vortex_core_radii);
-            
-            vector<double> edge_lengths;
-            for (int i = 0; i < 4; i++) {
-                int prev_idx;
-                if (i == 0)
-                    prev_idx = 3;
-                else
-                    prev_idx = i - 1;
-                    
-                const Vector3d &node_a = nodes[vertices[prev_idx]];
-                const Vector3d &node_b = nodes[vertices[i]];
-                
-                Vector3d edge = node_b - node_a;
-                edge_lengths.push_back(edge.norm());
-            }
-            base_edge_lengths.push_back(edge_lengths);
 
         } else {
             vector<int> *empty = new vector<int>;
@@ -128,29 +112,6 @@ Wake::translate_trailing_edge(const Eigen::Vector3d &translation)
 /**
    Transforms the nodes of the trailing edge.
    
-   @param[in]   transformation   Transformation matrix.
-*/
-void
-Wake::transform_trailing_edge(const Eigen::Matrix3d &transformation)
-{
-    if (n_nodes() < lifting_surface.n_spanwise_nodes())
-        return;
-        
-    int k0;
-    if (Parameters::convect_wake)
-        k0 = n_nodes() - lifting_surface.n_spanwise_nodes();
-    else
-        k0 = 0;
-        
-    for (int k = k0; k < n_nodes(); k++)                
-        nodes[k] = transformation * nodes[k];
-        
-    compute_geometry();
-}
-
-/**
-   Transforms the nodes of the trailing edge.
-   
    @param[in]   transformation   Affine transformation.
 */
 void
@@ -172,39 +133,11 @@ Wake::transform_trailing_edge(const Eigen::Transform<double, 3, Eigen::Affine> &
 }
 
 /**
-   Updates the Ramasamy-Leishman vortex ring core radii.
+   Updates any non-geometrical wake properties.  This method does nothing by default.
   
-   @param[in]   panel   Panel number.
-   @param[in]   dt      Time step size.
-   
-   @note See M. Ramasamy and J. G. Leishman, Reynolds Number Based Blade Tip Vortex Model, University of Maryland, 2005.
+   @param[in]   dt   Time step size.
 */
 void
-Wake::update_ramasamy_leishman_vortex_core_radii(int panel, double dt)
+Wake::update_properties(double dt)
 {
-    for (int i = 0; i < 4; i++) {
-        int prev_idx;
-        if (i == 0)
-            prev_idx = 3;
-        else
-            prev_idx = i - 1;
-            
-        double vortex_reynolds_number = fabs(doublet_coefficients[panel]) / Parameters::fluid_kinematic_viscosity;
-        
-        double t_multiplier = 4 * Parameters::lambs_constant *
-            (1 + vortex_reynolds_number * Parameters::a_prime) * Parameters::fluid_kinematic_viscosity;
-        
-        double t = (pow(vortex_core_radii[panel][i], 2) - pow(Parameters::initial_vortex_core_radius, 2)) / t_multiplier;
-        
-        double vortex_core_size_0 = sqrt(pow(Parameters::initial_vortex_core_radius, 2) + t_multiplier * (t + dt));
-        
-        Vector3d node_a = nodes[panel_nodes[panel][prev_idx]];
-        Vector3d node_b = nodes[panel_nodes[panel][i]];
-        
-        Vector3d edge = node_b - node_a;
-        
-        double strain = (edge.norm() - base_edge_lengths[panel][i]) / base_edge_lengths[panel][i];
-        
-        vortex_core_radii[panel][i] = fmax(Parameters::min_vortex_core_radius, vortex_core_size_0 / sqrt(1 + strain));
-    }
 }

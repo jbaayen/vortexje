@@ -15,9 +15,6 @@ using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
 
-// Dummy boundary layer singleton object.  Used when no boundary model is specified.
-static DummyBoundaryLayer dummy_boundary_layer;
-    
 /**
    Constructs a new Body.
    
@@ -38,13 +35,21 @@ Body::Body(const string &id) : id(id)
 */
 Body::~Body()
 {
-    vector<SurfaceData*>::iterator si;
-    for (si = non_lifting_surfaces.begin(); si != non_lifting_surfaces.end(); si++)
+    vector<SurfaceData*>::iterator sdi;
+    for (sdi = non_lifting_surfaces.begin(); sdi != non_lifting_surfaces.end(); sdi++)
+        delete (*sdi);
+        
+    vector<LiftingSurfaceData*>::iterator lsdi;
+    for (lsdi = lifting_surfaces.begin(); lsdi != lifting_surfaces.end(); lsdi++)
+        delete (*lsdi);
+        
+    vector<Surface*>::iterator si;
+    for (si = allocated_surfaces.begin(); si != allocated_surfaces.end(); si++)
         delete (*si);
         
-    vector<LiftingSurfaceData*>::iterator lsi;
-    for (lsi = lifting_surfaces.begin(); lsi != lifting_surfaces.end(); lsi++)
-        delete (*lsi);
+    vector<BoundaryLayer*>::iterator bi;
+    for (bi = allocated_boundary_layers.begin(); bi != allocated_boundary_layers.end(); bi++)
+        delete (*bi);
 }
 
 /**
@@ -55,7 +60,11 @@ Body::~Body()
 void
 Body::add_non_lifting_surface(Surface &non_lifting_surface)
 {
-    add_non_lifting_surface(non_lifting_surface, dummy_boundary_layer);
+    BoundaryLayer *boundary_layer = new DummyBoundaryLayer();
+    
+    add_non_lifting_surface(non_lifting_surface, *boundary_layer);
+    
+    allocated_boundary_layers.push_back(boundary_layer);
 }
 
 /**
@@ -77,8 +86,14 @@ Body::add_non_lifting_surface(Surface &non_lifting_surface, BoundaryLayer &bound
 */
 void
 Body::add_lifting_surface(LiftingSurface &lifting_surface)
-{   
-    add_lifting_surface(lifting_surface, dummy_boundary_layer);
+{
+    BoundaryLayer *boundary_layer = new DummyBoundaryLayer();
+    Wake *wake = new Wake(lifting_surface);
+    
+    add_lifting_surface(lifting_surface, *boundary_layer, *wake);
+    
+    allocated_surfaces.push_back(wake);
+    allocated_boundary_layers.push_back(boundary_layer);
 }
 
 /**
@@ -86,11 +101,12 @@ Body::add_lifting_surface(LiftingSurface &lifting_surface)
    
    @param[in]   lifting_surface   Lifting surface.
    @param[in]   boundary_layer    Boundary layer.
+   @param[in]   wake              Wake.
 */
 void
-Body::add_lifting_surface(LiftingSurface &lifting_surface, BoundaryLayer &boundary_layer)
+Body::add_lifting_surface(LiftingSurface &lifting_surface, BoundaryLayer &boundary_layer, Wake &wake)
 {
-    lifting_surfaces.push_back(new LiftingSurfaceData(lifting_surface, boundary_layer));
+    lifting_surfaces.push_back(new LiftingSurfaceData(lifting_surface, boundary_layer, wake));
 }
 
 /**

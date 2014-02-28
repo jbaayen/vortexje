@@ -23,18 +23,6 @@ bool   Parameters::convect_wake                       = false;
 
 double Parameters::static_wake_length                 = 100.0;
 
-double Parameters::fluid_kinematic_viscosity          = 15.68e-6;
-
-bool   Parameters::use_ramasamy_leishman_vortex_sheet = false;
-
-double Parameters::initial_vortex_core_radius         = 0.07;
-
-double Parameters::min_vortex_core_radius             = 0.07;
-
-double Parameters::lambs_constant                     = 1.25643;
-
-double Parameters::a_prime                            = 6.5e-5;
-
 double Parameters::inversion_tolerance                = 1e-7;
 
 double Parameters::collocation_point_delta            = 1e-7;

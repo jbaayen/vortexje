@@ -758,13 +758,8 @@ Solver::update_wakes(double dt)
                         d->wake.nodes[i] += local_wake_velocities[i] * dt;
                 }
                     
-                // Update vortex core radii:
-                #pragma omp parallel
-                {
-                    #pragma omp for schedule(dynamic, 1)
-                    for (i = 0; i < d->wake.n_panels(); i++)
-                        d->wake.update_ramasamy_leishman_vortex_core_radii(i, dt);
-                }
+                // Run internal wake update:
+                d->wake.update_properties(dt);
 
                 // Add new vertices:
                 // (This call also updates the geometry)
@@ -926,7 +921,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
         }
     }
 }
-
+ 
 // Compute source coefficient for given surface and panel:
 double
 Solver::compute_source_coefficient(const Body &body, const Surface &surface, int panel, const BoundaryLayer &boundary_layer, bool include_wake_influence) const
@@ -947,11 +942,7 @@ Solver::compute_source_coefficient(const Body &body, const Surface &surface, int
                 for (int k = 0; k < d->wake.n_panels(); k++) {
                     // Use doublet panel - vortex ring equivalence.  Any new wake panels have zero doublet
                     // coefficient, and are therefore not accounted for here.
-                    if (Parameters::use_ramasamy_leishman_vortex_sheet)
-                        velocity -= d->wake.vortex_ring_ramasamy_leishman_velocity
-                            (surface, panel, k, d->wake.vortex_core_radii[k], d->wake.doublet_coefficients[k]);
-                    else
-                        velocity -= d->wake.vortex_ring_unit_velocity(surface, panel, k) * d->wake.doublet_coefficients[k];
+                    velocity -= d->wake.vortex_ring_unit_velocity(surface, panel, k) * d->wake.doublet_coefficients[k];
                 }
             }
         }
@@ -1167,15 +1158,8 @@ Solver::compute_disturbance_velocity(const Eigen::Vector3d &x) const
             const Body::LiftingSurfaceData *d = *lsi;
             
             if (d->wake.n_panels() >= d->lifting_surface.n_spanwise_panels()) {
-                for (int i = d->wake.n_panels() - d->lifting_surface.n_spanwise_panels(); i < d->wake.n_panels(); i++)
+                for (int i = 0; i < d->wake.n_panels(); i++)
                     gradient += d->wake.vortex_ring_unit_velocity(x, i) * d->wake.doublet_coefficients[i];
-
-                for (int i = 0; i < d->wake.n_panels() - d->lifting_surface.n_spanwise_panels(); i++) {
-                    if (Parameters::use_ramasamy_leishman_vortex_sheet)
-                        gradient += d->wake.vortex_ring_ramasamy_leishman_velocity(x, i, d->wake.vortex_core_radii[i], d->wake.doublet_coefficients[i]);
-                    else
-                        gradient += d->wake.vortex_ring_unit_velocity(x, i) * d->wake.doublet_coefficients[i];
-                }
             }
         }
     }

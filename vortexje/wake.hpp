@@ -10,7 +10,6 @@
 #define __WAKE_HPP__
 
 #include <Eigen/Geometry>
-#include <Eigen/StdVector>
 
 #include <vortexje/lifting-surface.hpp>
 
@@ -34,29 +33,17 @@ public:
     */
     LiftingSurface &lifting_surface;
     
-    void add_layer();
+    virtual void add_layer();
     
     void translate_trailing_edge(const Eigen::Vector3d &translation);
-    void transform_trailing_edge(const Eigen::Matrix3d &transformation);
     void transform_trailing_edge(const Eigen::Transform<double, 3, Eigen::Affine> &transformation);
     
-    void update_ramasamy_leishman_vortex_core_radii(int panel, double dt);
+    virtual void update_properties(double dt);
     
     /**
        Strengths of the doublet, or vortex ring, panels.
     */
     std::vector<double> doublet_coefficients; 
-    
-    /**
-       Radii of the vortex filaments forming the vortex rings.
-    */ 
-    std::vector<std::vector<double> > vortex_core_radii;
-  
-private:  
-    /**
-       Initial lengths of the vortex filaments forming the vortex rings.
-    */
-    std::vector<std::vector<double> > base_edge_lengths;
 };
 
 };
