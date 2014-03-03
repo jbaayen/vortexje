@@ -1,10 +1,8 @@
 set(SRCS
-    naca4-airfoil-generator.cpp
-    clark-y-airfoil-generator.cpp)
+    naca4-airfoil-generator.cpp)
 	
 set(HDRS
-    naca4-airfoil-generator.hpp
-    clark-y-airfoil-generator.hpp)
+    naca4-airfoil-generator.hpp)
 
 add_library(airfoils OBJECT ${SRCS})
 

@@ -6,8 +6,8 @@
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
-#ifndef __NACA4_GENERATOR_HPP__
-#define __NACA4_GENERATOR_HPP__
+#ifndef __NACA4_AIRFOIL_GENERATOR_HPP__
+#define __NACA4_AIRFOIL_GENERATOR_HPP__
 
 #include <Eigen/Core>
 #include <Eigen/StdVector>
@@ -28,4 +28,4 @@ public:
 
 };
 
-#endif // __NACA4_GENERATOR_HPP__
+#endif // __NACA4_AIRFOIL_GENERATOR_HPP__
