@@ -11,7 +11,6 @@
 #include <vortexje/solver.hpp>
 #include <vortexje/parameters.hpp>
 #include <vortexje/lifting-surface-builder.hpp>
-#include <vortexje/shape-generators/airfoils/clark-y-airfoil-generator.hpp>
 #include <vortexje/surface-writers/vtk-surface-writer.hpp>
 #include <vortexje/field-writers/vtk-field-writer.hpp>
 
@@ -19,11 +18,79 @@ using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
 
+// Load airfoil data from file:
+static vector<Vector3d, Eigen::aligned_allocator<Vector3d> >
+read_airfoil(const std::string &filename, int &trailing_edge_point_id)
+{
+    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > upper_points;
+    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > lower_points;
+    
+    // Parse file:
+    ifstream f;
+    f.open(filename.c_str());
+    
+    int side = -1;
+    
+    while (f.good()) {
+        string line;
+        getline(f, line);
+        
+        // Empty line signifies new section:
+        bool empty_line = false;
+        if (line.find_first_not_of("\r\n\t ") == string::npos)
+            empty_line = true;
+            
+        if (empty_line) {
+            side++;
+            continue;
+        }
+            
+        // Read x, y coordinates:
+        if (side >= 0) {
+            istringstream tokens(line);
+            
+            double x, y;
+            tokens >> x >> y;
+            
+            Vector3d point(x, y, 0.0);
+            if (side == 0)
+                upper_points.push_back(point);
+            else
+                lower_points.push_back(point);
+        }
+    }
+    
+    // Close file:
+    f.close();
+    
+    // Assemble entire airfoil:
+    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > points;
+    
+    for (int i = 0; i < (int) upper_points.size() - 1; i++)
+        points.push_back(upper_points[i]);
+    
+    // Use a thin trailing edge:
+    Vector3d trailing_edge_point = 0.5 * (upper_points[(int) upper_points.size() - 1] + lower_points[(int) lower_points.size() - 1]);
+    points.push_back(trailing_edge_point);
+    trailing_edge_point_id = (int) points.size() - 1;
+    
+    for (int i = (int) lower_points.size() - 2; i > 0; i--)
+        points.push_back(lower_points[i]);
+
+    // Done:
+    return points;
+}
+
+// Main:
 int
 main (int argc, char **argv)
 {
     // Enable wake convection:
     Parameters::convect_wake = true;
+    
+    // Load airfoil data:
+    int trailing_edge_point_id;
+    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > clarky_airfoil = read_airfoil("clarky.dat", trailing_edge_point_id);
     
     // Create lifting surface object:
     LiftingSurface wing;
@@ -31,23 +98,20 @@ main (int argc, char **argv)
     // Construct wing section:
     LiftingSurfaceBuilder surface_builder(wing);
 
-    const int n_points_per_airfoil = 32;
     const int n_airfoils = 21;
     
     const double chord = 1.0;
     const double span = 5.0;
     
-    int trailing_edge_point_id;
     vector<int> prev_airfoil_nodes;
     
     vector<vector<int> > node_strips;
     vector<vector<int> > panel_strips;
     
     for (int i = 0; i < n_airfoils; i++) {
-        vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points =
-            ClarkYAirfoilGenerator::generate(chord, n_points_per_airfoil, trailing_edge_point_id);
-        for (int j = 0; j < (int) airfoil_points.size(); j++)
-            airfoil_points[j](2) += i * span / (double) (n_airfoils - 1);
+        vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points;
+        for (int j = 0; j < (int) clarky_airfoil.size(); j++)
+            airfoil_points.push_back(Vector3d(chord * clarky_airfoil[j](0), chord * clarky_airfoil[j](1), i * span / (double) (n_airfoils - 1)));
              
         vector<int> airfoil_nodes = surface_builder.create_nodes_for_points(airfoil_points);
         node_strips.push_back(airfoil_nodes);
@@ -75,7 +139,7 @@ main (int argc, char **argv)
     body.add_lifting_surface(wing);
     
     // Set up solver:
-    Solver solver("clark-y-section-log");
+    Solver solver("clarky-section-log");
     solver.add_body(body);
     
     Vector3d freestream_velocity(30, 0, 0);
