@@ -47,7 +47,7 @@ mkdir_helper(const string folder)
    
    @param[in]   log_folder  Logging output folder.
 */
-Solver::Solver(const string log_folder) : log_folder(log_folder)
+Solver::Solver(const string &log_folder) : log_folder(log_folder)
 { 
     // Initialize wind:
     freestream_velocity = Vector3d(0, 0, 0);
@@ -141,10 +141,11 @@ Solver::add_body(Body &body)
         string s = ss.str();
         mkdir_helper(s);
         
-        stringstream ss2;
-        ss2 << body_log_folder << "/wake_" << i;
+        ss.str(string());
+        ss.clear();
+        ss << body_log_folder << "/wake_" << i;
         
-        s = ss2.str();
+        s = ss.str();
         mkdir_helper(s);      
     }
 }

@@ -31,7 +31,7 @@ class Solver
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
         
-    Solver(const std::string log_folder);
+    Solver(const std::string &log_folder);
     
     ~Solver();
 
