@@ -122,6 +122,10 @@ main (int argc, char **argv)
         Quaterniond attitude = AngleAxis<double>(alpha, Vector3d::UnitZ()) * Quaterniond(1, 0, 0, 0);
         body.set_attitude(attitude);
         
+        // Update rotational velocity:
+        double dalphadt = alpha_max * omega * cos(omega * t);
+        body.set_rotational_velocity(Vector3d(0, 0, dalphadt));
+        
         // Step time:
         t += dt;
         i++;
