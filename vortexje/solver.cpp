@@ -740,7 +740,7 @@ Solver::update_wakes(double dt)
                 std::vector<Vector3d> &local_wake_velocities = wake_velocities[idx];
                 idx++;
                 
-                // Convect wake nodes that coincide with the trailing edge nodes with the freestream velocity.
+                // Convect wake nodes that coincide with the trailing edge nodes with the apparent node velocity.
                 // Alternative options are discussed in
                 //   K. Dixon, The Near Wake Structure of a Vertical Axis Wind Turbine, M.Sc. Thesis, TU Delft, 2008.
                 for (int i = d->wake.n_nodes() - d->lifting_surface.n_spanwise_nodes(); i < d->wake.n_nodes(); i++) {
