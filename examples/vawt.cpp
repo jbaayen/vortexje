@@ -6,8 +6,6 @@
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
-#include <iostream>
-
 #include <vortexje/solver.hpp>
 #include <vortexje/lifting-surface-builder.hpp>
 #include <vortexje/shape-generators/airfoils/naca4-airfoil-generator.hpp>
