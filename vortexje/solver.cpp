@@ -372,19 +372,27 @@ Solver::initialize_wakes(double dt)
     vector<Body*>::iterator bi;
     for (bi = bodies.begin(); bi != bodies.end(); bi++) {
         Body *body = *bi;
-        
-        Vector3d body_apparent_velocity = body->velocity - freestream_velocity;
-        
+    
         vector<Body::LiftingSurfaceData*>::iterator lsi;
         for (lsi = body->lifting_surfaces.begin(); lsi != body->lifting_surfaces.end(); lsi++) {
             Body::LiftingSurfaceData *d = *lsi;
             
             d->wake.add_layer();
-            for (int i = 0; i < d->wake.n_nodes(); i++) {
-                if (Parameters::convect_wake)    
-                    d->wake.nodes[i] -= body_apparent_velocity * dt;
-                else
+            for (int i = 0; i < d->lifting_surface.n_spanwise_nodes(); i++) {
+                if (Parameters::convect_wake) {
+                    // Convect wake nodes that coincide with the trailing edge nodes with the apparent node velocity.
+                    // Alternative options are discussed in
+                    //   K. Dixon, The Near Wake Structure of a Vertical Axis Wind Turbine, M.Sc. Thesis, TU Delft, 2008.
+                    Vector3d apparent_velocity = body->node_kinematic_velocity(d->surface, d->lifting_surface.trailing_edge_node(i)) - freestream_velocity;
+                    
+                    d->wake.nodes[i] -= apparent_velocity * dt;
+                    
+                } else {
+                    // Initialize static wake.
+                    Vector3d body_apparent_velocity = body->velocity - freestream_velocity;
+                    
                     d->wake.nodes[i] -= Parameters::static_wake_length * body_apparent_velocity / body_apparent_velocity.norm();
+                }
             }
             
             d->wake.add_layer();
@@ -743,10 +751,10 @@ Solver::update_wakes(double dt)
                 // Convect wake nodes that coincide with the trailing edge nodes with the apparent node velocity.
                 // Alternative options are discussed in
                 //   K. Dixon, The Near Wake Structure of a Vertical Axis Wind Turbine, M.Sc. Thesis, TU Delft, 2008.
-                for (int i = d->wake.n_nodes() - d->lifting_surface.n_spanwise_nodes(); i < d->wake.n_nodes(); i++) {
-                    Vector3d apparent_velocity = body->node_kinematic_velocity(d->wake, i) - freestream_velocity;
+                for (int i = 0; i < d->lifting_surface.n_spanwise_nodes(); i++) {
+                    Vector3d apparent_velocity = body->node_kinematic_velocity(d->surface, d->lifting_surface.trailing_edge_node(i)) - freestream_velocity;
                                                                
-                    d->wake.nodes[i] -= apparent_velocity * dt;
+                    d->wake.nodes[d->wake.n_nodes() - d->lifting_surface.n_spanwise_nodes() + i] -= apparent_velocity * dt;
                 }                
                 
                 // Convect all other wake nodes according to the local wake velocity:
