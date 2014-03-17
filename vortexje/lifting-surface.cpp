@@ -103,3 +103,25 @@ LiftingSurface::trailing_edge_lower_panel(int index) const
 {
     return lower_panels(lower_panels.rows() - 1, index);
 }
+
+/**
+   Returns the unit vector bisecting the trailing edge, at the node_index'th trailing edge node.
+  
+   @param[in]   node_index   Trailing edge node index.
+   
+   @returns The unit vector bisecting the trailing edge, at the node_index'th trailinge edge node.
+*/
+Eigen::Vector3d
+LiftingSurface::trailing_edge_bisector(int node_index) const
+{
+    Vector3d upper = nodes[upper_nodes(upper_nodes.rows() - 1, node_index)] - nodes[upper_nodes(upper_nodes.rows() - 2, node_index)];
+    Vector3d lower = nodes[lower_nodes(lower_nodes.rows() - 1, node_index)] - nodes[lower_nodes(lower_nodes.rows() - 2, node_index)];
+    
+    upper.normalize();
+    lower.normalize();
+    
+    Vector3d trailing_edge_bisector = upper + lower;
+    trailing_edge_bisector.normalize();
+    
+    return trailing_edge_bisector;
+}

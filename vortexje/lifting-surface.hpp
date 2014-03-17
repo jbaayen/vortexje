@@ -57,6 +57,8 @@ public:
     int trailing_edge_node(int index) const;
     int trailing_edge_upper_panel(int index) const;
     int trailing_edge_lower_panel(int index) const;
+    
+    Eigen::Vector3d trailing_edge_bisector(int node_index) const;
 };
 
 };
