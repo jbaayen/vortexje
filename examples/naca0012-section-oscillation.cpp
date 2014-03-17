@@ -114,9 +114,6 @@ main (int argc, char **argv)
 
         f << alpha << ' ' << C_L << ' ' << C_D << endl;
         
-        // Update wake:
-        solver.update_wakes(dt);
-        
         // Rotate wing:
         alpha = alpha_max * sin(omega * t);
         Quaterniond attitude = AngleAxis<double>(alpha, Vector3d::UnitZ()) * Quaterniond(1, 0, 0, 0);
@@ -125,6 +122,9 @@ main (int argc, char **argv)
         // Update rotational velocity:
         double dalphadt = alpha_max * omega * cos(omega * t);
         body.set_rotational_velocity(Vector3d(0, 0, dalphadt));
+        
+        // Update wake:
+        solver.update_wakes(dt);
         
         // Step time:
         t += dt;

@@ -226,11 +226,11 @@ main (int argc, char **argv)
         Vector3d M = solver.moment(vawt, position);
         f << M(2) << endl;
 
-        // Update wakes:
-        solver.update_wakes(dt);
-        
         // Rotate blades:
         vawt.rotate(dt);
+        
+        // Update wakes:
+        solver.update_wakes(dt);
         
         // Step time:
         t += dt;
