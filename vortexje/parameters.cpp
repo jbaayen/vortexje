@@ -19,7 +19,11 @@ double Parameters::linear_solver_tolerance            = 1e-10;
 
 bool   Parameters::unsteady_bernoulli                 = true;
 
-bool   Parameters::convect_wake                       = false;
+bool   Parameters::convect_wake                       = true;
+
+bool   Parameters::wake_emission_follow_bisector      = false;
+
+double Parameters::wake_emission_distance_factor      = 0.25;
 
 double Parameters::static_wake_length                 = 100.0;
 

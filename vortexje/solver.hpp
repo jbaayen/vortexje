@@ -92,7 +92,7 @@ private:
     Eigen::MatrixXd surface_velocities;
     Eigen::VectorXd pressure_coefficients;  
     
-    Eigen::VectorXd previous_surface_velocity_potentials;  
+    Eigen::VectorXd previous_surface_velocity_potentials; 
                                           
     double compute_source_coefficient(const Body &body, const Surface &surface, int panel, const BoundaryLayer &boundary_layer, bool include_wake_influence) const;
     
@@ -109,6 +109,8 @@ private:
     Eigen::Vector3d compute_disturbance_velocity(const Eigen::Vector3d &x) const;
     
     double compute_disturbance_velocity_potential(const Eigen::Vector3d &x) const;
+    
+    Eigen::Vector3d compute_trailing_edge_vortex_displacement(const Body &body, const LiftingSurface &lifting_surface, int index, double dt) const;
 };
 
 };

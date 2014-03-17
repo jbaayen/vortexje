@@ -380,12 +380,8 @@ Solver::initialize_wakes(double dt)
             d->wake.add_layer();
             for (int i = 0; i < d->lifting_surface.n_spanwise_nodes(); i++) {
                 if (Parameters::convect_wake) {
-                    // Convect wake nodes that coincide with the trailing edge nodes with the apparent node velocity.
-                    // Alternative options are discussed in
-                    //   K. Dixon, The Near Wake Structure of a Vertical Axis Wind Turbine, M.Sc. Thesis, TU Delft, 2008.
-                    Vector3d apparent_velocity = body->node_kinematic_velocity(d->surface, d->lifting_surface.trailing_edge_node(i)) - freestream_velocity;
-                    
-                    d->wake.nodes[i] -= apparent_velocity * dt;
+                    // Convect wake nodes that coincide with the trailing edge.
+                    d->wake.nodes[i] += compute_trailing_edge_vortex_displacement(*body, d->lifting_surface, i, dt);
                     
                 } else {
                     // Initialize static wake.
@@ -748,13 +744,10 @@ Solver::update_wakes(double dt)
                 std::vector<Vector3d> &local_wake_velocities = wake_velocities[idx];
                 idx++;
                 
-                // Convect wake nodes that coincide with the trailing edge nodes with the apparent node velocity.
-                // Alternative options are discussed in
-                //   K. Dixon, The Near Wake Structure of a Vertical Axis Wind Turbine, M.Sc. Thesis, TU Delft, 2008.
-                for (int i = 0; i < d->lifting_surface.n_spanwise_nodes(); i++) {
-                    Vector3d apparent_velocity = body->node_kinematic_velocity(d->surface, d->lifting_surface.trailing_edge_node(i)) - freestream_velocity;
-                                                               
-                    d->wake.nodes[d->wake.n_nodes() - d->lifting_surface.n_spanwise_nodes() + i] -= apparent_velocity * dt;
+                // Convect wake nodes that coincide with the trailing edge.
+                for (int i = 0; i < d->lifting_surface.n_spanwise_nodes(); i++) {                                                  
+                    d->wake.nodes[d->wake.n_nodes() - d->lifting_surface.n_spanwise_nodes() + i]
+                        += compute_trailing_edge_vortex_displacement(*body, d->lifting_surface, i, dt);
                 }                
                 
                 // Convect all other wake nodes according to the local wake velocity:
@@ -1175,4 +1168,28 @@ Solver::compute_disturbance_velocity(const Eigen::Vector3d &x) const
                
     // Done:
     return gradient;
+}
+
+/**
+   Computes the vector by which the first wake vortex is offset from the trailing edge.
+   
+   @param[in]   body              Reference body.
+   @param[in]   lifting_surface   Reference lifting surface.
+   @param[in]   index             Trailing edge index.
+   @param[in]   dt                Time step size.
+   
+   @returns The trailing edge vortex displacement.
+*/
+Eigen::Vector3d
+Solver::compute_trailing_edge_vortex_displacement(const Body &body, const LiftingSurface &lifting_surface, int index, double dt) const
+{
+    Vector3d apparent_velocity = body.node_kinematic_velocity(lifting_surface, lifting_surface.trailing_edge_node(index)) - freestream_velocity;
+                    
+    Vector3d wake_velocity;
+    if (Parameters::wake_emission_follow_bisector)
+        wake_velocity = apparent_velocity.norm() * lifting_surface.trailing_edge_bisector(index);
+    else
+        wake_velocity = -apparent_velocity;
+    
+    return Parameters::wake_emission_distance_factor * wake_velocity * dt;   
 }

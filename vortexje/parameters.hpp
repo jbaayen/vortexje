@@ -38,9 +38,23 @@ public:
     static bool   unsteady_bernoulli;
     
     /**
-       Whether or not to enable wake relaxation/convection.
+       Whether or not to enable the convection of wake nodes.
     */
     static bool   convect_wake;
+    
+    /**
+       Whether to emit new wake panels into the direction of the trailing edge bisector, rather than following the
+       apparent velocity.
+    */
+    static bool   wake_emission_follow_bisector;
+    
+    /**
+       Multiplied with the trailing edge velocity to obtain the distance by which the first wake vortex is placed away
+       from the trailing edge.
+       
+       @note See J. Katz and A, Plotkin, Low-Speed Aerodynamics, 2nd Edition, Cambridge University Press, 2001. 
+    */
+    static double wake_emission_distance_factor;
     
     /**
        Length of the wake, in case of no wake convection.
