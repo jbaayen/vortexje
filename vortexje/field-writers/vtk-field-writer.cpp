@@ -34,29 +34,36 @@ VTKFieldWriter::file_extension() const
   
    @param[in]   solver     Solver whose state to output.
    @param[in]   filename   Destination filename.
+   @param[in]   x_min      Minimum X coordinate of grid.
+   @param[in]   x_max      Maximum X coordinate of grid.
+   @param[in]   y_min      Minimum Y coordinate of grid.
+   @param[in]   y_max      Maximum Y coordinate of grid.
+   @param[in]   z_min      Minimum Z coordinate of grid.
+   @param[in]   z_max      Maximum Z coordinate of grid.
    @param[in]   dx         Grid step size in X-direction.
    @param[in]   dy         Grid step size in Y-direction.
    @param[in]   dz         Grid step size in Z-direction.
-   @param[in]   x_margin   Grid expansion margin in X-direction.
-   @param[in]   y_margin   Grid expansion margin in Y-direction.
-   @param[in]   z_margin   Grid expansion margin in Z-direction.
    
    @returns true on success.
 */
 bool
 VTKFieldWriter::write_velocity_field(const Solver &solver, const std::string &filename,
-                                     double dx, double dy, double dz,
-                                     double x_margin = 0.0, double y_margin = 0.0, double z_margin = 0.0)
+                                     double x_min, double x_max,
+                                     double y_min, double y_max,
+                                     double z_min, double z_max,
+                                     double dx, double dy, double dz)
 {
     cout << "Solver: Computing and saving velocity vector field to " << filename << "." << endl;
     
-    compute_field_envelope(solver, dx, dy, dz, x_margin, y_margin, z_margin);
+    int nx = round((x_max - x_min) / dx) + 1;
+    int ny = round((y_max - y_min) / dy) + 1;
+    int nz = round((z_max - z_min) / dz) + 1;
 
     // Write output in VTK format:
     ofstream f;
     f.open(filename.c_str());
     
-    write_preamble(f);
+    write_preamble(f, x_min, y_min, z_min, dx, dy, dz, nx, ny, nz);
     
     double x, y, z;
     
@@ -96,29 +103,36 @@ VTKFieldWriter::write_velocity_field(const Solver &solver, const std::string &fi
   
    @param[in]   solver     Solver whose state to output.
    @param[in]   filename   Destination filename.
+   @param[in]   x_min      Minimum X coordinate of grid.
+   @param[in]   x_max      Maximum X coordinate of grid.
+   @param[in]   y_min      Minimum Y coordinate of grid.
+   @param[in]   y_max      Maximum Y coordinate of grid.
+   @param[in]   z_min      Minimum Z coordinate of grid.
+   @param[in]   z_max      Maximum Z coordinate of grid.
    @param[in]   dx         Grid step size in X-direction.
    @param[in]   dy         Grid step size in Y-direction.
    @param[in]   dz         Grid step size in Z-direction.
-   @param[in]   x_margin   Grid expansion margin in X-direction.
-   @param[in]   y_margin   Grid expansion margin in Y-direction.
-   @param[in]   z_margin   Grid expansion margin in Z-direction.
    
    @returns true on success.
 */
 bool
 VTKFieldWriter::write_velocity_potential_field(const Solver &solver, const std::string &filename,
-                                               double dx, double dy, double dz,
-                                               double x_margin = 0.0, double y_margin = 0.0, double z_margin = 0.0)
+                                               double x_min, double x_max,
+                                               double y_min, double y_max,
+                                               double z_min, double z_max,
+                                               double dx, double dy, double dz)
 {
     cout << "Solver: Computing and saving velocity potential field to " << filename << "." << endl;
 
-    compute_field_envelope(solver, dx, dy, dz, x_margin, y_margin, z_margin);
+    int nx = round((x_max - x_min) / dx) + 1;
+    int ny = round((y_max - y_min) / dy) + 1;
+    int nz = round((z_max - z_min) / dz) + 1;
     
     // Write output in VTK format:
     ofstream f;
     f.open(filename.c_str());
     
-    write_preamble(f);
+    write_preamble(f, x_min, y_min, z_min, dx, dy, dz, nx, ny, nz);
     
     double x, y, z;
     
@@ -156,7 +170,10 @@ VTKFieldWriter::write_velocity_potential_field(const Solver &solver, const std::
    Write preamble for VTK output file.
 */
 void
-VTKFieldWriter::write_preamble(ofstream &f) const
+VTKFieldWriter::write_preamble(ofstream &f,
+                               double x_min, double y_min, double z_min,
+                               double dx, double dy, double dz,
+                               int nx, int ny, int nz) const
 {
     f << "# vtk DataFile Version 2.0" << endl;
     f << "FieldData" << endl;

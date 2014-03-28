@@ -168,7 +168,7 @@ main (int argc, char **argv)
         solver.log(step_number, surface_writer);
         
         // Enable below to log the velocity field:
-        // field_writer.write_velocity_field(solver, "velocity-field.vtk", 0.1, 0.1, 0.1, 0.2, 0.2, 0.2);
+        //field_writer.write_velocity_field(solver, "velocity-field.vtk", -0.5, 2.0, -3.0, 3.0, -1.0, 1.0, 0.2, 0.2, 0.2);
         
         // Update wake:
         solver.update_wakes(dt);

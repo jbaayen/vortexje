@@ -32,109 +32,52 @@ public:
     virtual const char *file_extension() const = 0;
     
     /**
-       Logs the velocity vector field.  The grid is the smallest box
-       encompassing all nodes of all surfaces, expanded in the X, Y, and Z
-       directions by the given margins.
+       Logs the velocity vector field for a specified grid. 
       
        @param[in]   solver     Solver whose state to output.
        @param[in]   filename   Destination filename.
+       @param[in]   x_min      Minimum X coordinate of grid.
+       @param[in]   x_max      Maximum X coordinate of grid.
+       @param[in]   y_min      Minimum Y coordinate of grid.
+       @param[in]   y_max      Maximum Y coordinate of grid.
+       @param[in]   z_min      Minimum Z coordinate of grid.
+       @param[in]   z_max      Maximum Z coordinate of grid.
        @param[in]   dx         Grid step size in X-direction.
        @param[in]   dy         Grid step size in Y-direction.
        @param[in]   dz         Grid step size in Z-direction.
-       @param[in]   x_margin   Grid expansion margin in X-direction.
-       @param[in]   y_margin   Grid expansion margin in Y-direction.
-       @param[in]   z_margin   Grid expansion margin in Z-direction.
        
        @returns true on success.
     */
-    virtual bool write_velocity_field(const Solver &solver, const std::string &filename,
-                                      double dx, double dy, double dz,
-                                      double x_margin = 0.0, double y_margin = 0.0, double z_margin = 0.0) = 0;
+    virtual bool write_velocity_field(const Solver &solver,
+                                      const std::string &filename,
+                                      double x_min, double x_max,
+                                      double y_min, double y_max,
+                                      double z_min, double z_max,
+                                      double dx, double dy, double dz) = 0;
              
     /**
-       Logs the velocity potential scalar field.  The grid is the smallest box
-       encompassing all nodes of all surfaces, expanded in the X, Y, and Z
-       directions by the given margins.
+       Logs the velocity potential scalar field for a specified grid.
       
        @param[in]   solver     Solver whose state to output.
        @param[in]   filename   Destination filename.
+       @param[in]   x_min      Minimum X coordinate of grid.
+       @param[in]   x_max      Maximum X coordinate of grid.
+       @param[in]   y_min      Minimum Y coordinate of grid.
+       @param[in]   y_max      Maximum Y coordinate of grid.
+       @param[in]   z_min      Minimum Z coordinate of grid.
+       @param[in]   z_max      Maximum Z coordinate of grid.
        @param[in]   dx         Grid step size in X-direction.
        @param[in]   dy         Grid step size in Y-direction.
        @param[in]   dz         Grid step size in Z-direction.
-       @param[in]   x_margin   Grid expansion margin in X-direction.
-       @param[in]   y_margin   Grid expansion margin in Y-direction.
-       @param[in]   z_margin   Grid expansion margin in Z-direction.
        
        @returns true on success.
     */
-    virtual bool write_velocity_potential_field(const Solver &solver, const std::string &filename,
-                                                double dx, double dy, double dz,
-                                                double x_margin = 0.0, double y_margin = 0.0, double z_margin = 0.0) = 0;
-                                                
-    void compute_field_envelope(const Solver &solver, double dx, double dy, double dz, double x_margin, double y_margin, double z_margin);
-    
-protected:
-    // This class is not re-entrant, just like Solver is not.
-    
-    /**
-       Minimum grid coordinate on X-axis.
-    */
-    double x_min;
-    
-    /**
-       Maximum grid coordinate on X-axis.
-    */
-    double x_max;
-    
-    /**
-       Minimum grid coordinate on Y-axis.
-    */
-    double y_min;
-    
-    /**
-       Maximum grid coordinate on Y-axis.
-    */
-    double y_max;
-    
-    /**
-       Minimum grid coordinate on Z-axis.
-    */
-    double z_min;
-    
-    /**
-       Maximum grid coordinate on Z-axis.
-    */
-    double z_max;
-    
-    /**
-       Grid step size in X-direction.
-    */
-    double dx;
-    
-    /**
-       Grid step size in Y-direction.
-    */
-    double dy;
-    
-    /**
-       Grid step size in Z-direction.
-    */
-    double dz;
-    
-    /**
-       Number of grid points in X-direction.
-    */
-    int nx;
-    
-    /**
-       Number of grid points in Y-direction.
-    */
-    int ny;
-    
-    /**
-       Number of grid points in Z-direction.
-    */
-    int nz;
+    virtual bool write_velocity_potential_field(const Solver &solver,
+                                                const std::string &filename,
+                                                double x_min, double x_max,
+                                                double y_min, double y_max,
+                                                double z_min, double z_max,
+                                                double dx, double dy, double dz) = 0;
 };
 
 };

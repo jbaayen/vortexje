@@ -27,16 +27,25 @@ class VTKFieldWriter : public FieldWriter
 public:
     const char *file_extension() const;
     
-    bool write_velocity_field(const Solver &solver, const std::string &filename,
-                              double dx, double dy, double dz,
-                              double x_margin, double y_margin, double z_margin);
+    bool write_velocity_field(const Solver &solver,
+                              const std::string &filename,
+                              double x_min, double x_max,
+                              double y_min, double y_max,
+                              double z_min, double z_max,
+                              double dx, double dy, double dz);
                               
-    bool write_velocity_potential_field(const Solver &solver, const std::string &filename,
-                                        double dx, double dy, double dz,
-                                        double x_margin, double y_margin, double z_margin);
+    bool write_velocity_potential_field(const Solver &solver,
+                                        const std::string &filename,
+                                        double x_min, double x_max,
+                                        double y_min, double y_max,
+                                        double z_min, double z_max,
+                                        double dx, double dy, double dz);
                                         
 private:
-    void write_preamble(std::ofstream &f) const;
+    void write_preamble(std::ofstream &f,
+                        double x_min, double y_min, double z_min,
+                        double dx, double dy, double dz,
+                        int nx, int ny, int nz) const;
 };
 
 };

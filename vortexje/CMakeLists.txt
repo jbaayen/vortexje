@@ -14,8 +14,7 @@ set(SRCS
 	body.cpp 
 	surface-builder.cpp 
 	lifting-surface-builder.cpp 
-	surface-writer.cpp 
-	field-writer.cpp)
+	surface-writer.cpp)
 	
 set(HDRS
     surface.hpp 
