@@ -407,13 +407,15 @@ Solver::initialize_wakes(double dt)
 bool
 Solver::solve(double dt, bool propagate)
 {
+    int offset;
+    
     // Iterate inviscid and boundary layer solutions until convergence.
     int boundary_layer_iteration = 0;
     while (true) {
         // Compute source distribution:
         cout << "Solver: Computing source distribution with wake influence." << endl;
         
-        int offset = 0;
+        offset = 0;
         
         vector<Body::SurfaceData*>::iterator si;
         for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
@@ -467,7 +469,7 @@ Solver::solve(double dt, bool propagate)
                 offset_col = offset_col + d_col->surface.n_panels();
             }
             
-            // The influence of the wakes:
+            // The influence of the new wake panels:
             int i, j, lifting_surface_offset, wake_panel_offset, pa, pb;
             vector<Body*>::const_iterator bi;
             vector<Body::SurfaceData*>::const_iterator si;
@@ -539,6 +541,40 @@ Solver::solve(double dt, bool propagate)
         
         doublet_coefficients = new_doublet_coefficients;
         
+        // Set new wake panel doublet coefficients:
+        cout << "Solver: Updating wake doublet distribution." << endl;
+        
+        offset = 0;
+        
+        vector<Body*>::iterator bi;
+        for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+            Body *body = *bi;
+            
+            vector<Body::SurfaceData*>::iterator si;
+            for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++)
+                offset += (*si)->surface.n_panels();
+            
+            vector<Body::LiftingSurfaceData*>::iterator lsi;
+            for (lsi = body->lifting_surfaces.begin(); lsi != body->lifting_surfaces.end(); lsi++) {
+                Body::LiftingSurfaceData *d = *lsi;
+                         
+                // Set panel doublet coefficient:
+                for (int i = 0; i < d->lifting_surface.n_spanwise_panels(); i++) {
+                    double doublet_coefficient_top    = doublet_coefficients(offset + d->lifting_surface.trailing_edge_upper_panel(i));
+                    double doublet_coefficient_bottom = doublet_coefficients(offset + d->lifting_surface.trailing_edge_lower_panel(i));
+                    
+                    // Use the trailing-edge Kutta condition to compute the doublet coefficients of the new wake panels.
+                    double doublet_coefficient = doublet_coefficient_top - doublet_coefficient_bottom;
+                    
+                    int idx = d->wake.n_panels() - d->lifting_surface.n_spanwise_panels() + i;
+                    d->wake.doublet_coefficients[idx] = doublet_coefficient;
+                }
+                
+                // Update offset:
+                offset += d->lifting_surface.n_panels();
+            }
+        }
+        
         // Compute surface velocity distribution:
         cout << "Solver: Computing surface velocity distribution." << endl;
         
@@ -594,40 +630,6 @@ Solver::solve(double dt, bool propagate)
         
         // Increase iteration counter:
         boundary_layer_iteration++;
-    }
-    
-    // Set new wake panel doublet coefficients:
-    cout << "Solver: Updating wake doublet distribution." << endl;
-    
-    int offset = 0;
-    
-    vector<Body*>::iterator bi;
-    for (bi = bodies.begin(); bi != bodies.end(); bi++) {
-        Body *body = *bi;
-        
-        vector<Body::SurfaceData*>::iterator si;
-        for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++)
-            offset += (*si)->surface.n_panels();
-        
-        vector<Body::LiftingSurfaceData*>::iterator lsi;
-        for (lsi = body->lifting_surfaces.begin(); lsi != body->lifting_surfaces.end(); lsi++) {
-            Body::LiftingSurfaceData *d = *lsi;
-                     
-            // Set panel doublet coefficient:
-            for (int i = 0; i < d->lifting_surface.n_spanwise_panels(); i++) {
-                double doublet_coefficient_top    = doublet_coefficients(offset + d->lifting_surface.trailing_edge_upper_panel(i));
-                double doublet_coefficient_bottom = doublet_coefficients(offset + d->lifting_surface.trailing_edge_lower_panel(i));
-                
-                // Use the trailing-edge Kutta condition to compute the doublet coefficients of the new wake panels.
-                double doublet_coefficient = doublet_coefficient_top - doublet_coefficient_bottom;
-                
-                int idx = d->wake.n_panels() - d->lifting_surface.n_spanwise_panels() + i;
-                d->wake.doublet_coefficients[idx] = doublet_coefficient;
-            }
-            
-            // Update offset:
-            offset += d->lifting_surface.n_panels();
-        }
     }
 
     if (Parameters::convect_wake) {
