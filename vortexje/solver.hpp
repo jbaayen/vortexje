@@ -60,7 +60,9 @@ public:
     
     void update_wakes(double dt = 0.0);
     
-    bool solve(double dt = 0.0);
+    bool solve(double dt = 0.0, bool propagate = true);
+    
+    void propagate();
     
     double velocity_potential(const Eigen::Vector3d &x) const;
     

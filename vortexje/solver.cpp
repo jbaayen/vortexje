@@ -399,12 +399,13 @@ Solver::initialize_wakes(double dt)
 /**
    Computes new source, doublet, and pressure distributions.
    
-   @param[in]   dt   Time step size.
+   @param[in]   dt          Time step size.
+   @param[in]   propagate   Propagate solution forward in time.
    
    @returns true on success.
 */
 bool
-Solver::solve(double dt)
+Solver::solve(double dt, bool propagate)
 {
     // Iterate inviscid and boundary layer solutions until convergence.
     int boundary_layer_iteration = 0;
@@ -652,9 +653,6 @@ Solver::solve(double dt)
             offset += d->surface.n_panels();
         }
     }
-    
-    // Store previous values of the surface velocity potentials:
-    previous_surface_velocity_potentials = surface_velocity_potentials;
 
     // Compute pressure distribution:
     cout << "Solver: Computing pressure distribution." << endl;
@@ -687,8 +685,22 @@ Solver::solve(double dt)
         offset += d->surface.n_panels();      
     }
     
+    // Propagate solution forward in time, if requested.
+    if (propagate)
+        this->propagate();
+    
     // Done:
     return true;
+}
+
+/**
+   Propagates solution forward in time.  Relevant in unsteady mode only.
+*/
+void
+Solver::propagate()
+{
+    // Store previous values of the surface velocity potentials:
+    previous_surface_velocity_potentials = surface_velocity_potentials;
 }
 
 /**
