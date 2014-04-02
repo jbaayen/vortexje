@@ -953,9 +953,10 @@ Solver::compute_source_coefficient(const Body &body, const Surface &surface, int
             for (lsi = body->lifting_surfaces.begin(); lsi != body->lifting_surfaces.end(); lsi++) {
                 const Body::LiftingSurfaceData *d = *lsi;
                 
-                for (int k = 0; k < d->wake.n_panels(); k++) {
-                    // Use doublet panel - vortex ring equivalence.  Any new wake panels have zero doublet
-                    // coefficient, and are therefore not accounted for here.
+                // Add influence of old wake panels.  That is, those wake panels which already have a doublet
+                // strength assigned to them.
+                for (int k = 0; k < d->wake.n_panels() - d->lifting_surface.n_spanwise_panels(); k++) {
+                    // Use doublet panel - vortex ring equivalence.
                     velocity -= d->wake.vortex_ring_unit_velocity(surface, panel, k) * d->wake.doublet_coefficients[k];
                 }
             }
