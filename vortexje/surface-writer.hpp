@@ -25,6 +25,11 @@ class SurfaceWriter
 {
 public:
     /**
+       Destructor.
+    */
+    virtual ~SurfaceWriter() {};
+    
+    /**
        Returns the appropriate file extension for this SurfaceWriter.
    
        @returns The file extension.

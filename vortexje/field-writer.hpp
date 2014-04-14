@@ -25,6 +25,11 @@ class FieldWriter
 {
 public:
     /**
+       Destructor.
+    */
+    virtual ~FieldWriter() {};
+    
+    /**
        Returns the appropriate file extension for this FieldWriter.
    
        @returns The file extension.

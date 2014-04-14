@@ -25,6 +25,11 @@ class SurfaceLoader
 {
 public:
     /**
+       Destructor.
+    */
+    virtual ~SurfaceLoader() {};
+    
+    /**
        Returns the appropriate file extension for this FieldWriter.
    
        @returns The file extension.
