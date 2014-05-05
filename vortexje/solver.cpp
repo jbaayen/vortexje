@@ -305,17 +305,20 @@ Solver::force(const Body &body) const
     for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
         const Body::SurfaceData *d = *si;
         
-        for (int i = 0; i < d->surface.n_panels(); i++) {
-            const Vector3d &normal = d->surface.panel_normal(i);
-            double surface_area = d->surface.panel_surface_area(i);
-            F += q * surface_area * pressure_coefficients(offset + i) * normal;
-            
-            F += d->boundary_layer.friction(i);
+        Body *si_body = surface_id_to_body.find(d->surface.id)->second;
+        if (&body == si_body) {        
+            for (int i = 0; i < d->surface.n_panels(); i++) {
+                const Vector3d &normal = d->surface.panel_normal(i);
+                double surface_area = d->surface.panel_surface_area(i);
+                F += q * surface_area * pressure_coefficients(offset + i) * normal;
+                
+                F += d->boundary_layer.friction(i);
+            }
         }
         
         offset += d->surface.n_panels();
     }
-    
+                    
     // Done:
     return F;      
 }
@@ -342,15 +345,18 @@ Solver::moment(const Body &body, const Eigen::Vector3d &x) const
     for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
         const Body::SurfaceData *d = *si;
         
-        for (int i = 0; i < d->surface.n_panels(); i++) {                                    
-            const Vector3d &normal = d->surface.panel_normal(i);
-            double surface_area = d->surface.panel_surface_area(i);
-            Vector3d F = q * surface_area * pressure_coefficients(offset + i) * normal;
-            
-            F += d->boundary_layer.friction(i);
+        Body *si_body = surface_id_to_body.find(d->surface.id)->second;
+        if (&body == si_body) { 
+            for (int i = 0; i < d->surface.n_panels(); i++) {                                    
+                const Vector3d &normal = d->surface.panel_normal(i);
+                double surface_area = d->surface.panel_surface_area(i);
+                Vector3d F = q * surface_area * pressure_coefficients(offset + i) * normal;
                 
-            Vector3d r = d->surface.panel_collocation_point(i, false) - x;
-            M += r.cross(F);
+                F += d->boundary_layer.friction(i);
+                    
+                Vector3d r = d->surface.panel_collocation_point(i, false) - x;
+                M += r.cross(F);
+            }
         }
         
         offset += d->surface.n_panels();
