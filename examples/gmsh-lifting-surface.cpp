@@ -62,6 +62,10 @@ main (int argc, char **argv)
         }
     }
     
+    // Terminate neighbor relationships across trailing edge.
+    for (int i = 0; i < wing.n_spanwise_panels(); i++)
+        wing.cut_panels(wing.trailing_edge_upper_panel(i), wing.trailing_edge_lower_panel(i));
+    
     // Prescribe angle of attack:
     double alpha = 5.0 / 180.0 * M_PI;
     wing.rotate(Vector3d::UnitZ(), -alpha);

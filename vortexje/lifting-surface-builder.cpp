@@ -156,4 +156,8 @@ LiftingSurfaceBuilder::finish(const std::vector<std::vector<int> > &node_strips,
     for (int i = 0; i < (int) lifting_surface.lower_panels.rows(); i++)
         for (int j = 0; j < (int) lifting_surface.lower_panels.cols(); j++)
             lifting_surface.lower_panels(lifting_surface.lower_panels.rows() - 1 - i, j) = panel_strips[j][lifting_surface.upper_panels.rows() + i];
+            
+    // Terminate neighbor relationships across trailing edge.
+    for (int i = 0; i < lifting_surface.n_spanwise_panels(); i++)
+        lifting_surface.cut_panels(lifting_surface.trailing_edge_upper_panel(i), lifting_surface.trailing_edge_lower_panel(i));
 }

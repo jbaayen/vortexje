@@ -47,6 +47,8 @@ public:
     void compute_topology();
     void compute_geometry();
     
+    void cut_panels(int panel_a, int panel_b);
+    
     int n_nodes() const;
     int n_panels() const;
 

@@ -11,6 +11,7 @@
 #include <sstream>
 #include <limits>
 #include <cmath>
+#include <algorithm>
 
 #include <Eigen/Geometry>
 #include <Eigen/SVD>
@@ -173,6 +174,31 @@ Surface::compute_topology()
     }
 }
 
+/**
+   Cuts the panel neighbor relationship between two given panels.
+   
+   @param[in]   panel_a   First panel.
+   @param[in]   panel_b   Second panel.
+*/
+void
+Surface::cut_panels(int panel_a, int panel_b)
+{
+    for (int i = 0; i < 2; i++) {
+        int panel_ids[2];
+        if (i == 0) {
+            panel_ids[0] = panel_a;
+            panel_ids[1] = panel_b;
+        } else {
+            panel_ids[0] = panel_b;
+            panel_ids[1] = panel_a;
+        }
+        
+        vector<int> &single_panel_neighbors = panel_neighbors[panel_ids[0]];
+        vector<int>::iterator neighbor_position =
+            find(single_panel_neighbors.begin(), single_panel_neighbors.end(), panel_ids[1]);
+        single_panel_neighbors.erase(neighbor_position);
+    }  
+}
 
 /**
    Computes the normals, collocation points, surface areas, and diameters of all panels.
@@ -482,7 +508,6 @@ Vector3d
 Surface::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int offset, int this_panel) const
 {
     // We compute the scalar field gradient by fitting a linear model.
-    const Vector3d &this_normal = panel_normal(this_panel);
 
     // Set up a transformation such that panel normal becomes unit Z vector:
     Transform<double, 3, Affine> transformation = panel_coordinate_transformation(this_panel);
@@ -500,20 +525,14 @@ Surface::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int offset, 
     for (int i = 0; i < (int) panel_neighbors[this_panel].size(); i++) {
         int neighbor_panel = panel_neighbors[this_panel][i];
         
-        const Vector3d &neighbor_normal = panel_normal(neighbor_panel);
-        if (this_normal.dot(neighbor_normal) >= 0) {
-            // Add neighbor relative to this_panel:
-            Vector3d neighbor_vector_normalized = transformation * panel_collocation_point(neighbor_panel, false);
-        
-            A(i + 1, 0) = neighbor_vector_normalized(0);
-            A(i + 1, 1) = neighbor_vector_normalized(1);
-            A(i + 1, 2) = 1.0;
-        
-            b(i + 1) = scalar_field(offset + neighbor_panel);
-        } else {
-            // Don't differentiate along sharp edges, such as the trailing edge.
-            A(i + 1, 0) = A(i + 1, 1) = A(i + 1, 2) = 0.0;
-        }
+        // Add neighbor relative to this_panel:
+        Vector3d neighbor_vector_normalized = transformation * panel_collocation_point(neighbor_panel, false);
+    
+        A(i + 1, 0) = neighbor_vector_normalized(0);
+        A(i + 1, 1) = neighbor_vector_normalized(1);
+        A(i + 1, 2) = 1.0;
+    
+        b(i + 1) = scalar_field(offset + neighbor_panel);
     }
     
     // Solve model equations:
