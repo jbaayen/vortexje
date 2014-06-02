@@ -5,21 +5,34 @@ Dependencies:
 
    http://eigen.tuxfamily.org/
    
+   Debian/Ubuntu package:  libeigen3-dev
+   Red Hat/Fedora package:  eigen3-devel
+   
  * CMake, to generate the build files:
  
    http://cmake.org/
    
+   Debian/Ubuntu package:  cmake
+   Red Hat/Fedora package:  cmake
+   
  * Optionally Doxygen, to generate the documentation:
  
    http://www.stack.nl/~dimitri/doxygen/
+   
+   Debian/Ubuntu package:  doxygen
+   Red Hat/Fedora package:  doxygen
    
 
 Installation:
 -------------
 
  * Run CMake to generate the build files.
+ 
+   UNIX command:  mkdir build && cd build && cmake ..
 
  * Build Vortexje using the chosen build system.
+ 
+   UNIX command:  make
  
 See the following website for details on the CMake build process:
 
