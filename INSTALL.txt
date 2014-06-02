@@ -28,11 +28,17 @@ Installation:
 
  * Run CMake to generate the build files.
  
-   UNIX command:  mkdir build && cd build && cmake ..
+   UNIX:
+   
+     Inside the Vortexje source folder, run:
+   
+     mkdir build && cd build && cmake ..
 
  * Build Vortexje using the chosen build system.
  
-   UNIX command:  make
+   UNIX:
+   
+     make
  
 See the following website for details on the CMake build process:
 
