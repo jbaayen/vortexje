@@ -8,7 +8,7 @@ Dependencies:
    Debian/Ubuntu package:  libeigen3-dev
    Red Hat/Fedora package:  eigen3-devel
    
- * CMake, to generate the build files:
+ * CMake version 2.8.9 or newer, to generate the build files:
  
    http://cmake.org/
    
