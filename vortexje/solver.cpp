@@ -500,7 +500,7 @@ Solver::solve(double dt, bool propagate)
         
         VectorXd b = source_influence_coefficients * source_coefficients;
         
-        BiCGSTAB<MatrixXd> solver(A);
+        BiCGSTAB<MatrixXd, DiagonalPreconditioner<double> > solver(A);
         solver.setMaxIterations(Parameters::linear_solver_max_iterations);
         solver.setTolerance(Parameters::linear_solver_tolerance);
 
