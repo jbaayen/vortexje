@@ -19,6 +19,7 @@
 #endif
 
 #include <Eigen/Geometry>
+#include <Eigen/SVD>
 #include <Eigen/IterativeLinearSolvers>
 
 #include <vortexje/solver.hpp>
@@ -211,18 +212,10 @@ Solver::velocity(const Eigen::Vector3d &x) const
 double
 Solver::surface_velocity_potential(const Surface &surface, int panel) const
 {
-    int offset = 0;
-    
-    vector<Body::SurfaceData*>::const_iterator si;
-    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
-        const Body::SurfaceData *d = *si;
-        
-        if (&surface == &d->surface)
-            return surface_velocity_potentials(offset + panel);
-        
-        offset += d->surface.n_panels();
-    }
-    
+    int index = compute_index(surface, panel);
+    if (index >= 0)
+        return surface_velocity_potentials(index);
+
     cerr << "Solver::surface_velocity_potential():  Panel " << panel << " not found on surface " << surface.id << "." << endl;
     
     return 0.0;
@@ -239,17 +232,9 @@ Solver::surface_velocity_potential(const Surface &surface, int panel) const
 Vector3d
 Solver::surface_velocity(const Surface &surface, int panel) const
 {
-    int offset = 0;
-    
-    vector<Body::SurfaceData*>::const_iterator si;
-    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
-        const Body::SurfaceData *d = *si;
-        
-        if (&surface == &d->surface)
-            return surface_velocities.block<1, 3>(offset + panel, 0);
-        
-        offset += d->surface.n_panels();
-    }
+    int index = compute_index(surface, panel);
+    if (index >= 0)
+        return surface_velocities.block<1, 3>(index, 0);
     
     cerr << "Solver::surface_velocity():  Panel " << panel << " not found on surface " << surface.id << "." << endl;
     
@@ -267,17 +252,9 @@ Solver::surface_velocity(const Surface &surface, int panel) const
 double
 Solver::pressure_coefficient(const Surface &surface, int panel) const
 {
-    int offset = 0;
-    
-    vector<Body::SurfaceData*>::const_iterator si;
-    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
-        const Body::SurfaceData *d = *si;
-        
-        if (&surface == &d->surface)
-            return pressure_coefficients(offset + panel);
-        
-        offset += d->surface.n_panels();
-    }
+    int index = compute_index(surface, panel);
+    if (index >= 0)
+        return pressure_coefficients(index);
     
     cerr << "Solver::pressure_coefficient():  Panel " << panel << " not found on surface " << surface.id << "." << endl;
     
@@ -586,20 +563,40 @@ Solver::solve(double dt, bool propagate)
         
         offset = 0;
 
-        for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
-            Body::SurfaceData *d = *si;
-            int i;
+        for (bi = bodies.begin(); bi != bodies.end(); bi++) {
+            Body *body = *bi;
+            
+            vector<Body::SurfaceData*>::iterator si;
+            for (si = body->non_lifting_surfaces.begin(); si != body->non_lifting_surfaces.end(); si++) {
+                Body::SurfaceData *d = *si;
+                int i;
                 
-            #pragma omp parallel
-            {
-                #pragma omp for schedule(dynamic, 1)
-                for (i = 0; i < d->surface.n_panels(); i++)
-                    surface_velocities.block<1, 3>(offset + i, 0) = compute_surface_velocity(d->surface, offset, i);
+                #pragma omp parallel
+                {
+                    #pragma omp for schedule(dynamic, 1)
+                    for (i = 0; i < d->surface.n_panels(); i++)
+                        surface_velocities.block<1, 3>(offset + i, 0) = compute_surface_velocity(*body, d->surface, i);
+                }
+                
+                offset += d->surface.n_panels();   
             }
             
-            offset += d->surface.n_panels();      
-        } 
-        
+            vector<Body::LiftingSurfaceData*>::iterator lsi;
+            for (lsi = body->lifting_surfaces.begin(); lsi != body->lifting_surfaces.end(); lsi++) {
+                Body::LiftingSurfaceData *d = *lsi;
+                int i;
+                
+                #pragma omp parallel
+                {
+                    #pragma omp for schedule(dynamic, 1)
+                    for (i = 0; i < d->surface.n_panels(); i++)
+                        surface_velocities.block<1, 3>(offset + i, 0) = compute_surface_velocity(*body, d->surface, i);
+                }  
+                
+                offset += d->surface.n_panels();                           
+            }
+        }
+
         // If we converged, then this is the time to break out of the loop.
         if (converged) {
             cout << "Solver: Boundary layer iteration converged." << endl;
@@ -1029,16 +1026,71 @@ Solver::compute_surface_velocity_potential_time_derivative(int offset, int panel
 }
 
 /**
+   Computes the on-body gradient of a scalar field.
+   
+   @param[in]   scalar_field   Scalar field, ordered by panel number.
+   @param[in]   surface        Surface to which the panel belongs.
+   @param[in]   panel          Panel on which the on-body gradient is evaluated.
+   
+   @returns On-body gradient vector.
+*/
+Vector3d
+Solver::compute_scalar_field_gradient(const Eigen::VectorXd &scalar_field, const Body &body, const Surface &surface, int panel) const
+{
+    // We compute the scalar field gradient by fitting a linear model.
+    
+    // Retrieve panel neighbors.
+    vector<Body::SurfacePanel> neighbors = body.panel_neighbors(surface, panel);
+
+    // Set up a transformation such that panel normal becomes unit Z vector:
+    Transform<double, 3, Affine> transformation = surface.panel_coordinate_transformation(panel);
+    
+    // Set up model equations:
+    MatrixXd A(neighbors.size() + 1, 3);
+    VectorXd b(neighbors.size() + 1);
+    
+    // The model is centered on panel:
+    A(0, 0) = 0.0;
+    A(0, 1) = 0.0;
+    A(0, 2) = 1.0;
+    b(0) = scalar_field(compute_index(surface, panel));
+    
+    for (int i = 0; i < (int) neighbors.size(); i++) {
+        Body::SurfacePanel neighbor_panel = neighbors[i];
+        
+        // Add neighbor relative to panel:
+        Vector3d neighbor_vector_normalized = transformation * neighbor_panel.surface->panel_collocation_point(neighbor_panel.panel, false);
+    
+        A(i + 1, 0) = neighbor_vector_normalized(0);
+        A(i + 1, 1) = neighbor_vector_normalized(1);
+        A(i + 1, 2) = 1.0;
+    
+        b(i + 1) = scalar_field(compute_index(*neighbor_panel.surface, neighbor_panel.panel));
+    }
+    
+    // Solve model equations:
+    JacobiSVD<MatrixXd> svd(A, ComputeThinU | ComputeThinV);
+    
+    VectorXd model_coefficients = svd.solve(b);
+    
+    // Extract gradient in local frame:
+    Vector3d gradient_normalized = Vector3d(model_coefficients(0), model_coefficients(1), 0.0);
+    
+    // Transform gradient to global frame:
+    return transformation.linear().transpose() * gradient_normalized;
+}
+
+/**
    Computes the surface velocity for the given panel.
    
-   @param[in]   surface                     Reference surface.
-   @param[it]   offset                      Doublet coefficien vector offset.
-   @param[in]   panel                       Reference panel.
+   @param[in]   surface   Reference surface.
+   @param[it]   offset    Doublet coefficien vector offset.
+   @param[in]   panel     Reference panel.
    
    @returns Surface velocity.
 */
 Eigen::Vector3d
-Solver::compute_surface_velocity(const Surface &surface, int offset, int panel) const
+Solver::compute_surface_velocity(const Body &body, const Surface &surface, int panel) const
 {
     // Compute disturbance part of surface velocity.
     Vector3d tangential_velocity;
@@ -1047,13 +1099,12 @@ Solver::compute_surface_velocity(const Surface &surface, int offset, int panel) 
         
         // Use N. Marcov's formula for surface velocity, see L. Dragoş, Mathematical Methods in Aerodynamics, Springer, 2003.
         Vector3d tangential_velocity = compute_disturbance_velocity(x);
-        tangential_velocity -= 0.5 * surface.scalar_field_gradient(doublet_coefficients, offset, panel);
+        tangential_velocity -= 0.5 * compute_scalar_field_gradient(doublet_coefficients, body, surface, panel);
     } else
-        tangential_velocity = -surface.scalar_field_gradient(doublet_coefficients, offset, panel);
+        tangential_velocity = -compute_scalar_field_gradient(doublet_coefficients, body, surface, panel);
 
     // Add flow due to kinematic velocity:
-    Body *body = surface_id_to_body.find(surface.id)->second;
-    Vector3d apparent_velocity = body->panel_kinematic_velocity(surface, panel) - freestream_velocity;
+    Vector3d apparent_velocity = body.panel_kinematic_velocity(surface, panel) - freestream_velocity;
                                           
     tangential_velocity -= apparent_velocity;
     
@@ -1147,7 +1198,7 @@ Solver::compute_disturbance_velocity_potential(const Vector3d &x) const
 /**
    Computes disturbance potential gradient at the given point.
    
-   @param[in]  x    Reference point.
+   @param[in]   x   Reference point.
    
    @returns Disturbance potential gradient.
 */ 
@@ -1213,4 +1264,29 @@ Solver::compute_trailing_edge_vortex_displacement(const Body &body, const Liftin
         wake_velocity = -apparent_velocity;
     
     return Parameters::wake_emission_distance_factor * wake_velocity * dt;   
+}
+
+/**
+   Computes the result index for a given (surface, panel)-pair.
+   
+   @param[in]   surface   Reference surface.
+   @param[in]   panel     Reference panel.
+   
+   @returns The offset.
+*/
+int
+Solver::compute_index(const Surface &surface, int panel) const
+{
+    int offset = 0;
+    vector<Body::SurfaceData*>::const_iterator si;
+    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
+        const Body::SurfaceData *d = *si;
+        
+        if (&surface == &d->surface)
+            return offset + panel;
+        
+        offset += d->surface.n_panels();
+    }
+    
+    return -1;
 }

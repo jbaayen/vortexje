@@ -117,6 +117,40 @@ public:
     void add_lifting_surface(LiftingSurface &lifting_surface, BoundaryLayer &boundary_layer, Wake &wake);
     
     /**
+       Stitching of neighbour relationships between surfaces.
+    */
+    
+    /**
+       Data structure bundling a Surface and a panel ID.
+       
+       @brief Surface and panel ID bundle.
+    */
+    class SurfacePanel {
+    public:
+        /**
+           Constructor.
+           
+           @param[in]   surface   Associated Surface object.
+           @param[in]   panel     Panel ID.
+        */
+        SurfacePanel(const Surface &surface, int panel) : surface(&surface), panel(panel) { };
+        
+        /**
+           Associated Surface object.
+        */
+        const Surface *surface;
+        
+        /**
+           Panel ID.
+        */
+        int panel;
+    };
+    
+    void stitch_panels(const Surface &surface_a, int panel_a, const Surface &surface_b, int panel_b);
+    
+    std::vector<SurfacePanel> panel_neighbors(const Surface &surface, int panel) const;
+    
+    /**
        Linear position of the entire body.
     */
     Eigen::Vector3d position;
@@ -156,6 +190,32 @@ protected:
        List of allocated boundary layers.
     */
     std::vector<BoundaryLayer*> allocated_boundary_layers;
+    
+    /**
+       Helper class to compare two SurfacePanel objects.
+       
+       @brief Helper class to compare two SurfacePanel objects.
+    */
+    class CompareSurfacePanel {
+	public:
+	    /**
+	       Compare two SurfacePanel objects.
+	       
+           @param[in]   a   First SurfacePanel.
+           @param[in]   b   Second SurfacePanel.
+	    */
+		bool operator() (const SurfacePanel a, const SurfacePanel b) const {
+		    if (a.surface->id == b.surface->id)
+		        return (a.panel < b.panel);
+		    else
+		        return (a.surface->id < b.surface->id);
+		}
+    };
+    
+    /**
+       List of stitches.
+    */
+    std::map<SurfacePanel, std::vector<SurfacePanel>, CompareSurfacePanel> stitches;
 };
 
 };

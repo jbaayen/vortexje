@@ -102,7 +102,7 @@ private:
     
     double compute_surface_velocity_potential_time_derivative(int offset, int panel, double dt) const;
     
-    Eigen::Vector3d compute_surface_velocity(const Surface &surface, int offset, int panel) const;
+    Eigen::Vector3d compute_surface_velocity(const Body &body, const Surface &surface, int panel) const;
     
     double compute_reference_velocity_squared(const Body &body) const;
 
@@ -113,6 +113,10 @@ private:
     double compute_disturbance_velocity_potential(const Eigen::Vector3d &x) const;
     
     Eigen::Vector3d compute_trailing_edge_vortex_displacement(const Body &body, const LiftingSurface &lifting_surface, int index, double dt) const;
+
+    Eigen::Vector3d compute_scalar_field_gradient(const Eigen::VectorXd &scalar_field, const Body &body, const Surface &surface, int panel) const;
+    
+    int compute_index(const Surface &surface, int panel) const;
 };
 
 };

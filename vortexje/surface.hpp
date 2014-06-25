@@ -87,8 +87,6 @@ public:
     
     double panel_diameter(int panel) const;
     
-    Eigen::Vector3d scalar_field_gradient(const Eigen::VectorXd &scalar_field, int offset, int this_panel) const;
-    
     virtual void source_and_doublet_influence(const Eigen::Vector3d &x, int this_panel, double &source_influence, double &doublet_influence) const;
     
     double source_influence(const Eigen::Vector3d &x, int this_panel) const;

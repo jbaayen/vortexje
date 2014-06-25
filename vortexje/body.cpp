@@ -110,6 +110,59 @@ Body::add_lifting_surface(LiftingSurface &lifting_surface, BoundaryLayer &bounda
 }
 
 /**
+   Creates an across-surface neighborhood relationship between two panels.  This operation
+   is also known as stitching.
+   
+   @param[in]   surface_a   First reference surface.
+   @param[in]   panel_a     First reference panel.
+   @param[in]   surface_b   Second reference surface.
+   @param[in]   panel_b     Second reference panel.
+*/
+void
+Body::stitch_panels(const Surface &surface_a, int panel_a, const Surface &surface_b, int panel_b)
+{
+    // Add stitch from A to B:
+    stitches[SurfacePanel(surface_a, panel_a)].push_back(SurfacePanel(surface_b, panel_b));
+
+    // Add stitch from B to A:
+    stitches[SurfacePanel(surface_b, panel_b)].push_back(SurfacePanel(surface_a, panel_a));
+}
+
+/**
+   Lists both in-surface and across-surface (stitched) neighbors of the given panel.
+   
+   @param[in]   surface   Reference surface.
+   @param[in]   panel     Reference panel.
+   
+   @returns List of in-surface and across-surface panel neighbors.
+*/
+vector<Body::SurfacePanel>
+Body::panel_neighbors(const Surface &surface, int panel) const
+{
+    vector<SurfacePanel> neighbors;
+    
+    // List in-surface neighbors:
+    for (int i = 0; i < (int) surface.panel_neighbors[panel].size(); i++) {
+        int neighbor_panel = surface.panel_neighbors[panel][i];
+        
+        neighbors.push_back(SurfacePanel(surface, neighbor_panel));
+    }
+    
+    // List stitches:
+    map<SurfacePanel, vector<SurfacePanel>, CompareSurfacePanel>::const_iterator it = stitches.find(SurfacePanel(surface, panel));
+    if (it != stitches.end()) {
+        vector<SurfacePanel> neighbor_surface_panels = it->second; 
+        
+        vector<SurfacePanel>::iterator sit;
+        for (sit = neighbor_surface_panels.begin(); sit != neighbor_surface_panels.end(); sit++)
+            neighbors.push_back(*sit);       
+    }
+    
+    // Done:
+    return neighbors;
+}
+
+/**
    Sets the linear position of this body.
    
    @param[in]   position   Linear position.

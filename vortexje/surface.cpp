@@ -14,7 +14,6 @@
 #include <algorithm>
 
 #include <Eigen/Geometry>
-#include <Eigen/SVD>
 
 #include <vortexje/surface.hpp>
 #include <vortexje/parameters.hpp>
@@ -493,58 +492,6 @@ double
 Surface::panel_diameter(int panel) const
 {
     return panel_diameters[panel];
-}
-
-/**
-   Computes the on-body gradient of a scalar field.
-   
-   @param[in]   scalar_field   Scalar field, ordered by panel number.
-   @param[in]   offset         Scalar field offset
-   @param[in]   this_panel     Panel on which the on-body gradient is evaluated.
-   
-   @returns On-body gradient.
-*/
-Vector3d
-Surface::scalar_field_gradient(const Eigen::VectorXd &scalar_field, int offset, int this_panel) const
-{
-    // We compute the scalar field gradient by fitting a linear model.
-
-    // Set up a transformation such that panel normal becomes unit Z vector:
-    Transform<double, 3, Affine> transformation = panel_coordinate_transformation(this_panel);
-    
-    // Set up model equations:
-    MatrixXd A(panel_neighbors[this_panel].size() + 1, 3);
-    VectorXd b(panel_neighbors[this_panel].size() + 1);
-    
-    // The model is centered on this_panel:
-    A(0, 0) = 0.0;
-    A(0, 1) = 0.0;
-    A(0, 2) = 1.0;
-    b(0) = scalar_field(offset + this_panel);
-    
-    for (int i = 0; i < (int) panel_neighbors[this_panel].size(); i++) {
-        int neighbor_panel = panel_neighbors[this_panel][i];
-        
-        // Add neighbor relative to this_panel:
-        Vector3d neighbor_vector_normalized = transformation * panel_collocation_point(neighbor_panel, false);
-    
-        A(i + 1, 0) = neighbor_vector_normalized(0);
-        A(i + 1, 1) = neighbor_vector_normalized(1);
-        A(i + 1, 2) = 1.0;
-    
-        b(i + 1) = scalar_field(offset + neighbor_panel);
-    }
-    
-    // Solve model equations:
-    JacobiSVD<MatrixXd> svd(A, ComputeThinU | ComputeThinV);
-    
-    VectorXd model_coefficients = svd.solve(b);
-    
-    // Extract gradient in local frame:
-    Vector3d gradient_normalized = Vector3d(model_coefficients(0), model_coefficients(1), 0.0);
-    
-    // Transform gradient to global frame:
-    return transformation.linear().transpose() * gradient_normalized;
 }
 
 // Simultaneously compute influence of source and doublet panel edges on given point.
