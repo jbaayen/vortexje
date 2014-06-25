@@ -7,8 +7,10 @@
 //
 
 #include <iostream>
+#include <limits>
 
 #include <Eigen/Geometry>
+#include <Eigen/Eigenvalues>
 
 #include <vortexje/surface-builder.hpp>
 
@@ -74,30 +76,46 @@ SurfaceBuilder::create_panels_between_shapes(const vector<int> &first_nodes, con
                 break;
         } else
             next_i = i + 1;
-
-        // Add a planar trapezoidal panel, follosurface
-        //    T. Cebeci, An Engineering Approach to the Calculation of Aerodynamic Flows, Springer, 1999.
+            
         vector<int> original_nodes;
         original_nodes.push_back(first_nodes[i]);
         original_nodes.push_back(first_nodes[next_i]);
         original_nodes.push_back(second_nodes[i]);
         original_nodes.push_back(second_nodes[next_i]);
         
-        Vector3d first_line  = surface.nodes[first_nodes[next_i]] - surface.nodes[first_nodes[i]];
-        Vector3d second_line = surface.nodes[second_nodes[next_i]] - surface.nodes[second_nodes[i]];
+        // Center points around their mean:
+        Vector3d mean(0, 0, 0);
+        for (int i = 0; i < 4; i++)
+            mean += surface.nodes[original_nodes[i]];
+        mean /= 4.0;
         
-        Vector3d line_direction = first_line + second_line;
-        line_direction.normalize();
+        MatrixXd X(4, 3);
+        for (int i = 0; i < 4; i++)
+            X.row(i) = surface.nodes[original_nodes[i]] - mean;
+            
+        // Perform PCA to find dominant directions:
+        SelfAdjointEigenSolver<Matrix3d> solver(X.transpose() * X);
         
-        Vector3d first_mid  = 0.5 * (surface.nodes[first_nodes[i]] + surface.nodes[first_nodes[next_i]]);
-        Vector3d second_mid = 0.5 * (surface.nodes[second_nodes[i]] + surface.nodes[second_nodes[next_i]]);
-        
+        Vector3d eigenvalues = solver.eigenvalues();
+        Matrix3d eigenvectors = solver.eigenvectors();
+
+        double min_eigenvalue = numeric_limits<double>::max();
+        int min_eigenvalue_index = -1;
+        for (int i = 0; i < 3; i++) {
+            if (eigenvalues(i) < min_eigenvalue) {
+                min_eigenvalue = eigenvalues(i);
+                min_eigenvalue_index = i;
+            }
+        }
+            
+        Vector3d normal = eigenvectors.col(min_eigenvalue_index);
+            
+        // Create new points by projecting onto surface spanned by dominant directions:
         Vector3d vertices[4];
-        vertices[0] = first_mid - 0.5 * first_line.norm() * line_direction;
-        vertices[1] = first_mid + 0.5 * first_line.norm() * line_direction;
-        vertices[2] = second_mid - 0.5 * second_line.norm() * line_direction;
-        vertices[3] = second_mid + 0.5 * second_line.norm() * line_direction;
-        
+        for (int i = 0; i < 4; i++)
+            vertices[i] = surface.nodes[original_nodes[i]] - (normal * X.row(i)) * normal; 
+
+        // Add points to surface:
         int new_nodes[4];
         for (int j = 0; j < 4; j++) {
             // If the new points don't match the original ones, create new nodes:
