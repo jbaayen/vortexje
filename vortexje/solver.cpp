@@ -30,6 +30,11 @@ using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
 
+// String constants:
+#define VIEW_NAME_SOURCE_DISTRIBUTION   "sigma"
+#define VIEW_NAME_DOUBLET_DISTRIBUTION  "mu"
+#define VIEW_NAME_PRESSURE_DISTRIBUTION "Cp"
+
 // Helper to create folders:
 static void
 mkdir_helper(const string folder)
@@ -858,13 +863,13 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             vector<string> view_names;
             vector<VectorXd> view_data;
             
-            view_names.push_back("DoubletDistribution");
+            view_names.push_back(VIEW_NAME_DOUBLET_DISTRIBUTION);
             view_data.push_back(non_lifting_surface_doublet_coefficients);
             
-            view_names.push_back("SourceDistribution");
+            view_names.push_back(VIEW_NAME_SOURCE_DISTRIBUTION);
             view_data.push_back(non_lifting_surface_source_coefficients);
             
-            view_names.push_back("PressureDistribution");
+            view_names.push_back(VIEW_NAME_PRESSURE_DISTRIBUTION);
             view_data.push_back(non_lifting_surface_pressure_coefficients);
             
             std::stringstream ss;
@@ -900,13 +905,13 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             vector<string> view_names;
             vector<VectorXd> view_data;
             
-            view_names.push_back("DoubletDistribution");
+            view_names.push_back(VIEW_NAME_DOUBLET_DISTRIBUTION);
             view_data.push_back(lifting_surface_doublet_coefficients);
             
-            view_names.push_back("SourceDistribution");
+            view_names.push_back(VIEW_NAME_SOURCE_DISTRIBUTION);
             view_data.push_back(lifting_surface_source_coefficients);
             
-            view_names.push_back("PressureDistribution");
+            view_names.push_back(VIEW_NAME_PRESSURE_DISTRIBUTION);
             view_data.push_back(lifting_surface_pressure_coefficients);
             
             std::stringstream ss;
@@ -925,7 +930,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             view_names.clear();
             view_data.clear();
             
-            view_names.push_back("DoubletDistribution");
+            view_names.push_back(VIEW_NAME_DOUBLET_DISTRIBUTION);
             view_data.push_back(wake_doublet_coefficients);
             
             std::stringstream ssw;
