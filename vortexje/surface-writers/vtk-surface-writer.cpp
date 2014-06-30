@@ -42,7 +42,7 @@ VTKSurfaceWriter::file_extension() const
 bool
 VTKSurfaceWriter::write(const Surface &surface, const string &filename, 
                         int node_offset, int panel_offset,
-                        const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data)
+                        const std::vector<std::string> &view_names, const std::vector<Eigen::MatrixXd> &view_data)
 {
     cout << "Surface " << surface.id << ": Saving to " << filename << "." << endl;
     
@@ -110,11 +110,22 @@ VTKSurfaceWriter::write(const Surface &surface, const string &filename,
     f << "CELL_DATA " << surface.n_panels() << endl;
     
     for (int k = 0; k < (int) view_names.size(); k++) {
-        f << "SCALARS " << view_names[k] << " double 1" << endl;
-        f << "LOOKUP_TABLE default" << endl;
+        if (view_data[k].cols() == 1) {
+            f << "SCALARS " << view_names[k] << " double 1" << endl;
+            f << "LOOKUP_TABLE default" << endl;
+        } else
+            f << "VECTORS " << view_names[k] << " double" << endl;       
     
-        for (int i = 0; i < surface.n_panels(); i++)        
-            f << view_data[k][i] << endl;
+        for (int i = 0; i < surface.n_panels(); i++) {  
+            for (int j = 0; j < view_data[k].cols(); j++) {
+                if (j > 0)
+                    f << ' ';
+                    
+                f << view_data[k](i, j);
+            }
+            
+            f << endl;
+        }
         
         f << endl;
     }

@@ -42,7 +42,7 @@ GmshSurfaceWriter::file_extension() const
 bool
 GmshSurfaceWriter::write(const Surface &surface, const string &filename, 
                          int node_offset, int panel_offset,
-                         const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data)
+                         const std::vector<std::string> &view_names, const std::vector<Eigen::MatrixXd> &view_data)
 {
     cout << "Surface " << surface.id << ": Saving to " << filename << "." << endl;
     
@@ -114,15 +114,17 @@ GmshSurfaceWriter::write(const Surface &surface, const string &filename,
         f << 0.0 << endl;
         f << "3" << endl;
         f << 0 << endl;
-        f << 1 << endl;
+        f << view_data[k].cols() << endl;
         f << surface.n_panels() << endl;
         
         for (int i = 0; i < surface.n_panels(); i++) {            
             f << i + panel_offset + 1;
             
-            f << ' ';
+            for (int j = 0; j < view_data[k].cols(); j++) {
+                f << ' ';
             
-            f << view_data[k][i];
+                f << view_data[k](i, j);
+            }
             
             f << endl;       
         }

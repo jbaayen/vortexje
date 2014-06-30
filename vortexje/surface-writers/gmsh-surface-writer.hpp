@@ -28,7 +28,7 @@ public:
                     
     bool write(const Surface &surface, const std::string &filename,
                int node_offset, int panel_offset,
-               const std::vector<std::string> &view_names, const std::vector<Eigen::VectorXd> &view_data);
+               const std::vector<std::string> &view_names, const std::vector<Eigen::MatrixXd> &view_data);
 };
 
 };

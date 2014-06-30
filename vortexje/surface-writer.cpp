@@ -41,7 +41,7 @@ SurfaceWriter::write(const Surface &surface, const std::string &filename,
                      int node_offset, int panel_offset)
 {
     vector<string> empty_names;
-    vector<VectorXd> empty_data;
+    vector<MatrixXd> empty_data;
     
     return write(surface, filename, 0, 0, empty_names, empty_data);
 }

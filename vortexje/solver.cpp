@@ -34,6 +34,7 @@ using namespace Vortexje;
 #define VIEW_NAME_SOURCE_DISTRIBUTION   "sigma"
 #define VIEW_NAME_DOUBLET_DISTRIBUTION  "mu"
 #define VIEW_NAME_PRESSURE_DISTRIBUTION "Cp"
+#define VIEW_NAME_VELOCITY_DISTRIBUTION "V"
 
 // Helper to create folders:
 static void
@@ -239,7 +240,7 @@ Solver::surface_velocity(const Surface &surface, int panel) const
 {
     int index = compute_index(surface, panel);
     if (index >= 0)
-        return surface_velocities.block<1, 3>(index, 0);
+        return surface_velocities.row(index);
     
     cerr << "Solver::surface_velocity():  Panel " << panel << " not found on surface " << surface.id << "." << endl;
     
@@ -580,7 +581,7 @@ Solver::solve(double dt, bool propagate)
                 {
                     #pragma omp for schedule(dynamic, 1)
                     for (i = 0; i < d->surface.n_panels(); i++)
-                        surface_velocities.block<1, 3>(offset + i, 0) = compute_surface_velocity(*body, d->surface, i);
+                        surface_velocities.row(offset + i) = compute_surface_velocity(*body, d->surface, i);
                 }
                 
                 offset += d->surface.n_panels();   
@@ -595,7 +596,7 @@ Solver::solve(double dt, bool propagate)
                 {
                     #pragma omp for schedule(dynamic, 1)
                     for (i = 0; i < d->surface.n_panels(); i++)
-                        surface_velocities.block<1, 3>(offset + i, 0) = compute_surface_velocity(*body, d->surface, i);
+                        surface_velocities.row(offset + i) = compute_surface_velocity(*body, d->surface, i);
                 }  
                 
                 offset += d->surface.n_panels();                           
@@ -688,7 +689,7 @@ Solver::solve(double dt, bool propagate)
                 
                 // Pressure coefficient:
                 dphidt = compute_surface_velocity_potential_time_derivative(offset, i, dt);
-                pressure_coefficients(offset + i) = compute_pressure_coefficient(surface_velocities.block<1, 3>(offset + i, 0), dphidt, v_ref_squared);
+                pressure_coefficients(offset + i) = compute_pressure_coefficient(surface_velocities.row(offset + i), dphidt, v_ref_squared);
             }
         }
         
@@ -849,19 +850,21 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             const Body::SurfaceData *d = *si;
             
             // Log non-lifting surface coefficients:
-            VectorXd non_lifting_surface_doublet_coefficients(d->surface.n_panels());
-            VectorXd non_lifting_surface_source_coefficients(d->surface.n_panels());
-            VectorXd non_lifting_surface_pressure_coefficients(d->surface.n_panels());
+            MatrixXd non_lifting_surface_doublet_coefficients(d->surface.n_panels(), 1);
+            MatrixXd non_lifting_surface_source_coefficients(d->surface.n_panels(), 1);
+            MatrixXd non_lifting_surface_pressure_coefficients(d->surface.n_panels(), 1);
+            MatrixXd non_lifting_surface_velocity_vectors(d->surface.n_panels(), 3);
             for (int i = 0; i < d->surface.n_panels(); i++) {
-                non_lifting_surface_doublet_coefficients(i)  = doublet_coefficients(offset + i);
-                non_lifting_surface_source_coefficients(i)   = source_coefficients(offset + i);
-                non_lifting_surface_pressure_coefficients(i) = pressure_coefficients(offset + i);
+                non_lifting_surface_doublet_coefficients(i, 0)  = doublet_coefficients(offset + i);
+                non_lifting_surface_source_coefficients(i, 0)   = source_coefficients(offset + i);
+                non_lifting_surface_pressure_coefficients(i, 0) = pressure_coefficients(offset + i);
+                non_lifting_surface_velocity_vectors.row(i)     = surface_velocities.row(offset + i);
             }
             
             offset += d->surface.n_panels();
             
             vector<string> view_names;
-            vector<VectorXd> view_data;
+            vector<MatrixXd> view_data;
             
             view_names.push_back(VIEW_NAME_DOUBLET_DISTRIBUTION);
             view_data.push_back(non_lifting_surface_doublet_coefficients);
@@ -871,6 +874,9 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             
             view_names.push_back(VIEW_NAME_PRESSURE_DISTRIBUTION);
             view_data.push_back(non_lifting_surface_pressure_coefficients);
+            
+            view_names.push_back(VIEW_NAME_VELOCITY_DISTRIBUTION);
+            view_data.push_back(non_lifting_surface_velocity_vectors);
             
             std::stringstream ss;
             ss << log_folder << "/" << body->id << "/non_lifting_surface_" << idx << "/step_" << step_number << writer.file_extension();
@@ -891,19 +897,21 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             const Body::LiftingSurfaceData *d = *lsi;
             
             // Log lifting surface coefficients:
-            VectorXd lifting_surface_doublet_coefficients(d->lifting_surface.n_panels());
-            VectorXd lifting_surface_source_coefficients(d->lifting_surface.n_panels());
-            VectorXd lifting_surface_pressure_coefficients(d->lifting_surface.n_panels());
+            MatrixXd lifting_surface_doublet_coefficients(d->lifting_surface.n_panels(), 1);
+            MatrixXd lifting_surface_source_coefficients(d->lifting_surface.n_panels(), 1);
+            MatrixXd lifting_surface_pressure_coefficients(d->lifting_surface.n_panels(), 1);
+            MatrixXd lifting_surface_velocity_vectors(d->surface.n_panels(), 3);
             for (int i = 0; i < d->lifting_surface.n_panels(); i++) {
-                lifting_surface_doublet_coefficients(i)  = doublet_coefficients(offset + i);
-                lifting_surface_source_coefficients(i)   = source_coefficients(offset + i);
-                lifting_surface_pressure_coefficients(i) = pressure_coefficients(offset + i);
+                lifting_surface_doublet_coefficients(i, 0)  = doublet_coefficients(offset + i);
+                lifting_surface_source_coefficients(i, 0)   = source_coefficients(offset + i);
+                lifting_surface_pressure_coefficients(i, 0) = pressure_coefficients(offset + i);
+                lifting_surface_velocity_vectors.row(i)     = surface_velocities.row(offset + i);
             }
             
             offset += d->lifting_surface.n_panels();
             
             vector<string> view_names;
-            vector<VectorXd> view_data;
+            vector<MatrixXd> view_data;
             
             view_names.push_back(VIEW_NAME_DOUBLET_DISTRIBUTION);
             view_data.push_back(lifting_surface_doublet_coefficients);
@@ -914,6 +922,9 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             view_names.push_back(VIEW_NAME_PRESSURE_DISTRIBUTION);
             view_data.push_back(lifting_surface_pressure_coefficients);
             
+            view_names.push_back(VIEW_NAME_VELOCITY_DISTRIBUTION);
+            view_data.push_back(lifting_surface_velocity_vectors);
+            
             std::stringstream ss;
             ss << log_folder << "/" << body->id << "/lifting_surface_" << idx << "/step_" << step_number << writer.file_extension();
 
@@ -923,9 +934,9 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             save_panel_offset += d->lifting_surface.n_panels();
     
             // Log wake surface and coefficients:
-            VectorXd wake_doublet_coefficients(d->wake.doublet_coefficients.size());
+            MatrixXd wake_doublet_coefficients(d->wake.doublet_coefficients.size(), 1);
             for (int i = 0; i < (int) d->wake.doublet_coefficients.size(); i++)
-                wake_doublet_coefficients(i) = d->wake.doublet_coefficients[i];
+                wake_doublet_coefficients(i, 0) = d->wake.doublet_coefficients[i];
 
             view_names.clear();
             view_data.clear();
