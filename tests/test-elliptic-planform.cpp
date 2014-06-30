@@ -93,12 +93,6 @@ run_test(double alpha)
     
     // Rotate by angle of attack:
     wing.rotate(Vector3d::UnitZ(), -alpha);
-    
-    VTKSurfaceWriter writer;
-    const string fn("wing.vtk");
-    const std::vector<std::string> empty1;
-    const std::vector<Eigen::VectorXd> empty2;
-    writer.write(wing, fn, 0, 0, empty1, empty2);
 
     // Create body:
     Body body(string("wing"));
