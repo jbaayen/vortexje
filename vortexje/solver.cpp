@@ -364,6 +364,7 @@ Solver::trace_streamline(const SurfacePanelPoint &start) const
     SurfacePanelPoint cur(*start.surface, start.panel, start.point);
     
     Vector3d prev_intersection = start.point;
+    int originating_edge = -1;
     
     // Trace until we hit the end of a surface, or until we hit a stagnation point:
     while (true) {
@@ -384,9 +385,13 @@ Solver::trace_streamline(const SurfacePanelPoint &start) const
         transformed_point(2) = 0.0;
         
         // Intersect with one of the panel edges.
-        int edge_id = 0;
+        int edge_id = -1;
         double t = numeric_limits<double>::max();
         for (int i = 0; i < (int) cur.surface->panel_nodes[cur.panel].size(); i++) {
+            // Do not try to intersect with the edge we are already on:
+            if (i == originating_edge)
+                continue;
+                
             // Compute next node index:
             int next_idx;
             if (i == (int) cur.surface->panel_nodes[cur.panel].size() - 1)
@@ -421,10 +426,10 @@ Solver::trace_streamline(const SurfacePanelPoint &start) const
             if (x(0) < 0 || x(1) < 0)
                 continue;
                 
-            // Reject small 't'.  This happens when we are on an edge already:
+            // Do not accept infinitesimally small solutions:
             if (x(0) < Parameters::inversion_tolerance)
                 continue;
-            
+                
             // Is this the smallest positive 't' (velocity coefficient)?   
             if (x(0) < t) {
                 t = x(0);
@@ -432,6 +437,10 @@ Solver::trace_streamline(const SurfacePanelPoint &start) const
                 edge_id = i;
             }
         }
+        
+        // Dead end?
+        if (edge_id < 0)
+            break;
         
         // Compute intersection vector:
         Vector3d transformed_intersection = transformed_point + t * transformed_velocity;
@@ -457,6 +466,8 @@ Solver::trace_streamline(const SurfacePanelPoint &start) const
         cur.surface = neighbors[0].surface;
         cur.panel   = neighbors[0].panel;
         cur.point   = intersection;
+        
+        originating_edge = neighbors[0].edge;
     }
     
     // Done:
