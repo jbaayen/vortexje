@@ -143,20 +143,19 @@ Surface::compute_topology()
 {   
     // Compute panel neighbors:
     for (int i = 0; i < (int) panel_nodes.size(); i++) {
-        map<int, int> single_panel_neighbors;
+        map<int, pair<int, int> > single_panel_neighbors;
         
         // Every node gives rise to one edge, which gives rise to at most one neighbor.
-        for (int j = 0; j < (int) panel_nodes[i].size(); j++) {
-            int node = panel_nodes[i][j];
-            
+        for (int j = 0; j < (int) panel_nodes[i].size(); j++) {          
             // Compute index for next node.
-            int next_idx;
+            int next_j;
             if (j == (int) panel_nodes[i].size() - 1)
-                next_idx = 0;
+                next_j = 0;
             else
-                next_idx = j + 1;
+                next_j = j + 1;
                 
-            int next_node = panel_nodes[i][next_idx];
+            int node      = panel_nodes[i][j];
+            int next_node = panel_nodes[i][next_j];
             
             for (int k = 0; k < (int) node_panel_neighbors[node]->size(); k++) {
                 int potential_neighbor = (*node_panel_neighbors[node])[k];
@@ -164,17 +163,36 @@ Surface::compute_topology()
                     continue;
                 
                 // Is this neighbor shared with the next node?   
-                bool shared_with_next_node = false;
-                for (int l = 0; l < (int) node_panel_neighbors[next_node]->size(); l++) {
-                    int next_potential_neighbor = (*node_panel_neighbors[next_node])[l];
-                    if (next_potential_neighbor == potential_neighbor) {
-                        shared_with_next_node = true;
-                        break;
+                if (find(node_panel_neighbors[next_node]->begin(),
+                         node_panel_neighbors[next_node]->end(),
+                         potential_neighbor) != node_panel_neighbors[next_node]->end()) {
+                    // Yes: Establish neighbor relationship.
+                    int potential_neighbor_edge = -1;
+                    for (int l = 0; l < (int) panel_nodes[potential_neighbor].size(); l++) {
+                        int next_l;
+                        if (l == (int) panel_nodes[potential_neighbor].size() - 1)
+                            next_l = 0;
+                        else
+                            next_l = l + 1;
+                            
+                        int potential_neighbor_node      = panel_nodes[potential_neighbor][l];
+                        int potential_neighbor_next_node = panel_nodes[potential_neighbor][next_l];
+                            
+                        if (find(node_panel_neighbors[potential_neighbor_node]->begin(),
+                                 node_panel_neighbors[potential_neighbor_node]->end(),
+                                 i) != node_panel_neighbors[potential_neighbor_node]->end() &&
+                            find(node_panel_neighbors[potential_neighbor_next_node]->begin(),
+                                 node_panel_neighbors[potential_neighbor_next_node]->end(),
+                                 i) != node_panel_neighbors[potential_neighbor_next_node]->end()) {
+                            potential_neighbor_edge = l;
+                            break;
+                        }
                     }
+                    
+                    assert(potential_neighbor_edge >= 0);
+                    
+                    single_panel_neighbors[j] = make_pair(potential_neighbor, potential_neighbor_edge);
                 }
-                
-                if (shared_with_next_node)
-                    single_panel_neighbors[j] = potential_neighbor;
             }
         }
         
@@ -201,10 +219,10 @@ Surface::cut_panels(int panel_a, int panel_b)
             panel_ids[1] = panel_a;
         }
         
-        map<int, int> &single_panel_neighbors = panel_neighbors[panel_ids[0]];
-        map<int, int>::iterator it;
+        map<int, pair<int, int> > &single_panel_neighbors = panel_neighbors[panel_ids[0]];
+        map<int, pair<int, int> >::iterator it;
         for (it = single_panel_neighbors.begin(); it != single_panel_neighbors.end(); ) {
-            if (it->second == panel_ids[1])
+            if (it->second.first == panel_ids[1])
                 single_panel_neighbors.erase(it++);
             else    
                 it++;

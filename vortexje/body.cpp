@@ -146,12 +146,9 @@ Body::panel_neighbors(const Surface &surface, int panel) const
     
     // List in-surface neighbors:
     for (int i = 0; i < (int) surface.panel_nodes[panel].size(); i++) {
-        map<int, int>::const_iterator isit = surface.panel_neighbors[panel].find(i);
-        if (isit != surface.panel_neighbors[panel].end()) {            
-            int neighbor_panel = isit->second;
-        
-            neighbors.push_back(SurfacePanelEdge(surface, neighbor_panel, i));
-        }
+        map<int, pair<int, int> >::const_iterator isit = surface.panel_neighbors[panel].find(i);
+        if (isit != surface.panel_neighbors[panel].end())
+            neighbors.push_back(SurfacePanelEdge(surface, isit->second.first, isit->second.second));           
     }
     
     // List stitches:
@@ -181,12 +178,9 @@ Body::panel_neighbors(const Surface &surface, int panel, int edge) const
     vector<SurfacePanelEdge> neighbors;
     
     // List in-surface neighbor:
-    map<int, int>::const_iterator isit = surface.panel_neighbors[panel].find(edge);
-    if (isit != surface.panel_neighbors[panel].end()) {
-        int neighbor_panel = isit->second;
-
-        neighbors.push_back(SurfacePanelEdge(surface, neighbor_panel, edge));
-    }
+    map<int, pair<int, int> >::const_iterator isit = surface.panel_neighbors[panel].find(edge);
+    if (isit != surface.panel_neighbors[panel].end())
+        neighbors.push_back(SurfacePanelEdge(surface, isit->second.first, isit->second.second));
     
     // List stitches:
     map<SurfacePanelEdge, SurfacePanelEdge, CompareSurfacePanelEdge>::const_iterator it =

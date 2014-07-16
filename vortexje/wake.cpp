@@ -52,7 +52,7 @@ Wake::add_layer()
             
             panel_nodes.push_back(vertices);
         
-            map<int, int> local_panel_neighbors;
+            map<int, pair<int, int> > local_panel_neighbors;
             panel_neighbors.push_back(local_panel_neighbors);
             
             vector<int> *empty = new vector<int>;

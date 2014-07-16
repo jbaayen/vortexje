@@ -9,6 +9,7 @@
 #ifndef __SURFACE_HPP__
 #define __SURFACE_HPP__
 
+#include <utility>
 #include <map>
 #include <string>
 
@@ -68,9 +69,9 @@ public:
     std::vector<std::vector<int> > panel_nodes;
     
     /**
-       Panel number to (edge number to neighboring panel number) map.
+       Panel number to (edge number to (neighboring panel number, edge number)) map.
     */
-    std::vector<std::map<int, int> > panel_neighbors;
+    std::vector<std::map<int, std::pair<int, int> > > panel_neighbors;
     
     /**
        Panel number to comprising vertex points (in the panel coordinate system) map.
