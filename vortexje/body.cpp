@@ -10,6 +10,7 @@
 #include <vortexje/boundary-layers/dummy-boundary-layer.hpp>
 
 #include <iostream>
+#include <assert.h>
 
 using namespace std;
 using namespace Eigen;
@@ -115,17 +116,19 @@ Body::add_lifting_surface(LiftingSurface &lifting_surface, BoundaryLayer &bounda
    
    @param[in]   surface_a   First reference surface.
    @param[in]   panel_a     First reference panel.
+   @param[in]   edge_a      First reference edge.
    @param[in]   surface_b   Second reference surface.
    @param[in]   panel_b     Second reference panel.
+   @param[in]   edge_b      Second reference edge.
 */
 void
-Body::stitch_panels(const Surface &surface_a, int panel_a, const Surface &surface_b, int panel_b)
+Body::stitch_panels(const Surface &surface_a, int panel_a, int edge_a, const Surface &surface_b, int panel_b, int edge_b)
 {
     // Add stitch from A to B:
-    stitches[SurfacePanel(surface_a, panel_a)].push_back(SurfacePanel(surface_b, panel_b));
+    stitches[SurfacePanelEdge(surface_a, panel_a, edge_a)].push_back(SurfacePanelEdge(surface_b, panel_b, edge_b));
 
     // Add stitch from B to A:
-    stitches[SurfacePanel(surface_b, panel_b)].push_back(SurfacePanel(surface_a, panel_a));
+    stitches[SurfacePanelEdge(surface_b, panel_b, edge_b)].push_back(SurfacePanelEdge(surface_a, panel_a, edge_a));
 }
 
 /**
@@ -136,27 +139,72 @@ Body::stitch_panels(const Surface &surface_a, int panel_a, const Surface &surfac
    
    @returns List of in-surface and across-surface panel neighbors.
 */
-vector<Body::SurfacePanel>
+vector<Body::SurfacePanelEdge>
 Body::panel_neighbors(const Surface &surface, int panel) const
 {
-    vector<SurfacePanel> neighbors;
+    vector<SurfacePanelEdge> neighbors;
     
     // List in-surface neighbors:
-    for (int i = 0; i < (int) surface.panel_neighbors[panel].size(); i++) {
-        int neighbor_panel = surface.panel_neighbors[panel][i];
+    for (int i = 0; i < (int) surface.panel_nodes[panel].size(); i++) {
+        map<int, int>::const_iterator isit = surface.panel_neighbors[panel].find(i);
+        if (isit != surface.panel_neighbors[panel].end()) {            
+            int neighbor_panel = isit->second;
         
-        neighbors.push_back(SurfacePanel(surface, neighbor_panel));
+            neighbors.push_back(SurfacePanelEdge(surface, neighbor_panel, i));
+        }
     }
     
     // List stitches:
-    map<SurfacePanel, vector<SurfacePanel>, CompareSurfacePanel>::const_iterator it = stitches.find(SurfacePanel(surface, panel));
+    map<SurfacePanelEdge, vector<SurfacePanelEdge>, CompareSurfacePanel>::const_iterator it =
+        stitches.find(SurfacePanelEdge(surface, panel, -1));
     if (it != stitches.end()) {
-        vector<SurfacePanel> neighbor_surface_panels = it->second; 
+        vector<SurfacePanelEdge> neighbor_surface_panels = it->second; 
         
-        vector<SurfacePanel>::iterator sit;
+        vector<SurfacePanelEdge>::iterator sit;
         for (sit = neighbor_surface_panels.begin(); sit != neighbor_surface_panels.end(); sit++)
             neighbors.push_back(*sit);       
     }
+    
+    // Done:
+    return neighbors;
+}
+
+/**
+   Lists both in-surface and across-surface (stitched) neighbors of the given panel and edge.
+   
+   @param[in]   surface   Reference surface.
+   @param[in]   panel     Reference panel.
+   @param[in]   edge      Reference edge.
+   
+   @returns List of in-surface and across-surface panel neighbor for the given edge.
+*/
+vector<Body::SurfacePanelEdge>
+Body::panel_neighbors(const Surface &surface, int panel, int edge) const
+{
+    vector<SurfacePanelEdge> neighbors;
+    
+    // List in-surface neighbor:
+    map<int, int>::const_iterator isit = surface.panel_neighbors[panel].find(edge);
+    if (isit != surface.panel_neighbors[panel].end()) {
+        int neighbor_panel = isit->second;
+
+        neighbors.push_back(SurfacePanelEdge(surface, neighbor_panel, edge));
+    }
+    
+    // List stitches:
+    map<SurfacePanelEdge, vector<SurfacePanelEdge>, CompareSurfacePanel>::const_iterator it =
+        stitches.find(SurfacePanelEdge(surface, panel, -1));
+    if (it != stitches.end()) {
+        vector<SurfacePanelEdge> neighbor_surface_panels = it->second; 
+        
+        vector<SurfacePanelEdge>::iterator sit;
+        for (sit = neighbor_surface_panels.begin(); sit != neighbor_surface_panels.end(); sit++)
+            if (sit->edge == edge)
+                neighbors.push_back(*sit);       
+    }
+    
+    // Check number of neighbors:
+    assert(neighbors.size() <= 1);
     
     // Done:
     return neighbors;

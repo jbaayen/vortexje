@@ -350,6 +350,120 @@ Solver::moment(const Body &body, const Eigen::Vector3d &x) const
 }
 
 /**
+   Traces a streamline, starting from the given starting point.
+   
+   @param[in]   start   Starting point for streamline.
+   
+   @returns A list of points tracing the streamline.
+*/
+std::vector<Solver::SurfacePanelPoint>
+Solver::trace_streamline(const SurfacePanelPoint &start) const
+{
+    vector<SurfacePanelPoint> streamline;
+    
+    SurfacePanelPoint cur(*start.surface, start.panel, start.point);
+    
+    Vector3d prev_intersection = start.point;
+    
+    // Trace until we hit the end of a surface, or until we hit a stagnation point:
+    while (true) {
+        // Look up panel velocity:
+        Vector3d velocity = surface_velocity(*cur.surface, cur.panel);
+        
+        // Stop following the streamline at stagnation points:
+        if (velocity.norm() < Parameters::inversion_tolerance)
+            break;
+        
+        // Transform into a panel frame:
+        const Transform<double, 3, Affine> &transformation = cur.surface->panel_coordinate_transformation(cur.panel);
+        
+        Vector3d transformed_velocity = transformation.linear() * velocity;        
+        Vector3d transformed_point = transformation * cur.point;
+        
+        // Project point onto panel for improved numerical stability:
+        transformed_point(2) = 0.0;
+        
+        // Intersect with one of the panel edges.
+        int edge_id = 0;
+        double t = numeric_limits<double>::max();
+        for (int i = 0; i < (int) cur.surface->panel_nodes[cur.panel].size(); i++) {
+            // Compute next node index:
+            int next_idx;
+            if (i == (int) cur.surface->panel_nodes[cur.panel].size() - 1)
+                next_idx = 0;
+            else
+                next_idx = i + 1;
+              
+            // Retrieve nodes in panel-local coordinates:  
+            const Vector3d &node_a = cur.surface->panel_transformed_points[cur.panel][i];
+            const Vector3d &node_b = cur.surface->panel_transformed_points[cur.panel][next_idx];
+            
+            // Compute edge:
+            Vector3d edge = node_b - node_a;
+            
+            // Find intersection, if any:
+            Matrix2d A;
+            Vector2d b;
+            for (int j = 0; j < 2; j++) {
+                A(j, 0) = transformed_velocity(j);
+                A(j, 1) = -edge(j);
+                b(j)    = -transformed_point(j) + node_a(j);
+            }          
+            
+            ColPivHouseholderQR<Matrix2d> solver(A);
+            solver.setThreshold(Parameters::inversion_tolerance);
+            if (!solver.isInvertible())
+                continue;
+            
+            Vector2d x = solver.solve(b);
+  
+            // Only accept positive quadrant:
+            if (x(0) < 0 || x(1) < 0)
+                continue;
+                
+            // Reject small 't'.  This happens when we are on an edge already:
+            if (x(0) < Parameters::inversion_tolerance)
+                continue;
+            
+            // Is this the smallest positive 't' (velocity coefficient)?   
+            if (x(0) < t) {
+                t = x(0);
+                
+                edge_id = i;
+            }
+        }
+        
+        // Compute intersection vector:
+        Vector3d transformed_intersection = transformed_point + t * transformed_velocity;
+        Vector3d intersection = transformation.inverse() * transformed_intersection;
+        
+        // Compute mean between intersection points:
+        Vector3d mean_point = 0.5 * (intersection + prev_intersection);
+        prev_intersection = intersection;
+        
+        // Add to streamline:
+        SurfacePanelPoint n(*cur.surface, cur.panel, mean_point);
+        streamline.push_back(n);
+        
+        // Find neighbor across edge:
+        Body *body = surface_id_to_body.find(cur.surface->id)->second;
+        vector<Body::SurfacePanelEdge> neighbors = body->panel_neighbors(*cur.surface, cur.panel, edge_id);
+        
+        // No neighbor?
+        if (neighbors.size() == 0)
+            break;
+            
+        // Proceed to neighboring panel:
+        cur.surface = neighbors[0].surface;
+        cur.panel   = neighbors[0].panel;
+        cur.point   = intersection;
+    }
+    
+    // Done:
+    return streamline;
+}
+
+/**
    Initializes the wakes by adding a first layer of vortex ring panels.
    
    @param[in]   dt   Time step size.
@@ -1056,7 +1170,7 @@ Solver::compute_scalar_field_gradient(const Eigen::VectorXd &scalar_field, const
     // We compute the scalar field gradient by fitting a linear model.
     
     // Retrieve panel neighbors.
-    vector<Body::SurfacePanel> neighbors = body.panel_neighbors(surface, panel);
+    vector<Body::SurfacePanelEdge> neighbors = body.panel_neighbors(surface, panel);
 
     // Set up a transformation such that panel normal becomes unit Z vector:
     Transform<double, 3, Affine> transformation = surface.panel_coordinate_transformation(panel);
@@ -1069,10 +1183,11 @@ Solver::compute_scalar_field_gradient(const Eigen::VectorXd &scalar_field, const
     A(0, 0) = 0.0;
     A(0, 1) = 0.0;
     A(0, 2) = 1.0;
+    
     b(0) = scalar_field(compute_index(surface, panel));
     
     for (int i = 0; i < (int) neighbors.size(); i++) {
-        Body::SurfacePanel neighbor_panel = neighbors[i];
+        Body::SurfacePanelEdge neighbor_panel = neighbors[i];
         
         // Add neighbor relative to panel:
         Vector3d neighbor_vector_normalized = transformation * neighbor_panel.surface->panel_collocation_point(neighbor_panel.panel, false);

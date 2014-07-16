@@ -121,11 +121,11 @@ public:
     */
     
     /**
-       Data structure bundling a Surface and a panel ID.
+       Data structure bundling a Surface, a panel ID, and an edge number.
        
-       @brief Surface and panel ID bundle.
+       @brief Surface, panel ID, and edge bundle.
     */
-    class SurfacePanel {
+    class SurfacePanelEdge {
     public:
         /**
            Constructor.
@@ -133,7 +133,7 @@ public:
            @param[in]   surface   Associated Surface object.
            @param[in]   panel     Panel ID.
         */
-        SurfacePanel(const Surface &surface, int panel) : surface(&surface), panel(panel) { };
+        SurfacePanelEdge(const Surface &surface, int panel, int edge) : surface(&surface), panel(panel), edge(edge) { };
         
         /**
            Associated Surface object.
@@ -144,11 +144,18 @@ public:
            Panel ID.
         */
         int panel;
+        
+        /**
+           Edge ID.
+        */
+        int edge;
     };
     
-    void stitch_panels(const Surface &surface_a, int panel_a, const Surface &surface_b, int panel_b);
+    void stitch_panels(const Surface &surface_a, int panel_a, int edge_a, const Surface &surface_b, int panel_b, int edge_b);
     
-    std::vector<SurfacePanel> panel_neighbors(const Surface &surface, int panel) const;
+    std::vector<SurfacePanelEdge> panel_neighbors(const Surface &surface, int panel) const;
+    
+    std::vector<SurfacePanelEdge> panel_neighbors(const Surface &surface, int panel, int edge) const;
     
     /**
        Linear position of the entire body.
@@ -192,19 +199,20 @@ protected:
     std::vector<BoundaryLayer*> allocated_boundary_layers;
     
     /**
-       Helper class to compare two SurfacePanel objects.
+       Helper class to compare two SurfacePanelEdge objects:  first by surface, then by panel.  
+       The edge numbers are not compared.
        
-       @brief Helper class to compare two SurfacePanel objects.
+       @brief Helper class to compare two SurfacePanelEdge objects.
     */
     class CompareSurfacePanel {
 	public:
 	    /**
-	       Compare two SurfacePanel objects.
+	       Compare two SurfacePanelEdge objects: first by surface, then by panel.
 	       
-           @param[in]   a   First SurfacePanel.
-           @param[in]   b   Second SurfacePanel.
+           @param[in]   a   First SurfacePanelEdge.
+           @param[in]   b   Second SurfacePanelEdge.
 	    */
-		bool operator() (const SurfacePanel a, const SurfacePanel b) const {
+		bool operator() (const SurfacePanelEdge a, const SurfacePanelEdge b) const {
 		    if (a.surface->id == b.surface->id)
 		        return (a.panel < b.panel);
 		    else
@@ -215,7 +223,7 @@ protected:
     /**
        List of stitches.
     */
-    std::map<SurfacePanel, std::vector<SurfacePanel>, CompareSurfacePanel> stitches;
+    std::map<SurfacePanelEdge, std::vector<SurfacePanelEdge>, CompareSurfacePanel> stitches;
 };
 
 };

@@ -77,6 +77,42 @@ public:
     Eigen::Vector3d force(const Body &body) const;
     Eigen::Vector3d moment(const Body &body, const Eigen::Vector3d &x) const;
     
+    /**
+       Data structure bundling a Surface, a panel ID, and a point on the panel.
+       
+       @brief Surface, panel ID, and point bundle.
+    */
+    class SurfacePanelPoint {
+    public:
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+        
+        /**
+           Constructor.
+           
+           @param[in]   surface   Associated Surface object.
+           @param[in]   panel     Panel ID.
+           @param[in]   point     Point.
+        */
+        SurfacePanelPoint(const Surface &surface, int panel, const Eigen::Vector3d &point) : surface(&surface), panel(panel), point(point) { };
+        
+        /**
+           Associated Surface object.
+        */
+        const Surface *surface;
+        
+        /**
+           Panel ID.
+        */
+        int panel;
+        
+        /**
+           Point.
+        */
+        Eigen::Vector3d point;
+    };
+    
+    std::vector<SurfacePanelPoint> trace_streamline(const SurfacePanelPoint &start) const;
+    
     void log(int step_number, SurfaceWriter &writer) const;
 
 private:

@@ -68,9 +68,14 @@ public:
     std::vector<std::vector<int> > panel_nodes;
     
     /**
-       Panel number to neighboring panel numbers map.
+       Panel number to (edge number to neighboring panel number) map.
     */
-    std::vector<std::vector<int> > panel_neighbors;
+    std::vector<std::map<int, int> > panel_neighbors;
+    
+    /**
+       Panel number to comprising vertex points (in the panel coordinate system) map.
+    */
+    std::vector<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > > panel_transformed_points;
     
     void rotate(const Eigen::Vector3d &axis, double angle);
     virtual void transform(const Eigen::Matrix3d &transformation);
@@ -118,11 +123,6 @@ protected:
        Panel number to panel coordinate transformation map.
     */
     std::vector<Eigen::Transform<double, 3, Eigen::Affine>, Eigen::aligned_allocator<Eigen::Transform<double, 3, Eigen::Affine> > > panel_coordinate_transformations;
-    
-    /**
-       Panel number to comprising vertex points (in the panel coordinate system) map.
-    */
-    std::vector<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > > panel_transformed_points;
     
     /**
        Panel number to surface area map.

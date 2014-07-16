@@ -143,29 +143,38 @@ Surface::compute_topology()
 {   
     // Compute panel neighbors:
     for (int i = 0; i < (int) panel_nodes.size(); i++) {
-        vector<int> single_panel_potential_neighbors;
-        vector<int> single_panel_neighbors;
+        map<int, int> single_panel_neighbors;
         
+        // Every node gives rise to one edge, which gives rise to at most one neighbor.
         for (int j = 0; j < (int) panel_nodes[i].size(); j++) {
             int node = panel_nodes[i][j];
+            
+            // Compute index for next node.
+            int next_idx;
+            if (j == (int) panel_nodes[i].size() - 1)
+                next_idx = 0;
+            else
+                next_idx = j + 1;
+                
+            int next_node = panel_nodes[i][next_idx];
+            
             for (int k = 0; k < (int) node_panel_neighbors[node]->size(); k++) {
                 int potential_neighbor = (*node_panel_neighbors[node])[k];
                 if (potential_neighbor == i)
                     continue;
                 
-                bool found = false;
-                for (int l = 0; l < (int) single_panel_potential_neighbors.size(); l++) {
-                    if (potential_neighbor == single_panel_potential_neighbors[l]) {
-                        found = true;
+                // Is this neighbor shared with the next node?   
+                bool shared_with_next_node = false;
+                for (int l = 0; l < (int) node_panel_neighbors[next_node]->size(); l++) {
+                    int next_potential_neighbor = (*node_panel_neighbors[next_node])[l];
+                    if (next_potential_neighbor == potential_neighbor) {
+                        shared_with_next_node = true;
                         break;
                     }
                 }
                 
-                // Must have two nodes in common.
-                if (found)
-                    single_panel_neighbors.push_back(potential_neighbor);
-                else
-                    single_panel_potential_neighbors.push_back(potential_neighbor);
+                if (shared_with_next_node)
+                    single_panel_neighbors[j] = potential_neighbor;
             }
         }
         
@@ -192,10 +201,14 @@ Surface::cut_panels(int panel_a, int panel_b)
             panel_ids[1] = panel_a;
         }
         
-        vector<int> &single_panel_neighbors = panel_neighbors[panel_ids[0]];
-        vector<int>::iterator neighbor_position =
-            find(single_panel_neighbors.begin(), single_panel_neighbors.end(), panel_ids[1]);
-        single_panel_neighbors.erase(neighbor_position);
+        map<int, int> &single_panel_neighbors = panel_neighbors[panel_ids[0]];
+        map<int, int>::iterator it;
+        for (it = single_panel_neighbors.begin(); it != single_panel_neighbors.end(); ) {
+            if (it->second == panel_ids[1])
+                single_panel_neighbors.erase(it++);
+            else    
+                it++;
+        }
     }  
 }
 
@@ -559,14 +572,14 @@ Surface::source_and_doublet_influence(const Eigen::Vector3d &x, int this_panel, 
     doublet_influence = 0.0;
     
     for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++) {
-        int prev_idx;
-        if (i == 0)
-            prev_idx = panel_nodes[this_panel].size() - 1;
+        int next_idx;
+        if (i == (int) panel_nodes[this_panel].size() - 1)
+            next_idx = 0;
         else
-            prev_idx = i - 1;
+            next_idx = i + 1;
             
-        const Vector3d &node_a = panel_transformed_points[this_panel][prev_idx];
-        const Vector3d &node_b = panel_transformed_points[this_panel][i];
+        const Vector3d &node_a = panel_transformed_points[this_panel][i];
+        const Vector3d &node_b = panel_transformed_points[this_panel][next_idx];
         
         double source_edge_influence, doublet_edge_influence;
         
@@ -599,14 +612,14 @@ Surface::source_influence(const Eigen::Vector3d &x, int this_panel) const
     // Compute influence coefficient according to Hess:
     double influence = 0.0;
     for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++) {
-        int prev_idx;
-        if (i == 0)
-            prev_idx = panel_nodes[this_panel].size() - 1;
+        int next_idx;
+        if (i == (int) panel_nodes[this_panel].size() - 1)
+            next_idx = 0;
         else
-            prev_idx = i - 1;
+            next_idx = i + 1;
             
-        const Vector3d &node_a = panel_transformed_points[this_panel][prev_idx];
-        const Vector3d &node_b = panel_transformed_points[this_panel][i];
+        const Vector3d &node_a = panel_transformed_points[this_panel][i];
+        const Vector3d &node_b = panel_transformed_points[this_panel][next_idx];
         
         double edge_influence;
         source_and_doublet_edge_influence(x_normalized, node_a, node_b, &edge_influence, NULL);
@@ -636,14 +649,14 @@ Surface::doublet_influence(const Eigen::Vector3d &x, int this_panel) const
     // Compute influence coefficient according to Hess:
     double influence = 0.0;
     for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++) {
-        int prev_idx;
-        if (i == 0)
-            prev_idx = panel_nodes[this_panel].size() - 1;
+        int next_idx;
+        if (i == (int) panel_nodes[this_panel].size() - 1)
+            next_idx = 0;
         else
-            prev_idx = i - 1;
+            next_idx = i + 1;
             
-        const Vector3d &node_a = panel_transformed_points[this_panel][prev_idx];
-        const Vector3d &node_b = panel_transformed_points[this_panel][i];
+        const Vector3d &node_a = panel_transformed_points[this_panel][i];
+        const Vector3d &node_b = panel_transformed_points[this_panel][next_idx];
         
         double edge_influence;
         source_and_doublet_edge_influence(x_normalized, node_a, node_b, NULL, &edge_influence);
@@ -712,14 +725,14 @@ Surface::source_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
     // Compute influence coefficient according to Hess:
     Vector3d velocity(0, 0, 0);
     for (int i = 0; i < (int) panel_nodes[this_panel].size(); i++) {
-        int prev_idx;
-        if (i == 0)
-            prev_idx = panel_nodes[this_panel].size() - 1;
+        int next_idx;
+        if (i == (int) panel_nodes[this_panel].size() - 1)
+            next_idx = 0;
         else
-            prev_idx = i - 1;
+            next_idx = i + 1;
             
-        const Vector3d &node_a = panel_transformed_points[this_panel][prev_idx];
-        const Vector3d &node_b = panel_transformed_points[this_panel][i];
+        const Vector3d &node_a = panel_transformed_points[this_panel][i];
+        const Vector3d &node_b = panel_transformed_points[this_panel][next_idx];
         
         velocity += source_edge_unit_velocity(x_normalized, node_a, node_b);
     }   

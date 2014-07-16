@@ -50,30 +50,13 @@ Wake::add_layer()
             vertices.push_back(node - lifting_surface.n_spanwise_nodes());
             vertices.push_back(node);
             
-            int panel = n_panels();
             panel_nodes.push_back(vertices);
         
-            vector<int> local_panel_neighbors;
-            if (panel - lifting_surface.n_spanwise_panels() >= 0) {
-                local_panel_neighbors.push_back(panel - lifting_surface.n_spanwise_panels());
-                panel_neighbors[panel - lifting_surface.n_spanwise_panels()].push_back(panel);
-            }
-            if (k > 1) {
-                local_panel_neighbors.push_back(panel - 1);
-                panel_neighbors[panel - 1].push_back(panel);
-            }
-            
+            map<int, int> local_panel_neighbors;
             panel_neighbors.push_back(local_panel_neighbors);
             
-            vector<int> *local_node_panel_neighbors = new vector<int>;
-            local_node_panel_neighbors->push_back(panel);
-            node_panel_neighbors.push_back(local_node_panel_neighbors);
-            
-            node_panel_neighbors[node - 1]->push_back(panel);
-            if (node - 1 - lifting_surface.n_spanwise_nodes() >= 0) {
-                node_panel_neighbors[node - lifting_surface.n_spanwise_nodes()]->push_back(panel); 
-                node_panel_neighbors[node - 1 - lifting_surface.n_spanwise_nodes()]->push_back(panel);
-            }
+            vector<int> *empty = new vector<int>;
+            node_panel_neighbors.push_back(empty);
             
             doublet_coefficients.push_back(0);
 
