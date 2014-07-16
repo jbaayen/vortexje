@@ -129,6 +129,11 @@ public:
     public:
         /**
            Constructor.
+        */
+        SurfacePanelEdge() {}
+        
+        /**
+           Constructor.
            
            @param[in]   surface   Associated Surface object.
            @param[in]   panel     Panel ID.
@@ -204,7 +209,7 @@ protected:
        
        @brief Helper class to compare two SurfacePanelEdge objects.
     */
-    class CompareSurfacePanel {
+    class CompareSurfacePanelEdge {
 	public:
 	    /**
 	       Compare two SurfacePanelEdge objects: first by surface, then by panel.
@@ -214,7 +219,10 @@ protected:
 	    */
 		bool operator() (const SurfacePanelEdge a, const SurfacePanelEdge b) const {
 		    if (a.surface->id == b.surface->id)
-		        return (a.panel < b.panel);
+		        if (a.panel == b.panel)
+		            return (a.edge < b.edge);
+		        else
+		            return (a.panel < b.panel);
 		    else
 		        return (a.surface->id < b.surface->id);
 		}
@@ -223,7 +231,7 @@ protected:
     /**
        List of stitches.
     */
-    std::map<SurfacePanelEdge, std::vector<SurfacePanelEdge>, CompareSurfacePanel> stitches;
+    std::map<SurfacePanelEdge, SurfacePanelEdge, CompareSurfacePanelEdge> stitches;
 };
 
 };
