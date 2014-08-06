@@ -18,6 +18,9 @@ using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
 
+#define DELTA_CONVERGENCE 1e-1
+#define DELTA_T           1e-2
+
 #define C_D_TEST_TOLERANCE 1e-3
 
 //#define OUTPUT_RESULTS
@@ -108,19 +111,35 @@ run_test(double alpha)
     double fluid_density = 1.2;
     solver.set_fluid_density(fluid_density);
 
-    // Compute pressure distribution:
-    double dt = 0.01;
-    double T = 0.5;
+    // Run simulation:
+    double t = 0.0;
+    double dt = DELTA_T;
+    int step_number = 0;
     
     solver.initialize_wakes(dt);
     
-    double t = 0.0;
-    while (t < T) {
+    // Iterate until converence:
+    Vector3d F_prev(0, 0, 0);
+    while (true) {
+        // Solve:
         solver.solve(dt);
         
+        // Compute force:
+        Vector3d F = solver.force(body);
+        
+        // Check convergence:
+        double delta = (F - F_prev).norm();
+        cout << "Force delta = " << delta << " N" << endl;
+        if (delta < DELTA_CONVERGENCE)
+            break;
+        F_prev = F;
+        
+        // Update wakes:
         solver.update_wakes(dt);
-    
+        
+        // Step time:
         t += dt;
+        step_number++;
     }
 
     // Compute lift and drag coefficients:
