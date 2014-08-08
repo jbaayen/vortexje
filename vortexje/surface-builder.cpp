@@ -68,6 +68,7 @@ SurfaceBuilder::create_panels_between_shapes(const vector<int> &first_nodes, con
     vector<int> new_panels;
     
     for (int i = 0; i < (int) first_nodes.size(); i++) {
+        // Bundle panel nodes in appropriate order:
         int next_i;
         if (i == (int) first_nodes.size() - 1) {
             if (cyclic)
@@ -79,58 +80,100 @@ SurfaceBuilder::create_panels_between_shapes(const vector<int> &first_nodes, con
             
         vector<int> original_nodes;
         original_nodes.push_back(first_nodes[i]);
-        original_nodes.push_back(first_nodes[next_i]);
         original_nodes.push_back(second_nodes[i]);
         original_nodes.push_back(second_nodes[next_i]);
+        original_nodes.push_back(first_nodes[next_i]); 
         
-        // Center points around their mean:
-        Vector3d mean(0, 0, 0);
-        for (int i = 0; i < 4; i++)
-            mean += surface.nodes[original_nodes[i]];
-        mean /= 4.0;
-        
-        MatrixXd X(4, 3);
-        for (int i = 0; i < 4; i++)
-            X.row(i) = surface.nodes[original_nodes[i]] - mean;
-            
-        // Perform PCA to find dominant directions:
-        SelfAdjointEigenSolver<Matrix3d> solver(X.transpose() * X);
-        
-        Vector3d eigenvalues = solver.eigenvalues();
-        Matrix3d eigenvectors = solver.eigenvectors();
+        // Filter out duplicate nodes while preserving order:
+        vector<int> unique_nodes;
 
-        double min_eigenvalue = numeric_limits<double>::max();
-        int min_eigenvalue_index = -1;
-        for (int i = 0; i < 3; i++) {
-            if (eigenvalues(i) < min_eigenvalue) {
-                min_eigenvalue = eigenvalues(i);
-                min_eigenvalue_index = i;
-            }
-        }
-            
-        Vector3d normal = eigenvectors.col(min_eigenvalue_index);
-            
-        // Create new points by projecting onto surface spanned by dominant directions:
-        Vector3d vertices[4];
-        for (int i = 0; i < 4; i++)
-            vertices[i] = surface.nodes[original_nodes[i]] - (normal * X.row(i)) * normal; 
-
-        // Add points to surface:
-        int new_nodes[4];
         for (int j = 0; j < 4; j++) {
-            // If the new points don't match the original ones, create new nodes:
-            if ((vertices[j] - surface.nodes[original_nodes[j]]).norm() < Parameters::inversion_tolerance) {
-                new_nodes[j] = original_nodes[j];
-            } else {         
-                new_nodes[j] = surface.nodes.size();
-                
-                surface.nodes.push_back(vertices[j]);
-                
-                surface.node_panel_neighbors.push_back(surface.node_panel_neighbors[original_nodes[j]]);
+            bool duplicate = false;
+            for (int k = j + 1; k < 4; k++) {
+                if (original_nodes[j] == original_nodes[k]) {
+                    duplicate = true;
+                    
+                    break;
+                }
             }
+            
+            if (!duplicate)
+                unique_nodes.push_back(original_nodes[j]);
         }
         
-        int panel_id = surface.add_quadrangle(new_nodes[0], new_nodes[2], new_nodes[3], new_nodes[1]);
+        // Add panel appropriate for number of nodes:
+        int panel_id;
+        switch (unique_nodes.size()) {
+        case 3:
+        {
+            // Add triangle:
+            panel_id = surface.add_triangle(unique_nodes[0], unique_nodes[1], unique_nodes[2]);
+
+            break;
+        }
+            
+        case 4:
+        {
+            // Construct a planar quadrangle:
+            
+            // Center points around their mean:
+            Vector3d mean(0, 0, 0);
+            for (int i = 0; i < 4; i++)
+                mean += surface.nodes[unique_nodes[i]];
+            mean /= 4.0;
+            
+            MatrixXd X(4, 3);
+            for (int i = 0; i < 4; i++)
+                X.row(i) = surface.nodes[unique_nodes[i]] - mean;
+                
+            // Perform PCA to find dominant directions:
+            SelfAdjointEigenSolver<Matrix3d> solver(X.transpose() * X);
+            
+            Vector3d eigenvalues = solver.eigenvalues();
+            Matrix3d eigenvectors = solver.eigenvectors();
+
+            double min_eigenvalue = numeric_limits<double>::max();
+            int min_eigenvalue_index = -1;
+            for (int i = 0; i < 3; i++) {
+                if (eigenvalues(i) < min_eigenvalue) {
+                    min_eigenvalue = eigenvalues(i);
+                    min_eigenvalue_index = i;
+                }
+            }
+                
+            Vector3d normal = eigenvectors.col(min_eigenvalue_index);
+                
+            // Create new points by projecting onto surface spanned by dominant directions:
+            Vector3d vertices[4];
+            for (int i = 0; i < 4; i++)
+                vertices[i] = surface.nodes[unique_nodes[i]] - (normal * X.row(i)) * normal; 
+
+            // Add points to surface:
+            int new_nodes[4];
+            for (int j = 0; j < 4; j++) {
+                // If the new points don't match the original ones, create new nodes:
+                if ((vertices[j] - surface.nodes[unique_nodes[j]]).norm() < Parameters::inversion_tolerance) {
+                    new_nodes[j] = unique_nodes[j];
+                } else {         
+                    new_nodes[j] = surface.nodes.size();
+                    
+                    surface.nodes.push_back(vertices[j]);
+                    
+                    surface.node_panel_neighbors.push_back(surface.node_panel_neighbors[unique_nodes[j]]);
+                }
+            }
+            
+            // Add planar quadrangle:
+            panel_id = surface.add_quadrangle(new_nodes[0], new_nodes[1], new_nodes[2], new_nodes[3]);
+            
+            break;
+        }
+            
+        default:
+            // Unknown panel type:
+            cerr << "SurfaceBuilder::create_panels_between_shapes: Cannot create panel with " << unique_nodes.size() << " vertices." << endl;
+            exit(1);
+        }
         
         new_panels.push_back(panel_id);
     }
