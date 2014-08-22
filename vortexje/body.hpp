@@ -18,7 +18,6 @@
 #include <vortexje/surface.hpp>
 #include <vortexje/lifting-surface.hpp>
 #include <vortexje/wake.hpp>
-#include <vortexje/boundary-layer.hpp>
 
 namespace Vortexje
 {
@@ -40,7 +39,7 @@ public:
     std::string id;
     
     /**
-       Data structure grouping a non-lifting surface with its boundary layer.
+       Data structure containing a non-lifting surface.
        
        @brief Surface data.
     */
@@ -50,24 +49,18 @@ public:
            Constructs a SurfaceData object.
           
            @param[in]   surface          Surface object.
-           @param[in]   boundary_layer   Boundary layer object for this surface. 
         */
-        SurfaceData(Surface &surface, BoundaryLayer &boundary_layer) :
-            surface(surface), boundary_layer(boundary_layer) {}
+        SurfaceData(Surface &surface) :
+            surface(surface) {}
         
         /**
            Associated surface object.
         */
         Surface &surface;
-        
-        /**
-           Associated boundary layer object.
-        */
-        BoundaryLayer &boundary_layer;
     };
     
     /**
-       Data structure grouping a lifting surface with its boundary layer, and with its wake.
+       Data structure grouping a lifting surface with its wake.
        
        @brief Lifting surface data.
     */
@@ -77,11 +70,10 @@ public:
            Constructs a LiftingSurfaceData object.
 
            @param[in]   lifting_surface   Lifting surface object.
-           @param[in]   boundary_layer    Boundary layer object for this surface. 
            @param[in]   wake              Wake object for this surface.
         */
-        LiftingSurfaceData(LiftingSurface &lifting_surface, BoundaryLayer &boundary_layer, Wake &wake) :
-            SurfaceData(lifting_surface, boundary_layer), lifting_surface(lifting_surface), wake(wake) { }
+        LiftingSurfaceData(LiftingSurface &lifting_surface, Wake &wake) :
+            SurfaceData(lifting_surface), lifting_surface(lifting_surface), wake(wake) { }
         
         /**
            Associated lifting surface object.
@@ -111,10 +103,9 @@ public:
     ~Body();
 
     void add_non_lifting_surface(Surface &surface);
-    void add_non_lifting_surface(Surface &surface, BoundaryLayer &boundary_layer);
     
     void add_lifting_surface(LiftingSurface &lifting_surface);    
-    void add_lifting_surface(LiftingSurface &lifting_surface, BoundaryLayer &boundary_layer, Wake &wake);
+    void add_lifting_surface(LiftingSurface &lifting_surface, Wake &wake);
     
     /**
        Stitching of neighbour relationships between surfaces.
@@ -154,6 +145,14 @@ public:
            Edge ID.
         */
         int edge;
+        
+        /**
+           Equality operator.
+        */
+        bool operator==(const SurfacePanelEdge &other) const
+        {
+            return (surface->id == other.surface->id) && (panel == other.panel) && (edge == other.edge);
+        }
     };
     
     void stitch_panels(const Surface &surface_a, int panel_a, int edge_a, const Surface &surface_b, int panel_b, int edge_b);
@@ -197,11 +196,6 @@ protected:
        List of allocated surfaces.
     */
     std::vector<Surface*> allocated_surfaces;
-    
-    /**
-       List of allocated boundary layers.
-    */
-    std::vector<BoundaryLayer*> allocated_boundary_layers;
     
     /**
        Helper class to compare two SurfacePanelEdge objects:  first by surface, then by panel.  

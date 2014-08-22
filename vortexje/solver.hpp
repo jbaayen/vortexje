@@ -17,6 +17,7 @@
 
 #include <vortexje/body.hpp>
 #include <vortexje/surface-writer.hpp>
+#include <vortexje/boundary-layer.hpp>
 
 namespace Vortexje
 {
@@ -34,13 +35,42 @@ public:
     Solver(const std::string &log_folder);
     
     ~Solver();
+    
+    /**
+       Data structure containing a body and its boundary layer.
+       
+       @brief Body data.
+    */
+    class BodyData {
+    public:
+        /**
+           Constructs a BodyData object.
+          
+           @param[in]   body             Body.
+           @param[in]   boundary_layer   Boundary layer model.
+        */
+        BodyData(Body &body, BoundaryLayer &boundary_layer) :
+            body(body), boundary_layer(boundary_layer) {}
+        
+        /**
+           Associated body object.
+        */
+        Body &body;
+        
+        /**
+           Associated boundary layer model.
+        */
+        BoundaryLayer &boundary_layer;
+    };
 
     /**
        List of surface bodies.
     */
-    std::vector<Body*> bodies;
+    std::vector<BodyData*> bodies;
     
     void add_body(Body &body);
+    
+    void add_body(Body &body, BoundaryLayer &boundary_layer);
     
     /**
        Freestream velocity.
@@ -121,7 +151,7 @@ private:
     std::vector<Body::SurfaceData*> non_wake_surfaces;
     int n_non_wake_panels;
     
-    std::map<int, Body*> surface_id_to_body;
+    std::map<int, BodyData*> surface_id_to_body;
     
     Eigen::VectorXd source_coefficients;   
     Eigen::VectorXd doublet_coefficients;

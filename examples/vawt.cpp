@@ -154,13 +154,10 @@ public:
             
             blade->translate(position);
             
-            BoundaryLayer *boundary_layer = new DummyBoundaryLayer();
-            
             Wake *wake = new RamasamyLeishmanWake(*blade);
             
-            add_lifting_surface(*blade, *boundary_layer, *wake);
+            add_lifting_surface(*blade, *wake);
             
-            allocated_boundary_layers.push_back(boundary_layer);
             allocated_surfaces.push_back(blade);
             allocated_surfaces.push_back(wake);
         }

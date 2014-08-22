@@ -7,7 +7,6 @@
 //
 
 #include <vortexje/body.hpp>
-#include <vortexje/boundary-layers/dummy-boundary-layer.hpp>
 
 #include <iostream>
 #include <assert.h>
@@ -47,10 +46,6 @@ Body::~Body()
     vector<Surface*>::iterator si;
     for (si = allocated_surfaces.begin(); si != allocated_surfaces.end(); si++)
         delete (*si);
-        
-    vector<BoundaryLayer*>::iterator bi;
-    for (bi = allocated_boundary_layers.begin(); bi != allocated_boundary_layers.end(); bi++)
-        delete (*bi);
 }
 
 /**
@@ -61,23 +56,7 @@ Body::~Body()
 void
 Body::add_non_lifting_surface(Surface &non_lifting_surface)
 {
-    BoundaryLayer *boundary_layer = new DummyBoundaryLayer();
-    
-    add_non_lifting_surface(non_lifting_surface, *boundary_layer);
-    
-    allocated_boundary_layers.push_back(boundary_layer);
-}
-
-/**
-   Adds a non-lifting surface and its boundary layer to this body.
-   
-   @param[in]   non_lifting_surface   Non-lifting surface.
-   @param[in]   boundary_layer        Boundary layer.
-*/
-void
-Body::add_non_lifting_surface(Surface &non_lifting_surface, BoundaryLayer &boundary_layer)
-{
-    non_lifting_surfaces.push_back(new SurfaceData(non_lifting_surface, boundary_layer));
+    non_lifting_surfaces.push_back(new SurfaceData(non_lifting_surface));
 }
 
 /**
@@ -88,26 +67,23 @@ Body::add_non_lifting_surface(Surface &non_lifting_surface, BoundaryLayer &bound
 void
 Body::add_lifting_surface(LiftingSurface &lifting_surface)
 {
-    BoundaryLayer *boundary_layer = new DummyBoundaryLayer();
     Wake *wake = new Wake(lifting_surface);
     
-    add_lifting_surface(lifting_surface, *boundary_layer, *wake);
+    add_lifting_surface(lifting_surface, *wake);
     
     allocated_surfaces.push_back(wake);
-    allocated_boundary_layers.push_back(boundary_layer);
 }
 
 /**
-   Adds a lifting surface and its boundary layer to this body.
+   Adds a lifting surface and its wake to this body.
    
    @param[in]   lifting_surface   Lifting surface.
-   @param[in]   boundary_layer    Boundary layer.
    @param[in]   wake              Wake.
 */
 void
-Body::add_lifting_surface(LiftingSurface &lifting_surface, BoundaryLayer &boundary_layer, Wake &wake)
+Body::add_lifting_surface(LiftingSurface &lifting_surface, Wake &wake)
 {
-    lifting_surfaces.push_back(new LiftingSurfaceData(lifting_surface, boundary_layer, wake));
+    lifting_surfaces.push_back(new LiftingSurfaceData(lifting_surface, wake));
 }
 
 /**

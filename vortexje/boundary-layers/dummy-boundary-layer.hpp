@@ -22,7 +22,7 @@ namespace Vortexje
 class DummyBoundaryLayer : public BoundaryLayer
 {
 public:        
-    void recalculate(const Eigen::MatrixXd &surface_velocities);
+    bool recalculate(const Eigen::MatrixXd &surface_velocities);
     
     double blowing_velocity(int panel) const;
     
