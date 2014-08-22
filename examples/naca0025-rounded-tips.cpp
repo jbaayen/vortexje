@@ -44,7 +44,9 @@ simulate (double alpha_deg)
     
     const int n_points_per_airfoil = 32;
     const int n_airfoils = 21;
+#ifdef ROUNDED_TIPS
     const int n_airfoils_per_tip = 3;
+#endif
     
     vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points;
     vector<int> airfoil_nodes;
