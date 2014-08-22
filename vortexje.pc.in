@@ -4,7 +4,7 @@ libdir=${exec_prefix}/lib
 includedir=${prefix}/include
 
 Name: Vortexje
-Description: Vortexje CFD for VAWT
+Description: Vortexje CFD
 Version: @Vortexje_VERSION_MAJOR@.@Vortexje_VERSION_MINOR@
 Requires: eigen3
 Libs: -L${libdir} -lm -lvortexje
