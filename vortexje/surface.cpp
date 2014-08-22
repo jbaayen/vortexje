@@ -306,9 +306,9 @@ Surface::compute_geometry()
         const Vector3d &normal = panel_normal(i);
         
         Matrix3d rotation;
-        rotation.block<1, 3>(0, 0) = AB;
-        rotation.block<1, 3>(1, 0) = normal.cross(AB);
-        rotation.block<1, 3>(2, 0) = normal;
+        rotation.row(0) = AB;
+        rotation.row(1) = normal.cross(AB).normalized(); // Should be normalized already.
+        rotation.row(2) = normal;
         
         Transform<double, 3, Affine> transformation = rotation * Translation<double, 3>(-panel_collocation_point(i, false));
 
