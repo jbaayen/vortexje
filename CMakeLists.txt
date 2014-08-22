@@ -8,7 +8,7 @@ set(Vortexje_VERSION_MINOR 2)
 # Use Eigen3.
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
-find_package(Eigen3 REQUIRED)
+find_package(Eigen3 3.2.2 REQUIRED)
 
 # Base compiler flags
 if(CMAKE_COMPILER_IS_GNUCXX)

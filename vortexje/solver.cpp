@@ -1225,15 +1225,11 @@ Solver::compute_scalar_field_gradient(const Eigen::VectorXd &scalar_field, const
     Transform<double, 3, Affine> transformation = surface.panel_coordinate_transformation(panel);
     
     // Set up model equations:
-    MatrixXd A(neighbors.size() + 1, 3);
-    VectorXd b(neighbors.size() + 1);
+    MatrixXd A(neighbors.size(), 2);
+    VectorXd b(neighbors.size());
     
     // The model is centered on panel:
-    A(0, 0) = 0.0;
-    A(0, 1) = 0.0;
-    A(0, 2) = 1.0;
-    
-    b(0) = scalar_field(compute_index(surface, panel));
+    double panel_value = scalar_field(compute_index(surface, panel));
     
     for (int i = 0; i < (int) neighbors.size(); i++) {
         Body::SurfacePanelEdge neighbor_panel = neighbors[i];
@@ -1241,15 +1237,15 @@ Solver::compute_scalar_field_gradient(const Eigen::VectorXd &scalar_field, const
         // Add neighbor relative to panel:
         Vector3d neighbor_vector_normalized = transformation * neighbor_panel.surface->panel_collocation_point(neighbor_panel.panel, false);
     
-        A(i + 1, 0) = neighbor_vector_normalized(0);
-        A(i + 1, 1) = neighbor_vector_normalized(1);
-        A(i + 1, 2) = 1.0;
+        A(i, 0) = neighbor_vector_normalized(0);
+        A(i, 1) = neighbor_vector_normalized(1);
     
-        b(i + 1) = scalar_field(compute_index(*neighbor_panel.surface, neighbor_panel.panel));
+        b(i) = scalar_field(compute_index(*neighbor_panel.surface, neighbor_panel.panel)) - panel_value;
     }
     
     // Solve model equations:
     JacobiSVD<MatrixXd> svd(A, ComputeThinU | ComputeThinV);
+    svd.setThreshold(Parameters::inversion_tolerance);
     
     VectorXd model_coefficients = svd.solve(b);
     
