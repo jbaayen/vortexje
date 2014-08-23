@@ -17,9 +17,9 @@ using namespace Eigen;
 using namespace Vortexje;
 
 /**
-   Returns the PLY file extension (".msh").
+   Returns the PLY file extension (".ply").
    
-   @returns The PLY file extension (".msh").
+   @returns The PLY file extension (".ply").
 */
 const char *
 PLYSurfaceLoader::file_extension() const
