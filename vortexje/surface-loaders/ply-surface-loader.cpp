@@ -28,25 +28,27 @@ PLYSurfaceLoader::file_extension() const
 }
 
 // rply parser callbacks.
-static int vertex_cb(p_ply_argument argument)
+static int
+vertex_cb(p_ply_argument argument)
 {
     void *ptr;
     long index;
     ply_get_argument_user_data(argument, &ptr, &index);
     
-    PLYSurfaceLoader *loader = (PLYSurfaceLoader *) ptr;
+    PLYSurfaceLoader *loader = static_cast<PLYSurfaceLoader *>(ptr);
     
     loader->read_vertex_coordinate(index, ply_get_argument_value(argument));
     
     return 1;
 }
 
-static int face_cb(p_ply_argument argument)
+static int
+face_cb(p_ply_argument argument)
 {  
     void *ptr;
     ply_get_argument_user_data(argument, &ptr, NULL);
     
-    PLYSurfaceLoader *loader = (PLYSurfaceLoader *) ptr;
+    PLYSurfaceLoader *loader = static_cast<PLYSurfaceLoader *>(ptr);
     
     long length, index;
     ply_get_argument_property(argument, NULL, &length, &index);
