@@ -28,7 +28,7 @@ GmshSurfaceLoader::file_extension() const
 }
 
 /**
-   Loads and parses the contents of a Gmsh MSH file into a Surface.
+   Loads and parses the contents of a Gmsh MSH file into a surface->
 
    @param[in]   surface    Surface to load to.
    @param[in]   filename   Filename pointing to the Gmsh MSH file to load.
@@ -36,9 +36,9 @@ GmshSurfaceLoader::file_extension() const
    @returns true on success.
 */
 bool
-GmshSurfaceLoader::load(Surface &surface, const string &filename)
+GmshSurfaceLoader::load(shared_ptr<Surface> surface, const string &filename)
 {
-    cout << "Surface " << surface.id << ": Loading from " << filename << "." << endl;
+    cout << "Surface " << surface->id << ": Loading from " << filename << "." << endl;
     
     // Load surface from gmsh MSH file:
     ifstream f;
@@ -61,7 +61,7 @@ GmshSurfaceLoader::load(Surface &surface, const string &filename)
                 tokens >> version >> file_type >> data_size;
                 
                 if (version != "2.2" || file_type != 0 || data_size != 8) {
-                    cerr << "Surface " << surface.id << ": Unknown data format in " << filename << "." << endl;
+                    cerr << "Surface " << surface->id << ": Unknown data format in " << filename << "." << endl;
                     
                     f.close();
                     
@@ -95,10 +95,10 @@ GmshSurfaceLoader::load(Surface &surface, const string &filename)
             double x, y, z;
             tokens >> node_number >> x >> y >> z;
             
-            surface.nodes.push_back(Vector3d(x, y, z));            
+            surface->nodes.push_back(Vector3d(x, y, z));            
             
-            vector<int> *neighbor_list = new vector<int>;
-            surface.node_panel_neighbors.push_back(neighbor_list);
+            shared_ptr<vector<int> > neighbor_list = make_shared<vector<int> >();
+            surface->node_panel_neighbors.push_back(neighbor_list);
             
         } else if (in_elements) {
             istringstream tokens(line);
@@ -129,10 +129,10 @@ GmshSurfaceLoader::load(Surface &surface, const string &filename)
                 
                 single_panel_nodes.push_back(node - 1);
                 
-                surface.node_panel_neighbors[node - 1]->push_back(current_panel);
+                surface->node_panel_neighbors[node - 1]->push_back(current_panel);
             }
 
-            surface.panel_nodes.push_back(single_panel_nodes);
+            surface->panel_nodes.push_back(single_panel_nodes);
             
             current_panel++;
         }  
@@ -141,10 +141,10 @@ GmshSurfaceLoader::load(Surface &surface, const string &filename)
     f.close();
     
     // Compute surface topology:
-    surface.compute_topology();
+    surface->compute_topology();
     
     // Compute panel geometry:
-    surface.compute_geometry();
+    surface->compute_geometry();
     
     // Done:
     return true;

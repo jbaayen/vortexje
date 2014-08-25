@@ -26,7 +26,7 @@ class RamasamyLeishmanWake : public Wake
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     
-    RamasamyLeishmanWake(LiftingSurface &lifting_surface);
+    RamasamyLeishmanWake(std::shared_ptr<LiftingSurface> lifting_surface);
     
     void add_layer();
     

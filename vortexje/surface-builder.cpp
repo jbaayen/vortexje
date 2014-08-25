@@ -19,7 +19,7 @@ using namespace Eigen;
 using namespace Vortexje;
 
 /**
-   Constructs a new SurfaceBuilder object for the given Surface.
+   Constructs a new SurfaceBuilder object for the given surface.
    
    @param[in]   surface    Surface object to construct.
 */
@@ -44,7 +44,7 @@ SurfaceBuilder::create_nodes_for_points(const vector<Vector3d, Eigen::aligned_al
         
         surface.nodes.push_back(points[i]);
         
-        vector<int> *empty_vector = new vector<int>;
+        shared_ptr<vector<int> > empty_vector = make_shared<vector<int> >();
         surface.node_panel_neighbors.push_back(empty_vector);
             
         new_nodes.push_back(node_id);
@@ -200,7 +200,7 @@ SurfaceBuilder::create_panels_inside_shape(const vector<int> &nodes, const Vecto
 
     surface.nodes.push_back(tip_point);
     
-    vector<int> *empty_vector = new vector<int>;
+    shared_ptr<vector<int> > empty_vector = make_shared<vector<int> >();
     surface.node_panel_neighbors.push_back(empty_vector);
     
     // Create triangle for leading and trailing edges:

@@ -40,11 +40,11 @@ VTKSurfaceWriter::file_extension() const
    @returns true on success.
 */
 bool
-VTKSurfaceWriter::write(const Surface &surface, const string &filename, 
+VTKSurfaceWriter::write(const shared_ptr<Surface> &surface, const string &filename, 
                         int node_offset, int panel_offset,
                         const std::vector<std::string> &view_names, const std::vector<Eigen::MatrixXd> &view_data)
 {
-    cout << "Surface " << surface.id << ": Saving to " << filename << "." << endl;
+    cout << "Surface " << surface->id << ": Saving to " << filename << "." << endl;
     
     // Save surface to VTK file:
     ofstream f;
@@ -54,13 +54,13 @@ VTKSurfaceWriter::write(const Surface &surface, const string &filename,
     f << "FieldData" << endl;
     f << "ASCII" << endl;
     f << "DATASET UNSTRUCTURED_GRID" << endl;
-    f << "POINTS " << surface.n_nodes() << " double" << endl;
+    f << "POINTS " << surface->n_nodes() << " double" << endl;
     
-    for (int i = 0; i < surface.n_nodes(); i++) {
+    for (int i = 0; i < surface->n_nodes(); i++) {
         for (int j = 0; j < 3; j++) {
             if (j > 0)
                 f << ' ';
-            f << surface.nodes[i](j);
+            f << surface->nodes[i](j);
         }
         f << endl;
     }
@@ -68,17 +68,17 @@ VTKSurfaceWriter::write(const Surface &surface, const string &filename,
     f << endl;
     
     int size = 0;
-    for (int i = 0; i < surface.n_panels(); i++)
-        size += surface.panel_nodes[i].size() + 1;
+    for (int i = 0; i < surface->n_panels(); i++)
+        size += surface->panel_nodes[i].size() + 1;
     
-    f << "CELLS " << surface.n_panels() << " " << size << endl;
+    f << "CELLS " << surface->n_panels() << " " << size << endl;
     
-    for (int i = 0; i < surface.n_panels(); i++) {
-        f << surface.panel_nodes[i].size();
+    for (int i = 0; i < surface->n_panels(); i++) {
+        f << surface->panel_nodes[i].size();
 
-        for (int j = 0; j < (int) surface.panel_nodes[i].size(); j++) {
+        for (int j = 0; j < (int) surface->panel_nodes[i].size(); j++) {
             f << ' ';
-            f << surface.panel_nodes[i][j];
+            f << surface->panel_nodes[i][j];
         }
         
         f << endl;
@@ -86,11 +86,11 @@ VTKSurfaceWriter::write(const Surface &surface, const string &filename,
     
     f << endl;
     
-    f << "CELL_TYPES " << surface.n_panels() << endl;
+    f << "CELL_TYPES " << surface->n_panels() << endl;
     
-    for (int i = 0; i < surface.n_panels(); i++) {
+    for (int i = 0; i < surface->n_panels(); i++) {
         int cell_type;
-        switch (surface.panel_nodes[i].size()) {
+        switch (surface->panel_nodes[i].size()) {
         case 3:
             cell_type = 5;
             break;
@@ -98,7 +98,7 @@ VTKSurfaceWriter::write(const Surface &surface, const string &filename,
             cell_type = 9;
             break;
         default:
-            cerr << "Surface " << surface.id << ": Unknown polygon at panel " << i << "." << endl;
+            cerr << "Surface " << surface->id << ": Unknown polygon at panel " << i << "." << endl;
             continue;
         }
         
@@ -107,7 +107,7 @@ VTKSurfaceWriter::write(const Surface &surface, const string &filename,
     
     f << endl;
 
-    f << "CELL_DATA " << surface.n_panels() << endl;
+    f << "CELL_DATA " << surface->n_panels() << endl;
     
     for (int k = 0; k < (int) view_names.size(); k++) {
         if (view_data[k].cols() == 1) {
@@ -116,7 +116,7 @@ VTKSurfaceWriter::write(const Surface &surface, const string &filename,
         } else
             f << "VECTORS " << view_names[k] << " double" << endl;       
     
-        for (int i = 0; i < surface.n_panels(); i++) {  
+        for (int i = 0; i < surface->n_panels(); i++) {  
             for (int j = 0; j < view_data[k].cols(); j++) {
                 if (j > 0)
                     f << ' ';

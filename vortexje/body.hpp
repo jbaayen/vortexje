@@ -10,6 +10,7 @@
 #define __BODY_HPP__
 
 #include <string>
+#include <memory>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -50,13 +51,13 @@ public:
           
            @param[in]   surface          Surface object.
         */
-        SurfaceData(Surface &surface) :
+        SurfaceData(std::shared_ptr<Surface> surface) :
             surface(surface) {}
         
         /**
            Associated surface object.
         */
-        Surface &surface;
+        std::shared_ptr<Surface> surface;
     };
     
     /**
@@ -72,29 +73,29 @@ public:
            @param[in]   lifting_surface   Lifting surface object.
            @param[in]   wake              Wake object for this surface.
         */
-        LiftingSurfaceData(LiftingSurface &lifting_surface, Wake &wake) :
+        LiftingSurfaceData(std::shared_ptr<LiftingSurface> lifting_surface, std::shared_ptr<Wake> wake) :
             SurfaceData(lifting_surface), lifting_surface(lifting_surface), wake(wake) { }
         
         /**
            Associated lifting surface object.
         */
-        LiftingSurface &lifting_surface;
+        std::shared_ptr<LiftingSurface> lifting_surface;
         
         /**
            Associated wake object.
         */
-        Wake &wake;
+        std::shared_ptr<Wake> wake;
     };
     
     /**
        List of non-lifting surfaces.
     */
-    std::vector<SurfaceData*> non_lifting_surfaces;
+    std::vector<std::shared_ptr<SurfaceData> > non_lifting_surfaces;
     
     /**
        List of lifting surfaces.
     */
-    std::vector<LiftingSurfaceData*> lifting_surfaces;
+    std::vector<std::shared_ptr<LiftingSurfaceData> > lifting_surfaces;
     
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     
@@ -102,10 +103,10 @@ public:
     
     ~Body();
 
-    void add_non_lifting_surface(Surface &surface);
+    void add_non_lifting_surface(std::shared_ptr<Surface> surface);
     
-    void add_lifting_surface(LiftingSurface &lifting_surface);    
-    void add_lifting_surface(LiftingSurface &lifting_surface, Wake &wake);
+    void add_lifting_surface(std::shared_ptr<LiftingSurface> lifting_surface);    
+    void add_lifting_surface(std::shared_ptr<LiftingSurface> lifting_surface, std::shared_ptr<Wake> wake);
     
     /**
        Stitching of neighbour relationships between surfaces.
@@ -129,12 +130,12 @@ public:
            @param[in]   surface   Associated Surface object.
            @param[in]   panel     Panel ID.
         */
-        SurfacePanelEdge(const Surface &surface, int panel, int edge) : surface(&surface), panel(panel), edge(edge) { };
+        SurfacePanelEdge(std::shared_ptr<Surface> surface, int panel, int edge) : surface(surface), panel(panel), edge(edge) { };
         
         /**
            Associated Surface object.
         */
-        const Surface *surface;
+        std::shared_ptr<Surface> surface;
         
         /**
            Panel ID.
@@ -151,15 +152,15 @@ public:
         */
         bool operator==(const SurfacePanelEdge &other) const
         {
-            return (surface->id == other.surface->id) && (panel == other.panel) && (edge == other.edge);
+            return (surface.get() == other.surface.get()) && (panel == other.panel) && (edge == other.edge);
         }
     };
     
-    void stitch_panels(const Surface &surface_a, int panel_a, int edge_a, const Surface &surface_b, int panel_b, int edge_b);
+    void stitch_panels(std::shared_ptr<Surface> surface_a, int panel_a, int edge_a, std::shared_ptr<Surface> surface_b, int panel_b, int edge_b);
     
-    std::vector<SurfacePanelEdge> panel_neighbors(const Surface &surface, int panel) const;
+    std::vector<SurfacePanelEdge> panel_neighbors(const std::shared_ptr<Surface> &surface, int panel) const;
     
-    std::vector<SurfacePanelEdge> panel_neighbors(const Surface &surface, int panel, int edge) const;
+    std::vector<SurfacePanelEdge> panel_neighbors(const std::shared_ptr<Surface> &surface, int panel, int edge) const;
     
     /**
        Linear position of the entire body.
@@ -187,16 +188,11 @@ public:
     void set_velocity(const Eigen::Vector3d &velocity);
     void set_rotational_velocity(const Eigen::Vector3d &rotational_velocity);
     
-    Eigen::Vector3d panel_kinematic_velocity(const Surface &surface, int panel) const;
+    Eigen::Vector3d panel_kinematic_velocity(const std::shared_ptr<Surface> &surface, int panel) const;
     
-    Eigen::Vector3d node_kinematic_velocity(const Surface &surface, int node) const;
+    Eigen::Vector3d node_kinematic_velocity(const std::shared_ptr<Surface> &surface, int node) const;
     
 protected:
-    /**
-       List of allocated surfaces.
-    */
-    std::vector<Surface*> allocated_surfaces;
-    
     /**
        Helper class to compare two SurfacePanelEdge objects:  first by surface, then by panel.  
        The edge numbers are not compared.

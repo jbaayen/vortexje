@@ -24,12 +24,12 @@ main (int argc, char **argv)
     // Load sphere surface:
     GmshSurfaceLoader surface_loader;
     
-    Surface sphere;
+    shared_ptr<Surface> sphere = make_shared<Surface>();
     surface_loader.load(sphere, string("sphere.msh"));
    
     // Create surface body:
-    Body body(string("test-sphere"));
-    body.add_non_lifting_surface(sphere);
+    shared_ptr<Body> body = make_shared<Body>(string("test-sphere"));
+    body->add_non_lifting_surface(sphere);
     
     // Set up solver:
     Solver solver("test-sphere-log");
@@ -45,8 +45,8 @@ main (int argc, char **argv)
     solver.solve();
     
     // Check pressure coefficients and surface potential values:
-    for (int i = 0; i < sphere.n_panels(); i++) {
-        Vector3d x = sphere.panel_collocation_point(i, false);
+    for (int i = 0; i < sphere->n_panels(); i++) {
+        Vector3d x = sphere->panel_collocation_point(i, false);
         
         // Angle between flow and point on sphere:
         double theta = acos(x.dot(freestream_velocity) / (x.norm() * freestream_velocity.norm()));

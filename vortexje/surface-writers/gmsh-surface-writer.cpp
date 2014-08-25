@@ -40,11 +40,11 @@ GmshSurfaceWriter::file_extension() const
    @returns true on success.
 */
 bool
-GmshSurfaceWriter::write(const Surface &surface, const string &filename, 
+GmshSurfaceWriter::write(const shared_ptr<Surface> &surface, const string &filename, 
                          int node_offset, int panel_offset,
                          const std::vector<std::string> &view_names, const std::vector<Eigen::MatrixXd> &view_data)
 {
-    cout << "Surface " << surface.id << ": Saving to " << filename << "." << endl;
+    cout << "Surface " << surface->id << ": Saving to " << filename << "." << endl;
     
     // Save surface to gmsh file:
     ofstream f;
@@ -55,14 +55,14 @@ GmshSurfaceWriter::write(const Surface &surface, const string &filename,
     f << "$EndMeshFormat" << endl;
     
     f << "$Nodes" << endl;
-    f << surface.n_nodes() << endl;
+    f << surface->n_nodes() << endl;
     
-    for (int i = 0; i < surface.n_nodes(); i++) {
+    for (int i = 0; i < surface->n_nodes(); i++) {
         f << i + node_offset + 1;
         
         for (int j = 0; j < 3; j++) {
             f << ' ';
-            f << surface.nodes[i](j);
+            f << surface->nodes[i](j);
         }
         
         f << endl;
@@ -70,11 +70,11 @@ GmshSurfaceWriter::write(const Surface &surface, const string &filename,
     
     f << "$EndNodes" << endl;
     f << "$Elements" << endl;
-    f << surface.n_panels() << endl;
+    f << surface->n_panels() << endl;
     
-    for (int i = 0; i < surface.n_panels(); i++) {
+    for (int i = 0; i < surface->n_panels(); i++) {
         int element_type;
-        switch (surface.panel_nodes[i].size()) {
+        switch (surface->panel_nodes[i].size()) {
         case 3:
             element_type = 2;
             break;
@@ -82,7 +82,7 @@ GmshSurfaceWriter::write(const Surface &surface, const string &filename,
             element_type = 3;
             break;
         default:
-            cerr << "Surface " << surface.id << ": Unknown polygon at panel " << i << "." << endl;
+            cerr << "Surface " << surface->id << ": Unknown polygon at panel " << i << "." << endl;
             continue;
         }
         
@@ -96,9 +96,9 @@ GmshSurfaceWriter::write(const Surface &surface, const string &filename,
         
         f << 0;
         
-        for (int j = 0; j < (int) surface.panel_nodes[i].size(); j++) {
+        for (int j = 0; j < (int) surface->panel_nodes[i].size(); j++) {
             f << ' ';
-            f << surface.panel_nodes[i][j] + node_offset + 1;
+            f << surface->panel_nodes[i][j] + node_offset + 1;
         }
         
         f << endl;
@@ -115,9 +115,9 @@ GmshSurfaceWriter::write(const Surface &surface, const string &filename,
         f << "3" << endl;
         f << 0 << endl;
         f << view_data[k].cols() << endl;
-        f << surface.n_panels() << endl;
+        f << surface->n_panels() << endl;
         
-        for (int i = 0; i < surface.n_panels(); i++) {            
+        for (int i = 0; i < surface->n_panels(); i++) {            
             f << i + panel_offset + 1;
             
             for (int j = 0; j < view_data[k].cols(); j++) {

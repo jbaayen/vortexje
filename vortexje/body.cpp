@@ -35,17 +35,6 @@ Body::Body(const string &id) : id(id)
 */
 Body::~Body()
 {
-    vector<SurfaceData*>::iterator sdi;
-    for (sdi = non_lifting_surfaces.begin(); sdi != non_lifting_surfaces.end(); sdi++)
-        delete (*sdi);
-        
-    vector<LiftingSurfaceData*>::iterator lsdi;
-    for (lsdi = lifting_surfaces.begin(); lsdi != lifting_surfaces.end(); lsdi++)
-        delete (*lsdi);
-        
-    vector<Surface*>::iterator si;
-    for (si = allocated_surfaces.begin(); si != allocated_surfaces.end(); si++)
-        delete (*si);
 }
 
 /**
@@ -54,9 +43,9 @@ Body::~Body()
    @param[in]   non_lifting_surface   Non-lifting surface.
 */
 void
-Body::add_non_lifting_surface(Surface &non_lifting_surface)
+Body::add_non_lifting_surface(shared_ptr<Surface> non_lifting_surface)
 {
-    non_lifting_surfaces.push_back(new SurfaceData(non_lifting_surface));
+    non_lifting_surfaces.push_back(make_shared<SurfaceData>(non_lifting_surface));
 }
 
 /**
@@ -65,13 +54,11 @@ Body::add_non_lifting_surface(Surface &non_lifting_surface)
    @param[in]   lifting_surface   Lifting surface.
 */
 void
-Body::add_lifting_surface(LiftingSurface &lifting_surface)
+Body::add_lifting_surface(shared_ptr<LiftingSurface> lifting_surface)
 {
-    Wake *wake = new Wake(lifting_surface);
+    shared_ptr<Wake> wake = make_shared<Wake>(lifting_surface);
     
-    add_lifting_surface(lifting_surface, *wake);
-    
-    allocated_surfaces.push_back(wake);
+    add_lifting_surface(lifting_surface, wake);
 }
 
 /**
@@ -81,9 +68,9 @@ Body::add_lifting_surface(LiftingSurface &lifting_surface)
    @param[in]   wake              Wake.
 */
 void
-Body::add_lifting_surface(LiftingSurface &lifting_surface, Wake &wake)
+Body::add_lifting_surface(shared_ptr<LiftingSurface> lifting_surface, shared_ptr<Wake> wake)
 {
-    lifting_surfaces.push_back(new LiftingSurfaceData(lifting_surface, wake));
+    lifting_surfaces.push_back(make_shared<LiftingSurfaceData>(lifting_surface, wake));
 }
 
 /**
@@ -98,7 +85,7 @@ Body::add_lifting_surface(LiftingSurface &lifting_surface, Wake &wake)
    @param[in]   edge_b      Second reference edge.
 */
 void
-Body::stitch_panels(const Surface &surface_a, int panel_a, int edge_a, const Surface &surface_b, int panel_b, int edge_b)
+Body::stitch_panels(shared_ptr<Surface> surface_a, int panel_a, int edge_a, shared_ptr<Surface> surface_b, int panel_b, int edge_b)
 {
     // Add stitch from A to B:
     stitches[SurfacePanelEdge(surface_a, panel_a, edge_a)] = SurfacePanelEdge(surface_b, panel_b, edge_b);
@@ -116,19 +103,19 @@ Body::stitch_panels(const Surface &surface_a, int panel_a, int edge_a, const Sur
    @returns List of in-surface and across-surface panel neighbors.
 */
 vector<Body::SurfacePanelEdge>
-Body::panel_neighbors(const Surface &surface, int panel) const
+Body::panel_neighbors(const shared_ptr<Surface> &surface, int panel) const
 {
     vector<SurfacePanelEdge> neighbors;
     
     // List in-surface neighbors:
-    for (int i = 0; i < (int) surface.panel_nodes[panel].size(); i++) {
-        map<int, pair<int, int> >::const_iterator isit = surface.panel_neighbors[panel].find(i);
-        if (isit != surface.panel_neighbors[panel].end())
+    for (int i = 0; i < (int) surface->panel_nodes[panel].size(); i++) {
+        map<int, pair<int, int> >::const_iterator isit = surface->panel_neighbors[panel].find(i);
+        if (isit != surface->panel_neighbors[panel].end())
             neighbors.push_back(SurfacePanelEdge(surface, isit->second.first, isit->second.second));           
     }
     
     // List stitches:
-    for (int i = 0; i < (int) surface.panel_nodes[panel].size(); i++) {
+    for (int i = 0; i < (int) surface->panel_nodes[panel].size(); i++) {
         map<SurfacePanelEdge, SurfacePanelEdge, CompareSurfacePanelEdge>::const_iterator it =
             stitches.find(SurfacePanelEdge(surface, panel, i));
         if (it != stitches.end())
@@ -149,13 +136,13 @@ Body::panel_neighbors(const Surface &surface, int panel) const
    @returns List of in-surface and across-surface panel neighbor for the given edge.
 */
 vector<Body::SurfacePanelEdge>
-Body::panel_neighbors(const Surface &surface, int panel, int edge) const
+Body::panel_neighbors(const shared_ptr<Surface> &surface, int panel, int edge) const
 {
     vector<SurfacePanelEdge> neighbors;
     
     // List in-surface neighbor:
-    map<int, pair<int, int> >::const_iterator isit = surface.panel_neighbors[panel].find(edge);
-    if (isit != surface.panel_neighbors[panel].end())
+    map<int, pair<int, int> >::const_iterator isit = surface->panel_neighbors[panel].find(edge);
+    if (isit != surface->panel_neighbors[panel].end())
         neighbors.push_back(SurfacePanelEdge(surface, isit->second.first, isit->second.second));
     
     // List stitches:
@@ -183,20 +170,20 @@ Body::set_position(const Vector3d &position)
     Vector3d translation = position - this->position;
        
     // Apply:
-    vector<SurfaceData*>::iterator si;
+    vector<shared_ptr<SurfaceData> >::iterator si;
     for (si = non_lifting_surfaces.begin(); si != non_lifting_surfaces.end(); si++) {
-        SurfaceData *d = *si;
+        shared_ptr<SurfaceData> d = *si;
         
-        d->surface.translate(translation);
+        d->surface->translate(translation);
     }
     
-    vector<LiftingSurfaceData*>::iterator lsi;
+    vector<shared_ptr<LiftingSurfaceData> >::iterator lsi;
     for (lsi = lifting_surfaces.begin(); lsi != lifting_surfaces.end(); lsi++) {
-        LiftingSurfaceData *d = *lsi;
+        shared_ptr<LiftingSurfaceData> d = *lsi;
         
-        d->surface.translate(translation);
+        d->surface->translate(translation);
         
-        d->wake.translate_trailing_edge(translation);
+        d->wake->translate_trailing_edge(translation);
     }
     
     // Update state:
@@ -215,20 +202,20 @@ Body::set_attitude(const Quaterniond &attitude)
     Transform<double, 3, Affine> transformation = Translation<double, 3>(position) * attitude * this->attitude.inverse() * Translation<double, 3>(-position);
     
     // Apply:
-    vector<SurfaceData*>::iterator si;
+    vector<shared_ptr<SurfaceData> >::iterator si;
     for (si = non_lifting_surfaces.begin(); si != non_lifting_surfaces.end(); si++) {
-        SurfaceData *d = *si;
+        shared_ptr<SurfaceData> d = *si;
         
-        d->surface.transform(transformation);
+        d->surface->transform(transformation);
     }
     
-    vector<LiftingSurfaceData*>::iterator lsi;
+    vector<shared_ptr<LiftingSurfaceData> >::iterator lsi;
     for (lsi = lifting_surfaces.begin(); lsi != lifting_surfaces.end(); lsi++) {
-        LiftingSurfaceData *d = *lsi;
+        shared_ptr<LiftingSurfaceData> d = *lsi;
         
-        d->surface.transform(transformation);
+        d->surface->transform(transformation);
         
-        d->wake.transform_trailing_edge(transformation);
+        d->wake->transform_trailing_edge(transformation);
     }
     
     // Update state:
@@ -266,9 +253,9 @@ Body::set_rotational_velocity(const Vector3d &rotational_velocity)
    @return The kinematic velocity.
 */
 Vector3d
-Body::panel_kinematic_velocity(const Surface &surface, int panel) const
+Body::panel_kinematic_velocity(const shared_ptr<Surface> &surface, int panel) const
 {
-    const Vector3d &panel_position = surface.panel_collocation_point(panel, false);
+    const Vector3d &panel_position = surface->panel_collocation_point(panel, false);
     Vector3d r = panel_position - position;
     return velocity + rotational_velocity.cross(r);
 }
@@ -282,8 +269,8 @@ Body::panel_kinematic_velocity(const Surface &surface, int panel) const
    @return The kinematic velocity.
 */
 Vector3d
-Body::node_kinematic_velocity(const Surface &surface, int node) const
+Body::node_kinematic_velocity(const shared_ptr<Surface> &surface, int node) const
 {
-    Vector3d r = surface.nodes[node] - position;
+    Vector3d r = surface->nodes[node] - position;
     return velocity + rotational_velocity.cross(r);
 }

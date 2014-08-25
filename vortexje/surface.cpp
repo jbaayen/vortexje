@@ -38,38 +38,10 @@ Surface::Surface()
 }
 
 /**
-   Clears the node-panel neighbor data structure, and frees up its memory.
-*/
-void
-Surface::clear_node_panel_neighbors()
-{
-    vector<vector<int> *> unique;
-    
-    for (int i = 0; i < (int) node_panel_neighbors.size(); i++) {
-        bool found = false;
-        for (int j = 0; j < (int) unique.size(); j++) {
-            if (node_panel_neighbors[i] == unique[j]) {
-                found = true;
-                break;
-            }
-        }
-        
-        if (!found)
-            unique.push_back(node_panel_neighbors[i]);
-    }
-    
-    for (int i = 0; i < (int) unique.size(); i++)
-        delete unique[i];
-        
-    node_panel_neighbors.clear();
-}
-
-/**
    Destructor.
 */
 Surface::~Surface()
 {
-    clear_node_panel_neighbors();
 }
 
 /**
@@ -818,12 +790,12 @@ Surface::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) con
    @returns Influence coefficient.
 */
 double
-Surface::doublet_influence(const Surface &other, int other_panel, int this_panel) const
+Surface::doublet_influence(const shared_ptr<Surface> &other, int other_panel, int this_panel) const
 { 
-    if ((this == &other) && (this_panel == other_panel))
+    if ((this == other.get()) && (this_panel == other_panel))
         return -0.5;
     else
-        return doublet_influence(other.panel_collocation_point(other_panel, true), this_panel);
+        return doublet_influence(other->panel_collocation_point(other_panel, true), this_panel);
 }
 
 /**
@@ -838,9 +810,9 @@ Surface::doublet_influence(const Surface &other, int other_panel, int this_panel
    @returns Influence coefficient.
 */
 double
-Surface::source_influence(const Surface &other, int other_panel, int this_panel) const
+Surface::source_influence(const shared_ptr<Surface> &other, int other_panel, int this_panel) const
 {
-    return source_influence(other.panel_collocation_point(other_panel, true), this_panel);
+    return source_influence(other->panel_collocation_point(other_panel, true), this_panel);
 }
 
 /**
@@ -853,15 +825,15 @@ Surface::source_influence(const Surface &other, int other_panel, int this_panel)
    @param[out]  doublet_influence   Doublet influence value.
 */
 void
-Surface::source_and_doublet_influence(const Surface &other, int other_panel, int this_panel, double &source_influence, double &doublet_influence) const
+Surface::source_and_doublet_influence(const shared_ptr<Surface> &other, int other_panel, int this_panel, double &source_influence, double &doublet_influence) const
 {
-    if ((this == &other) && (this_panel == other_panel)) {
+    if ((this == other.get()) && (this_panel == other_panel)) {
         doublet_influence = -0.5;
         
         source_influence = this->source_influence(other, other_panel, this_panel);
         
     } else
-        source_and_doublet_influence(other.panel_collocation_point(other_panel, true), this_panel, source_influence, doublet_influence);
+        source_and_doublet_influence(other->panel_collocation_point(other_panel, true), this_panel, source_influence, doublet_influence);
 }
 
 /**
@@ -876,9 +848,9 @@ Surface::source_and_doublet_influence(const Surface &other, int other_panel, int
    @returns Velocity induced by the source panel.
 */
 Vector3d
-Surface::source_unit_velocity(const Surface &other, int other_panel, int this_panel) const
+Surface::source_unit_velocity(const shared_ptr<Surface> &other, int other_panel, int this_panel) const
 { 
-    return source_unit_velocity(other.panel_collocation_point(other_panel, true), this_panel);
+    return source_unit_velocity(other->panel_collocation_point(other_panel, true), this_panel);
 }
 
 /**
@@ -893,7 +865,7 @@ Surface::source_unit_velocity(const Surface &other, int other_panel, int this_pa
    @returns Velocity induced by the vortex ring.
 */
 Vector3d
-Surface::vortex_ring_unit_velocity(const Surface &other, int other_panel, int this_panel) const
+Surface::vortex_ring_unit_velocity(const shared_ptr<Surface> &other, int other_panel, int this_panel) const
 {
-    return vortex_ring_unit_velocity(other.panel_collocation_point(other_panel, true), this_panel);
+    return vortex_ring_unit_velocity(other->panel_collocation_point(other_panel, true), this_panel);
 }

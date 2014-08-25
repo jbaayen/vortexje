@@ -55,7 +55,7 @@ static const double one_over_4pi = 1.0 / (4 * M_PI);
    
    @param[in]   lifting_surface   Associated lifting surface.
 */
-RamasamyLeishmanWake::RamasamyLeishmanWake(LiftingSurface &lifting_surface): Wake(lifting_surface)
+RamasamyLeishmanWake::RamasamyLeishmanWake(std::shared_ptr<LiftingSurface> lifting_surface): Wake(lifting_surface)
 {
 }
 
@@ -69,9 +69,9 @@ RamasamyLeishmanWake::add_layer()
     this->Wake::add_layer();
     
     // Add R-L data:
-    if (n_panels() >= lifting_surface.n_spanwise_panels()) {
-        for (int k = 0; k < lifting_surface.n_spanwise_panels(); k++) {
-            int panel = n_panels() - lifting_surface.n_spanwise_panels() + k;
+    if (n_panels() >= lifting_surface->n_spanwise_panels()) {
+        for (int k = 0; k < lifting_surface->n_spanwise_panels(); k++) {
+            int panel = n_panels() - lifting_surface->n_spanwise_panels() + k;
             
             // Add initial vortex core radii. 
             vector<double> panel_vortex_core_radii;
@@ -112,7 +112,7 @@ RamasamyLeishmanWake::add_layer()
 Vector3d
 RamasamyLeishmanWake::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
 {
-    if (this_panel >= n_panels() - lifting_surface.n_spanwise_panels()) {
+    if (this_panel >= n_panels() - lifting_surface->n_spanwise_panels()) {
         // This panel is contained in the latest row of wake panels.  To satisfy the Kutta condition
         // exactly, we use the unmodified vortex ring unit velocity here.
         return this->Surface::vortex_ring_unit_velocity(x, this_panel);

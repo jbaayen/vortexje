@@ -9,6 +9,8 @@
 #ifndef __WAKE_HPP__
 #define __WAKE_HPP__
 
+#include <memory>
+
 #include <Eigen/Geometry>
 
 #include <vortexje/lifting-surface.hpp>
@@ -26,12 +28,12 @@ class Wake : public Surface
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     
-    Wake(LiftingSurface &lifting_surface);
+    Wake(std::shared_ptr<LiftingSurface> lifting_surface);
     
     /**
        Associated lifting surface.
     */
-    LiftingSurface &lifting_surface;
+    std::shared_ptr<LiftingSurface> lifting_surface;
     
     virtual void add_layer();
     

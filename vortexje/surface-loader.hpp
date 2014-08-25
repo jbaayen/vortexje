@@ -44,7 +44,7 @@ public:
        
        @returns true on success.
     */
-    virtual bool load(Surface &surface, const std::string &filename) = 0;
+    virtual bool load(std::shared_ptr<Surface> surface, const std::string &filename) = 0;
 };
 
 };

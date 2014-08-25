@@ -9,6 +9,7 @@
 #ifndef __SURFACE_WRITER_HPP__
 #define __SURFACE_WRITER_HPP__
 
+#include <memory>
 #include <string>
 
 #include <vortexje/surface.hpp>
@@ -36,9 +37,9 @@ public:
     */
     virtual const char *file_extension() const = 0;
     
-    bool write(const Surface &surface, const std::string &filename);
+    bool write(const std::shared_ptr<Surface> &surface, const std::string &filename);
     
-    bool write(const Surface &surface, const std::string &filename,
+    bool write(const std::shared_ptr<Surface> &surface, const std::string &filename,
                int node_offset, int panel_offset);
       
     /**
@@ -53,7 +54,7 @@ public:
        
        @returns true on success.
     */               
-    virtual bool write(const Surface &surface, const std::string &filename,
+    virtual bool write(const std::shared_ptr<Surface> &surface, const std::string &filename,
                        int node_offset, int panel_offset,
                        const std::vector<std::string> &view_names, const std::vector<Eigen::MatrixXd> &view_data) = 0;
 };

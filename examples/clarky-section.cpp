@@ -93,10 +93,10 @@ main (int argc, char **argv)
     vector<Vector3d, Eigen::aligned_allocator<Vector3d> > clarky_airfoil = read_airfoil("clarky.dat", trailing_edge_point_id);
     
     // Create lifting surface object:
-    LiftingSurface wing;
+    shared_ptr<LiftingSurface> wing = make_shared<LiftingSurface>();
 
     // Construct wing section:
-    LiftingSurfaceBuilder surface_builder(wing);
+    LiftingSurfaceBuilder surface_builder(*wing);
 
     const int n_airfoils = 21;
     
@@ -128,15 +128,15 @@ main (int argc, char **argv)
     
     // Translate into the canonical coordinate system:
     Vector3d translation(-chord / 3.0, 0.0, -span / 2.0);
-    wing.translate(translation);
+    wing->translate(translation);
     
     // Prescribe angle of attack:
     double alpha = 5.0 / 180.0 * M_PI;
-    wing.rotate(Vector3d::UnitZ(), -alpha);
+    wing->rotate(Vector3d::UnitZ(), -alpha);
     
     // Create surface body:
-    Body body(string("section"));
-    body.add_lifting_surface(wing);
+    shared_ptr<Body> body = make_shared<Body>(string("section"));
+    body->add_lifting_surface(wing);
     
     // Set up solver:
     Solver solver("clarky-section-log");

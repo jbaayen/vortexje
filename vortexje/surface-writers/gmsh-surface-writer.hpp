@@ -26,7 +26,7 @@ class GmshSurfaceWriter : public SurfaceWriter
 public:
     const char *file_extension() const;
                     
-    bool write(const Surface &surface, const std::string &filename,
+    bool write(const std::shared_ptr<Surface> &surface, const std::string &filename,
                int node_offset, int panel_offset,
                const std::vector<std::string> &view_names, const std::vector<Eigen::MatrixXd> &view_data);
 };

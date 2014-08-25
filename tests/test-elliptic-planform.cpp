@@ -45,9 +45,9 @@ run_test(double alpha)
     Parameters::convect_wake       = true;
     
     // Create wing:
-    LiftingSurface wing;
+    shared_ptr<LiftingSurface> wing = make_shared<LiftingSurface>();
     
-    LiftingSurfaceBuilder surface_builder(wing);
+    LiftingSurfaceBuilder surface_builder(*wing);
     
     const double AR = 6.0;
     const double chord = 0.5;
@@ -95,11 +95,11 @@ run_test(double alpha)
     surface_builder.finish(node_strips, panel_strips, trailing_edge_point_id);
     
     // Rotate by angle of attack:
-    wing.rotate(Vector3d::UnitZ(), -alpha);
+    wing->rotate(Vector3d::UnitZ(), -alpha);
 
     // Create body:
-    Body body(string("wing"));
-    body.add_lifting_surface(wing);
+    shared_ptr<Body> body = make_shared<Body>(string("wing"));
+    body->add_lifting_surface(wing);
     
     // Set up solver:
     Solver solver("test-elliptic-planform-log");

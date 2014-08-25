@@ -9,6 +9,7 @@
 #ifndef __SURFACE_HPP__
 #define __SURFACE_HPP__
 
+#include <memory>
 #include <utility>
 #include <map>
 #include <string>
@@ -61,7 +62,7 @@ public:
     /**
        Node number to neigboring panel numbers map.
     */
-    std::vector<std::vector<int> *> node_panel_neighbors;
+    std::vector<std::shared_ptr<std::vector<int> > > node_panel_neighbors;
     
     /**
        Panel number to comprising vertex numbers map.
@@ -101,13 +102,13 @@ public:
     virtual Eigen::Vector3d source_unit_velocity(const Eigen::Vector3d &x, int this_panel) const;
     virtual Eigen::Vector3d vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) const;
     
-    double doublet_influence(const Surface &other, int other_panel, int this_panel) const;
-    double source_influence(const Surface &other, int other_panel, int this_panel) const;
+    double doublet_influence(const std::shared_ptr<Surface> &other, int other_panel, int this_panel) const;
+    double source_influence(const std::shared_ptr<Surface> &other, int other_panel, int this_panel) const;
     
-    void source_and_doublet_influence(const Surface &other, int other_panel, int this_panel, double &source_influence, double &doublet_influence) const;
+    void source_and_doublet_influence(const std::shared_ptr<Surface> &other, int other_panel, int this_panel, double &source_influence, double &doublet_influence) const;
     
-    Eigen::Vector3d source_unit_velocity(const Surface &other, int other_panel, int this_panel) const;
-    Eigen::Vector3d vortex_ring_unit_velocity(const Surface &other, int other_panel, int this_panel) const;
+    Eigen::Vector3d source_unit_velocity(const std::shared_ptr<Surface> &other, int other_panel, int this_panel) const;
+    Eigen::Vector3d vortex_ring_unit_velocity(const std::shared_ptr<Surface> &other, int other_panel, int this_panel) const;
     
 protected:
     /**
@@ -134,8 +135,6 @@ protected:
        Panel number to diameter map.
     */
     std::vector<double> panel_diameters;
-    
-    void clear_node_panel_neighbors();
 };
 
 };

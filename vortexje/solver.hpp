@@ -9,6 +9,7 @@
 #ifndef __SOLVER_HPP__
 #define __SOLVER_HPP__
 
+#include <memory>
 #include <string>
 #include <fstream>
 
@@ -49,28 +50,28 @@ public:
            @param[in]   body             Body.
            @param[in]   boundary_layer   Boundary layer model.
         */
-        BodyData(Body &body, BoundaryLayer &boundary_layer) :
+        BodyData(std::shared_ptr<Body> body, std::shared_ptr<BoundaryLayer> boundary_layer) :
             body(body), boundary_layer(boundary_layer) {}
         
         /**
            Associated body object.
         */
-        Body &body;
+        std::shared_ptr<Body> body;
         
         /**
            Associated boundary layer model.
         */
-        BoundaryLayer &boundary_layer;
+        std::shared_ptr<BoundaryLayer> boundary_layer;
     };
 
     /**
        List of surface bodies.
     */
-    std::vector<BodyData*> bodies;
+    std::vector<std::shared_ptr<BodyData> > bodies;
     
-    void add_body(Body &body);
+    void add_body(std::shared_ptr<Body> body);
     
-    void add_body(Body &body, BoundaryLayer &boundary_layer);
+    void add_body(std::shared_ptr<Body> body, std::shared_ptr<BoundaryLayer> boundary_layer);
     
     /**
        Freestream velocity.
@@ -98,14 +99,14 @@ public:
     
     Eigen::Vector3d velocity(const Eigen::Vector3d &x) const;
     
-    double surface_velocity_potential(const Surface &surface, int panel) const;
+    double surface_velocity_potential(const std::shared_ptr<Surface> &surface, int panel) const;
     
-    Eigen::Vector3d surface_velocity(const Surface &surface, int panel) const;
+    Eigen::Vector3d surface_velocity(const std::shared_ptr<Surface> &surface, int panel) const;
     
-    double pressure_coefficient(const Surface &surface, int panel) const;
+    double pressure_coefficient(const std::shared_ptr<Surface> &surface, int panel) const;
     
-    Eigen::Vector3d force(const Body &body) const;
-    Eigen::Vector3d moment(const Body &body, const Eigen::Vector3d &x) const;
+    Eigen::Vector3d force(const std::shared_ptr<Body> &body) const;
+    Eigen::Vector3d moment(const std::shared_ptr<Body> &body, const Eigen::Vector3d &x) const;
     
     /**
        Data structure bundling a Surface, a panel ID, and a point on the panel.
@@ -123,12 +124,13 @@ public:
            @param[in]   panel     Panel ID.
            @param[in]   point     Point.
         */
-        SurfacePanelPoint(const Surface &surface, int panel, const Eigen::Vector3d &point) : surface(&surface), panel(panel), point(point) { };
+        SurfacePanelPoint(std::shared_ptr<Surface> surface, int panel, const Eigen::Vector3d &point)
+            : surface(surface), panel(panel), point(point) {};
         
         /**
            Associated Surface object.
         */
-        const Surface *surface;
+        std::shared_ptr<Surface> surface;
         
         /**
            Panel ID.
@@ -148,10 +150,10 @@ public:
 private:
     std::string log_folder;
     
-    std::vector<Body::SurfaceData*> non_wake_surfaces;
+    std::vector<std::shared_ptr<Body::SurfaceData> > non_wake_surfaces;
     int n_non_wake_panels;
     
-    std::map<int, BodyData*> surface_id_to_body;
+    std::map<int, std::shared_ptr<BodyData> > surface_id_to_body;
     
     Eigen::VectorXd source_coefficients;   
     Eigen::VectorXd doublet_coefficients;
@@ -162,15 +164,16 @@ private:
     
     Eigen::VectorXd previous_surface_velocity_potentials; 
                                           
-    double compute_source_coefficient(const Body &body, const Surface &surface, int panel, const BoundaryLayer &boundary_layer, bool include_wake_influence) const;
+    double compute_source_coefficient(const std::shared_ptr<Body> &body, const std::shared_ptr<Surface> &surface, int panel,
+                                      const std::shared_ptr<BoundaryLayer> &boundary_layer, bool include_wake_influence) const;
     
-    double compute_surface_velocity_potential(const Surface &surface, int offset, int panel) const;
+    double compute_surface_velocity_potential(const std::shared_ptr<Surface> &surface, int offset, int panel) const;
     
     double compute_surface_velocity_potential_time_derivative(int offset, int panel, double dt) const;
     
-    Eigen::Vector3d compute_surface_velocity(const Body &body, const Surface &surface, int panel) const;
+    Eigen::Vector3d compute_surface_velocity(const std::shared_ptr<Body> &body, const std::shared_ptr<Surface> &surface, int panel) const;
     
-    double compute_reference_velocity_squared(const Body &body) const;
+    double compute_reference_velocity_squared(const std::shared_ptr<Body> &body) const;
 
     double compute_pressure_coefficient(const Eigen::Vector3d &surface_velocity, double dphidt, double v_ref) const;
     
@@ -178,11 +181,11 @@ private:
     
     double compute_disturbance_velocity_potential(const Eigen::Vector3d &x) const;
     
-    Eigen::Vector3d compute_trailing_edge_vortex_displacement(const Body &body, const LiftingSurface &lifting_surface, int index, double dt) const;
+    Eigen::Vector3d compute_trailing_edge_vortex_displacement(const std::shared_ptr<Body> &body, const std::shared_ptr<LiftingSurface> &lifting_surface, int index, double dt) const;
 
-    Eigen::Vector3d compute_scalar_field_gradient(const Eigen::VectorXd &scalar_field, const Body &body, const Surface &surface, int panel) const;
+    Eigen::Vector3d compute_scalar_field_gradient(const Eigen::VectorXd &scalar_field, const std::shared_ptr<Body> &body, const std::shared_ptr<Surface> &surface, int panel) const;
     
-    int compute_index(const Surface &surface, int panel) const;
+    int compute_index(const std::shared_ptr<Surface> &surface, int panel) const;
 };
 
 };

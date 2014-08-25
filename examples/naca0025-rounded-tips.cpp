@@ -35,9 +35,9 @@ simulate (double alpha_deg)
     Parameters::convect_wake       = true;
     
     // Create wing:
-    LiftingSurface wing;
+    shared_ptr<LiftingSurface> wing = make_shared<LiftingSurface>();
     
-    LiftingSurfaceBuilder surface_builder(wing);
+    LiftingSurfaceBuilder surface_builder(*wing);
 
     const double chord = 1.8288; // 6 feet
     const double span = 10.9728; // 36 feet
@@ -136,14 +136,14 @@ simulate (double alpha_deg)
     surface_builder.finish(node_strips, panel_strips, trailing_edge_point_id);
     
     // Create body:
-    Body body(string("section"));
-    body.add_lifting_surface(wing);
+    shared_ptr<Body> body = make_shared<Body>(string("section"));
+    body->add_lifting_surface(wing);
     
     // Set up orientation: 
     double alpha = M_PI * alpha_deg / 180.0;
     
     Quaterniond attitude = AngleAxis<double>(-alpha, Vector3d::UnitZ()) * Quaterniond(1, 0, 0, 0);
-    body.set_attitude(attitude);
+    body->set_attitude(attitude);
     
     // Set up solver:
     Solver solver("naca0025-rounded-tips-log");

@@ -12,8 +12,8 @@ find_package(Eigen3 3.2.2 REQUIRED)
 
 # Base compiler flags
 if(CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS "-O3 -march=native -Wall") # Optimize for this machine, and turn on compiler warnings.
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3")             # Optimize for this architecture.
+    set(CMAKE_CXX_FLAGS "-std=c++11 -O3 -march=native -Wall") # Optimize for this machine, and turn on compiler warnings.
+    set(CMAKE_CXX_FLAGS_RELEASE "-std=c++11 -O3")             # Optimize for this architecture.
 endif()
 
 # Enable PIC for shared library generation.

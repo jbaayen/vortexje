@@ -21,7 +21,7 @@ using namespace Vortexje;
    @returns true on success.
 */
 bool
-SurfaceWriter::write(const Surface &surface, const std::string &filename)
+SurfaceWriter::write(const shared_ptr<Surface> &surface, const std::string &filename)
 {
     return write(surface, filename, 0, 0);
 }
@@ -37,7 +37,7 @@ SurfaceWriter::write(const Surface &surface, const std::string &filename)
    @returns true on success.
 */
 bool
-SurfaceWriter::write(const Surface &surface, const std::string &filename, 
+SurfaceWriter::write(const shared_ptr<Surface> &surface, const std::string &filename, 
                      int node_offset, int panel_offset)
 {
     vector<string> empty_names;

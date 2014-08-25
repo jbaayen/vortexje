@@ -26,9 +26,9 @@ main (int argc, char **argv)
     Parameters::convect_wake       = true;
     
     // Create wing:
-    LiftingSurface wing;
+    shared_ptr<LiftingSurface> wing = make_shared<LiftingSurface>();
     
-    LiftingSurfaceBuilder surface_builder(wing);
+    LiftingSurfaceBuilder surface_builder(*wing);
 
     const double chord = 0.75;
     const double span = 4.5;
@@ -62,8 +62,8 @@ main (int argc, char **argv)
     surface_builder.finish(node_strips, panel_strips, trailing_edge_point_id);
     
     // Create body:
-    Body body(string("section"));
-    body.add_lifting_surface(wing);
+    shared_ptr<Body> body = make_shared<Body>(string("section"));
+    body->add_lifting_surface(wing);
     
     // Set up oscillation:
     double alpha_max = 10.0 / 180.0 * M_PI;
@@ -117,11 +117,11 @@ main (int argc, char **argv)
         // Rotate wing:
         alpha = alpha_max * sin(omega * t);
         Quaterniond attitude = AngleAxis<double>(alpha, Vector3d::UnitZ()) * Quaterniond(1, 0, 0, 0);
-        body.set_attitude(attitude);
+        body->set_attitude(attitude);
         
         // Update rotational velocity:
         double dalphadt = alpha_max * omega * cos(omega * t);
-        body.set_rotational_velocity(Vector3d(0, 0, dalphadt));
+        body->set_rotational_velocity(Vector3d(0, 0, dalphadt));
         
         // Update wake:
         solver.update_wakes(dt);

@@ -136,15 +136,13 @@ public:
         
 #ifdef INCLUDE_TOWER
         // Initialize tower:
-        Surface *tower = new Tower();
-        add_non_lifting_surface(*tower);
-        
-        allocated_surfaces.push_back(tower);
+        shared_ptr<Tower> tower = make_shared<Tower>();
+        add_non_lifting_surface(tower);
 #endif
         
         // Initialize blades:
         for (int i = 0; i < n_blades; i++) {
-            Blade *blade = new Blade();
+            shared_ptr<Blade> blade = make_shared<Blade>();
             
             Vector3d translation(rotor_radius, 0, 0);
             blade->translate(translation);
@@ -154,12 +152,8 @@ public:
             
             blade->translate(position);
             
-            Wake *wake = new RamasamyLeishmanWake(*blade);
-            
-            add_lifting_surface(*blade, *wake);
-            
-            allocated_surfaces.push_back(blade);
-            allocated_surfaces.push_back(wake);
+            shared_ptr<RamasamyLeishmanWake> wake = make_shared<RamasamyLeishmanWake>(blade);           
+            add_lifting_surface(blade, wake);
         }
     }
     
@@ -182,12 +176,12 @@ main (int argc, char **argv)
     // Set up VAWT:
     Vector3d position(0, 0, 0);
     
-    VAWT vawt(string("vawt"),
-              MILL_RADIUS,
-              N_BLADES,
-              position,
-              M_PI / 6.0,
-              TIP_SPEED_RATIO * WIND_VELOCITY / MILL_RADIUS);
+    shared_ptr<VAWT> vawt = make_shared<VAWT>(string("vawt"),
+                                              MILL_RADIUS,
+                                              N_BLADES,
+                                              position,
+                                              M_PI / 6.0,
+                                              TIP_SPEED_RATIO * WIND_VELOCITY / MILL_RADIUS);
     
     // Set up solver:
     Solver solver("vawt-log");
@@ -224,7 +218,7 @@ main (int argc, char **argv)
         f << M(2) << endl;
 
         // Rotate blades:
-        vawt.rotate(dt);
+        vawt->rotate(dt);
         
         // Update wakes:
         solver.update_wakes(dt);

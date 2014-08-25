@@ -26,7 +26,7 @@ class PLYSurfaceLoader : public SurfaceLoader
 public:
     const char *file_extension() const;
     
-    bool load(Surface &surface, const std::string &filename);
+    bool load(std::shared_ptr<Surface> surface, const std::string &filename);
     
     // rply callbacks.
     void read_vertex_coordinate(int index, double value);
@@ -34,7 +34,7 @@ public:
     
 private:
     // This class is not re-entrant.
-    Surface *surface;
+    std::shared_ptr<Surface> surface;
     
     int current_panel;
     
