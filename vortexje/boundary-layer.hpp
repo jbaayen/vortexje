@@ -9,7 +9,11 @@
 #ifndef __BOUNDARY_LAYER_HPP__
 #define __BOUNDARY_LAYER_HPP__
 
+#include <memory>
+
 #include <Eigen/Core>
+
+#include <vortexje/surface.hpp>
 
 namespace Vortexje
 {
@@ -39,20 +43,22 @@ public:
     /**
        Returns the blowing velocity for the given panel.
    
-       @param[in]   panel   Reference panel.
+       @param[in]   surface   Reference surface.
+       @param[in]   panel     Reference panel.
    
        @returns Blowing velocity for the given panel.
     */
-    virtual double blowing_velocity(int panel) const = 0;
+    virtual double blowing_velocity(const std::shared_ptr<Surface> &surface, int panel) const = 0;
     
     /**
        Returns the friction force acting on the given panel.
    
-       @param[in]   panel   Reference panel.
+       @param[in]   surface   Reference surface.
+       @param[in]   panel     Reference panel.
    
        @returns Friction force acting on the given panel.
     */
-    virtual Eigen::Vector3d friction(int panel) const = 0;
+    virtual Eigen::Vector3d friction(const std::shared_ptr<Surface> &surface, int panel) const = 0;
 };
 
 };

@@ -310,7 +310,7 @@ Solver::force(const shared_ptr<Body> &body) const
                 double surface_area = d->surface->panel_surface_area(i);
                 F += q * surface_area * pressure_coefficients(offset + i) * normal;
                 
-                F += bd->boundary_layer->friction(i);
+                F += bd->boundary_layer->friction(d->surface, i);
             }
         }
         
@@ -350,7 +350,7 @@ Solver::moment(const shared_ptr<Body> &body, const Eigen::Vector3d &x) const
                 double surface_area = d->surface->panel_surface_area(i);
                 Vector3d F = q * surface_area * pressure_coefficients(offset + i) * normal;
                 
-                F += bd->boundary_layer->friction(i);
+                F += bd->boundary_layer->friction(d->surface, i);
                     
                 Vector3d r = d->surface->panel_collocation_point(i, false) - x;
                 M += r.cross(F);
@@ -1144,7 +1144,7 @@ Solver::compute_source_coefficient(const shared_ptr<Body> &body, const shared_pt
     // Take normal component, and subtract blowing velocity:
     const Vector3d &normal = surface->panel_normal(panel);
     
-    double blowing_velocity = boundary_layer->blowing_velocity(panel);
+    double blowing_velocity = boundary_layer->blowing_velocity(surface, panel);
         
     return velocity.dot(normal) - blowing_velocity;
 }
