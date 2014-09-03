@@ -35,4 +35,4 @@ bool   Parameters::marcov_surface_velocity            = false;
 
 int    Parameters::max_boundary_layer_iterations      = 100;
 
-double Parameters::boundary_layer_iteration_tolerance = 1e-3;
+double Parameters::boundary_layer_iteration_tolerance = 1e-5;

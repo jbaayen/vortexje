@@ -538,9 +538,17 @@ Solver::solve(double dt, bool propagate)
     int offset;
     
     // Iterate inviscid and boundary layer solutions until convergence.
+    VectorXd previous_source_coefficients;
+    VectorXd previous_doublet_coefficients;
+    
     int boundary_layer_iteration = 0;
+    
     while (true) {
-        // Compute source distribution:
+        // Copy state:
+        previous_source_coefficients  = source_coefficients;
+        previous_doublet_coefficients = doublet_coefficients;
+        
+        // Compute new source distribution:
         cout << "Solver: Computing source distribution with wake influence." << endl;
         
         offset = 0;
@@ -640,7 +648,7 @@ Solver::solve(double dt, bool propagate)
             offset_row = offset_row + d_row->surface->n_panels();
         }
         
-        // Compute the doublet distribution:
+        // Compute new doublet distribution:
         cout << "Solver: Computing doublet distribution." << endl;
         
         VectorXd b = source_influence_coefficients * source_coefficients;
@@ -649,7 +657,7 @@ Solver::solve(double dt, bool propagate)
         solver.setMaxIterations(Parameters::linear_solver_max_iterations);
         solver.setTolerance(Parameters::linear_solver_tolerance);
 
-        VectorXd new_doublet_coefficients = solver.solveWithGuess(b, doublet_coefficients);
+        doublet_coefficients = solver.solveWithGuess(b, previous_doublet_coefficients);
         
         if (solver.info() != Success) {
             cerr << "Solver: Computing doublet distribution failed (" << solver.iterations();
@@ -661,13 +669,14 @@ Solver::solve(double dt, bool propagate)
         cout << "Solver: Done computing doublet distribution in " << solver.iterations() << " iterations with estimated error " << solver.error() << "." << endl;
 
         // Check for convergence from second iteration onwards.
-        // (On the first iteration, the value of doublet_coefficients originates from the previous call to solve().
+        // (On the first iteration, the value of previous_doublet_coefficients originates from the previous call to solve().
         bool converged = false;
-        if (boundary_layer_iteration > 0)
-            if ((new_doublet_coefficients - doublet_coefficients).norm() < Parameters::boundary_layer_iteration_tolerance)
+        if (boundary_layer_iteration > 0) {
+            if (((source_coefficients  - previous_source_coefficients ).norm() < Parameters::boundary_layer_iteration_tolerance) &&
+                ((doublet_coefficients - previous_doublet_coefficients).norm() < Parameters::boundary_layer_iteration_tolerance)) {
                 converged = true;
-        
-        doublet_coefficients = new_doublet_coefficients;
+            }
+        }
         
         // Set new wake panel doublet coefficients:
         cout << "Solver: Updating wake doublet distribution." << endl;
@@ -744,7 +753,7 @@ Solver::solve(double dt, bool propagate)
 
         // If we converged, then this is the time to break out of the loop.
         if (converged) {
-            cout << "Solver: Boundary layer iteration converged." << endl;
+            cout << "Solver: Boundary layer iteration converged in " << boundary_layer_iteration << " steps." << endl;
             
             break;
         }
