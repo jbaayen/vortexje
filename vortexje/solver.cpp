@@ -453,8 +453,9 @@ Solver::trace_streamline(const SurfacePanelPoint &start) const
             }
         }
         
-        // Check against dead end:
-        assert(edge_id >= 0);
+        // Dead end?
+        if (edge_id < 0)
+            break;
         
         // Compute intersection vector:
         Vector3d transformed_intersection = transformed_point + t * transformed_velocity;
@@ -475,6 +476,20 @@ Solver::trace_streamline(const SurfacePanelPoint &start) const
         // No neighbor?
         if (neighbors.size() == 0)
             break;
+            
+        // Verify the direction of the neighboring velocity vector:
+        Vector3d neighbor_velocity = surface_velocity(neighbors[0].surface, neighbors[0].panel);
+        
+        const Vector3d &normal          = cur.surface->panel_normal(cur.panel);
+        const Vector3d &neighbor_normal = neighbors[0].surface->panel_normal(neighbors[0].panel);
+        
+        Quaterniond unfold = Quaterniond::FromTwoVectors(neighbor_normal, normal);
+        Vector3d unfolded_neighbor_velocity = unfold * neighbor_velocity;
+       
+        if (velocity.dot(unfolded_neighbor_velocity) < 0) {
+            // Velocity vectors point in opposite directions.
+            break;
+        }
             
         // Proceed to neighboring panel:
         cur.surface = neighbors[0].surface;
