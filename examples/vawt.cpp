@@ -6,6 +6,11 @@
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+#include <iostream>
+#include <fstream>
+
 #include <vortexje/solver.hpp>
 #include <vortexje/lifting-surface-builder.hpp>
 #include <vortexje/shape-generators/airfoils/naca4-airfoil-generator.hpp>
@@ -13,9 +18,6 @@
 #include <vortexje/surface-writers/vtk-surface-writer.hpp>
 #include <vortexje/boundary-layers/dummy-boundary-layer.hpp>
 #include <vortexje/empirical-wakes/ramasamy-leishman-wake.hpp>
-
-#include <iostream>
-#include <fstream>
 
 using namespace std;
 using namespace Eigen;

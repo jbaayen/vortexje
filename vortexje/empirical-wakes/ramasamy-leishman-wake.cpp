@@ -6,6 +6,9 @@
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 #include <vortexje/empirical-wakes/ramasamy-leishman-wake.hpp>
 #include <vortexje/parameters.hpp>
 

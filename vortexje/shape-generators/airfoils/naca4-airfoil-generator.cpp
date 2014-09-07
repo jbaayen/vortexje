@@ -6,6 +6,8 @@
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <iostream>
 
 #include <vortexje/shape-generators/airfoils/naca4-airfoil-generator.hpp>

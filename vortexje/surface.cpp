@@ -10,6 +10,7 @@
 #include <iostream>
 #include <sstream>
 #include <limits>
+#define _USE_MATH_DEFINES
 #include <cmath>
 #include <algorithm>
 
