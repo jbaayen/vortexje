@@ -371,10 +371,10 @@ Solver::moment(const shared_ptr<Body> &body, const Eigen::Vector3d &x) const
    
    @returns A list of points tracing the streamline.
 */
-vector<Solver::SurfacePanelPoint>
+vector<Solver::SurfacePanelPoint, Eigen::aligned_allocator<Solver::SurfacePanelPoint> >
 Solver::trace_streamline(const SurfacePanelPoint &start) const
 {
-    vector<SurfacePanelPoint> streamline;
+    vector<SurfacePanelPoint, Eigen::aligned_allocator<Solver::SurfacePanelPoint> > streamline;
     
     SurfacePanelPoint cur(start.surface, start.panel, start.point);
     
@@ -908,7 +908,7 @@ Solver::update_wakes(double dt)
         cout << "Solver: Convecting wakes." << endl;
         
         // Compute velocity values at wake nodes, with the wakes in their original state:
-        vector<vector<Vector3d> > wake_velocities;
+        vector<vector<Vector3d, Eigen::aligned_allocator<Vector3d> >, Eigen::aligned_allocator<vector<Vector3d> > > wake_velocities;
         
         vector<shared_ptr<BodyData> >::const_iterator bdi;
         for (bdi = bodies.begin(); bdi != bodies.end(); bdi++) {
@@ -918,7 +918,7 @@ Solver::update_wakes(double dt)
             for (lsi = bd->body->lifting_surfaces.begin(); lsi != bd->body->lifting_surfaces.end(); lsi++) {
                 const shared_ptr<Body::LiftingSurfaceData> &d = *lsi;
                 
-                vector<Vector3d> local_wake_velocities;
+                vector<Vector3d, Eigen::aligned_allocator<Vector3d> > local_wake_velocities;
                 local_wake_velocities.resize(d->wake->n_nodes());
                 
                 int i;
@@ -945,7 +945,7 @@ Solver::update_wakes(double dt)
                 shared_ptr<Body::LiftingSurfaceData> d = *lsi;
                 
                 // Retrieve local wake velocities:
-                vector<Vector3d> &local_wake_velocities = wake_velocities[idx];
+                vector<Vector3d, Eigen::aligned_allocator<Vector3d> > &local_wake_velocities = wake_velocities[idx];
                 idx++;
                 
                 // Convect wake nodes that coincide with the trailing edge.
@@ -1045,7 +1045,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             offset += d->surface->n_panels();
             
             vector<string> view_names;
-            vector<MatrixXd> view_data;
+            vector<MatrixXd, Eigen::aligned_allocator<MatrixXd> > view_data;
             
             view_names.push_back(VIEW_NAME_DOUBLET_DISTRIBUTION);
             view_data.push_back(non_lifting_surface_doublet_coefficients);
@@ -1092,7 +1092,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             offset += d->lifting_surface->n_panels();
             
             vector<string> view_names;
-            vector<MatrixXd> view_data;
+            vector<MatrixXd, Eigen::aligned_allocator<MatrixXd> > view_data;
             
             view_names.push_back(VIEW_NAME_DOUBLET_DISTRIBUTION);
             view_data.push_back(lifting_surface_doublet_coefficients);

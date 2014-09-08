@@ -143,7 +143,7 @@ public:
         Eigen::Vector3d point;
     };
     
-    std::vector<SurfacePanelPoint> trace_streamline(const SurfacePanelPoint &start) const;
+    std::vector<SurfacePanelPoint, Eigen::aligned_allocator<SurfacePanelPoint> > trace_streamline(const SurfacePanelPoint &start) const;
     
     void log(int step_number, SurfaceWriter &writer) const;
 
