@@ -45,7 +45,7 @@ Body::~Body()
 void
 Body::add_non_lifting_surface(shared_ptr<Surface> non_lifting_surface)
 {
-    non_lifting_surfaces.push_back(make_shared<SurfaceData>(non_lifting_surface));
+    non_lifting_surfaces.push_back(shared_ptr<SurfaceData>(new SurfaceData(non_lifting_surface)));
 }
 
 /**
@@ -56,7 +56,7 @@ Body::add_non_lifting_surface(shared_ptr<Surface> non_lifting_surface)
 void
 Body::add_lifting_surface(shared_ptr<LiftingSurface> lifting_surface)
 {
-    shared_ptr<Wake> wake = make_shared<Wake>(lifting_surface);
+    shared_ptr<Wake> wake(new Wake(lifting_surface));
     
     add_lifting_surface(lifting_surface, wake);
 }
@@ -70,7 +70,7 @@ Body::add_lifting_surface(shared_ptr<LiftingSurface> lifting_surface)
 void
 Body::add_lifting_surface(shared_ptr<LiftingSurface> lifting_surface, shared_ptr<Wake> wake)
 {
-    lifting_surfaces.push_back(make_shared<LiftingSurfaceData>(lifting_surface, wake));
+    lifting_surfaces.push_back(shared_ptr<LiftingSurfaceData>(new LiftingSurfaceData(lifting_surface, wake)));
 }
 
 /**

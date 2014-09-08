@@ -84,7 +84,7 @@ Solver::~Solver()
 void
 Solver::add_body(shared_ptr<Body> body)
 {
-    static shared_ptr<DummyBoundaryLayer> dummy_boundary_layer = make_shared<DummyBoundaryLayer>();
+    static shared_ptr<DummyBoundaryLayer> dummy_boundary_layer(new DummyBoundaryLayer());
     
     add_body(body, dummy_boundary_layer);
 }
@@ -98,7 +98,7 @@ Solver::add_body(shared_ptr<Body> body)
 void
 Solver::add_body(shared_ptr<Body> body, shared_ptr<BoundaryLayer> boundary_layer)
 {
-    shared_ptr<BodyData> bd = make_shared<BodyData>(body, boundary_layer);
+    shared_ptr<BodyData> bd(new BodyData(body, boundary_layer));
     
     bodies.push_back(bd);
     

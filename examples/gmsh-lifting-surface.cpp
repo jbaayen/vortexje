@@ -28,7 +28,7 @@ main (int argc, char **argv)
     Parameters::convect_wake = true;
     
     // Create lifting surface object:
-    shared_ptr<LiftingSurface> wing = make_shared<LiftingSurface>();
+    shared_ptr<LiftingSurface> wing(new LiftingSurface());
     
     // Load Gmsh mesh file:
     GmshSurfaceLoader loader;
@@ -73,7 +73,7 @@ main (int argc, char **argv)
     wing->rotate(Vector3d::UnitZ(), -alpha);
     
     // Create surface body:
-    shared_ptr<Body> body = make_shared<Body>(string("section"));
+    shared_ptr<Body> body(new Body(string("section")));
     body->add_lifting_surface(wing);
     
     // Set up solver:

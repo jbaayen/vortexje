@@ -24,11 +24,11 @@ main (int argc, char **argv)
     // Load sphere surface:
     GmshSurfaceLoader surface_loader;
     
-    shared_ptr<Surface> sphere = make_shared<Surface>();
+    shared_ptr<Surface> sphere(new Surface());
     surface_loader.load(sphere, string("sphere.msh"));
    
     // Create surface body:
-    shared_ptr<Body> body = make_shared<Body>(string("test-sphere"));
+    shared_ptr<Body> body(new Body(string("test-sphere")));
     body->add_non_lifting_surface(sphere);
     
     // Set up solver:
