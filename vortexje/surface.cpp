@@ -10,7 +10,6 @@
 #include <iostream>
 #include <sstream>
 #include <limits>
-#define _USE_MATH_DEFINES
 #include <cmath>
 #include <algorithm>
 
@@ -27,7 +26,8 @@ using namespace Vortexje;
 static int id_counter = 0;
 
 // Avoid having to divide by 4 pi all the time:
-static const double one_over_4pi = 1.0 / (4 * M_PI);
+static const double pi = 3.141592653589793238462643383279502884;
+static const double one_over_4pi = 1.0 / (4 * pi);
 
 /**
    Constructs an empty surface.

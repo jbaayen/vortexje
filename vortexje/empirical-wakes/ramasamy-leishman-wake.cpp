@@ -6,7 +6,6 @@
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
-#define _USE_MATH_DEFINES
 #include <cmath>
 
 #include <vortexje/empirical-wakes/ramasamy-leishman-wake.hpp>
@@ -15,6 +14,8 @@
 using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
+
+static const double pi = 3.141592653589793238462643383279502884;
 
 // Default parameter values:
 double RamasamyLeishmanWake::Parameters::fluid_kinematic_viscosity  = 15.68e-6;

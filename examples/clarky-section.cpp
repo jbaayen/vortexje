@@ -6,7 +6,6 @@
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
-#define _USE_MATH_DEFINES
 #include <cmath>
 #include <iostream>
 
@@ -19,6 +18,8 @@
 using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
+
+static const double pi = 3.141592653589793238462643383279502884;
 
 // Load airfoil data from file:
 static vector<Vector3d, Eigen::aligned_allocator<Vector3d> >
@@ -133,7 +134,7 @@ main (int argc, char **argv)
     wing->translate(translation);
     
     // Prescribe angle of attack:
-    double alpha = 5.0 / 180.0 * M_PI;
+    double alpha = 5.0 / 180.0 * pi;
     wing->rotate(Vector3d::UnitZ(), -alpha);
     
     // Create surface body:

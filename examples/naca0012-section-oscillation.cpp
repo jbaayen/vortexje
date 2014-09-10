@@ -6,7 +6,6 @@
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
-#define _USE_MATH_DEFINES
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -19,6 +18,8 @@
 using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
+
+static const double pi = 3.141592653589793238462643383279502884;
 
 int
 main (int argc, char **argv)
@@ -68,9 +69,9 @@ main (int argc, char **argv)
     body->add_lifting_surface(wing);
     
     // Set up oscillation:
-    double alpha_max = 10.0 / 180.0 * M_PI;
+    double alpha_max = 10.0 / 180.0 * pi;
     
-    double omega = 2 * M_PI / 1.0;
+    double omega = 2 * pi / 1.0;
     
     // Set up solver:
     Solver solver("naca0012-section-oscillation-log");

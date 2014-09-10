@@ -6,7 +6,6 @@
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
-#define _USE_MATH_DEFINES
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -22,6 +21,8 @@
 using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
+
+static const double pi = 3.141592653589793238462643383279502884;
 
 #define N_BLADES        2
 #define MILL_RADIUS     2.5
@@ -73,7 +74,7 @@ public:
         Vector3d translation(-chord / 3.0, 0.0, -span / 2.0);
         translate(translation);
         
-        rotate(Vector3d::UnitZ(), -M_PI / 2.0);
+        rotate(Vector3d::UnitZ(), -pi / 2.0);
     }
 };
 
@@ -149,7 +150,7 @@ public:
             Vector3d translation(rotor_radius, 0, 0);
             blade->translate(translation);
             
-            double theta_blade = theta_0 + 2 * M_PI / n_blades * i;
+            double theta_blade = theta_0 + 2 * pi / n_blades * i;
             blade->rotate(Vector3d::UnitZ(), theta_blade);
             
             blade->translate(position);
@@ -182,7 +183,7 @@ main (int argc, char **argv)
                                    MILL_RADIUS,
                                    N_BLADES,
                                    position,
-                                   M_PI / 6.0,
+                                   pi / 6.0,
                                    TIP_SPEED_RATIO * WIND_VELOCITY / MILL_RADIUS));
     
     // Set up solver:

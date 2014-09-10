@@ -6,7 +6,6 @@
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
-#define _USE_MATH_DEFINES
 #include <cmath>
 
 #include <vortexje/shape-generators/ellipse-generator.hpp>
@@ -14,6 +13,8 @@
 using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
+
+static const double pi = 3.141592653589793238462643383279502884;
 
 /**
    Generates points tracing an ellipse.
@@ -30,7 +31,7 @@ EllipseGenerator::generate(double a, double b, int n_points)
     vector<Vector3d, Eigen::aligned_allocator<Vector3d> > points;
     
     // Go in the clockwise (negative) direction, for consistency with the airfoil generators.
-    double dt = -2 * M_PI / (double) n_points;
+    double dt = -2 * pi / (double) n_points;
     for (int i = 0; i < n_points; i++) {
         double t = i * dt;
         

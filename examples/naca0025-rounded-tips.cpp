@@ -7,7 +7,6 @@
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
-#define _USE_MATH_DEFINES
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -23,6 +22,8 @@
 using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
+
+static const double pi = 3.141592653589793238462643383279502884;
 
 #define ROUNDED_TIPS
 
@@ -91,7 +92,7 @@ simulate (double alpha_deg)
     for (int i = 0; i < n_airfoils_per_tip; i++) {
         airfoil_points = NACA4AirfoilGenerator::generate(0, 0, 0.25, true, chord, n_points_per_airfoil, trailing_edge_point_id);
         for (int j = 0; j < (int) airfoil_points.size(); j++) {
-            airfoil_points[j] = AngleAxis<double>((n_airfoils_per_tip - i) * M_PI / 2.0 / (double) (n_airfoils_per_tip), Vector3d::UnitX()) * airfoil_points[j];
+            airfoil_points[j] = AngleAxis<double>((n_airfoils_per_tip - i) * pi / 2.0 / (double) (n_airfoils_per_tip), Vector3d::UnitX()) * airfoil_points[j];
             
             if (airfoil_points[j](2) > 0)
                 airfoil_points[j](2) *= -1;
@@ -116,7 +117,7 @@ simulate (double alpha_deg)
     for (int i = 0; i < n_airfoils_per_tip; i++) {
         airfoil_points = NACA4AirfoilGenerator::generate(0, 0, 0.25, true, chord, n_points_per_airfoil, trailing_edge_point_id);
         for (int j = 0; j < (int) airfoil_points.size(); j++) {
-            airfoil_points[j] = AngleAxis<double>((i + 1) * M_PI / 2.0 / (double) (n_airfoils_per_tip), Vector3d::UnitX()) * airfoil_points[j];
+            airfoil_points[j] = AngleAxis<double>((i + 1) * pi / 2.0 / (double) (n_airfoils_per_tip), Vector3d::UnitX()) * airfoil_points[j];
             
             if (airfoil_points[j](2) < 0)
                 airfoil_points[j](2) *= -1;
@@ -142,7 +143,7 @@ simulate (double alpha_deg)
     body->add_lifting_surface(wing);
     
     // Set up orientation: 
-    double alpha = M_PI * alpha_deg / 180.0;
+    double alpha = pi * alpha_deg / 180.0;
     
     Quaterniond attitude = AngleAxis<double>(-alpha, Vector3d::UnitZ()) * Quaterniond(1, 0, 0, 0);
     body->set_attitude(attitude);

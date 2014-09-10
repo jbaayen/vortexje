@@ -6,7 +6,6 @@
 // Authors: Jorn Baayen <jorn.baayen@baayen-heinz.com>
 //
 
-#define _USE_MATH_DEFINES
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -19,6 +18,8 @@
 using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
+
+static const double pi = 3.141592653589793238462643383279502884;
 
 #define DELTA_CONVERGENCE 1e-1
 #define DELTA_T           1e-2
@@ -35,7 +36,7 @@ static ofstream f;
 static double
 cosine_rule(int n_points, int i)
 {
-    return 0.5 * (1 - cos(M_PI * i / (double) n_points));
+    return 0.5 * (1 - cos(pi * i / (double) n_points));
 }
 
 // Run a test for a single angle of attack:
@@ -149,12 +150,12 @@ run_test(double alpha)
 
     double q = 0.5 * fluid_density * freestream_velocity.squaredNorm();
 
-    double S = M_PI * chord * span / 4.0;
+    double S = pi * chord * span / 4.0;
 
     double C_L = F_a(1) / (q * S);
     double C_D = F_a(0) / (q * S);
     
-    double C_D_ref = 1.0 / M_PI * S / pow(span, 2) * pow(C_L, 2);
+    double C_D_ref = 1.0 / pi * S / pow(span, 2) * pow(C_L, 2);
     
     // Log lift and drag coefficients:
 #ifdef OUTPUT_RESULTS
@@ -188,7 +189,7 @@ main (int argc, char **argv)
     
     double alpha = alpha_min;
     while (alpha <= alpha_max) {     
-        if (!run_test(alpha / 180.0 * M_PI))
+        if (!run_test(alpha / 180.0 * pi))
             exit(1);
             
         alpha += dalpha;
