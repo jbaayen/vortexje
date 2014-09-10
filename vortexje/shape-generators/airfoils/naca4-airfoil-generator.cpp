@@ -21,7 +21,7 @@ static const double pi = 3.141592653589793238462643383279502884;
 static double
 cosine_rule(int n_points, int i)
 {
-    return 0.5 * (1 - cos(M_PI * i / (double) n_points));
+    return 0.5 * (1 - cos(pi * i / (double) n_points));
 }
 
 // NACA airfoil generation:

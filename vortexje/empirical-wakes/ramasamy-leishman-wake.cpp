@@ -52,7 +52,7 @@ static ramasamy_leishman_data_row ramasamy_leishman_data[12] = { {    1, 1.0000,
                                                                  {  1e6, 0.0792, 1.4716, 0.8352, 0.00420, 0.1077} };
                                                                  
 // Avoid having to divide by 4 pi all the time:
-static const double one_over_4pi = 1.0 / (4 * M_PI);
+static const double one_over_4pi = 1.0 / (4 * pi);
 
 /**
    Constructs an empty Ramasamy-Leishman wake.
