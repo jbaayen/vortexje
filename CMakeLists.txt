@@ -5,15 +5,18 @@ project(Vortexje)
 set(Vortexje_VERSION_MAJOR 0)
 set(Vortexje_VERSION_MINOR 2)
 
+# Use C++11.
+include("cmake/set_cxx_norm.cmake")
+set_cxx_norm(CXX_NORM_CXX11)
+
 # Use Eigen3.
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-
 find_package(Eigen3 3.2.2 REQUIRED)
 
 # Base compiler flags
 if(CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS "-std=c++11 -O3 -march=native -Wall") # Optimize for this machine, and turn on compiler warnings.
-    set(CMAKE_CXX_FLAGS_RELEASE "-std=c++11 -O3")             # Optimize for this architecture.
+    set(CMAKE_CXX_FLAGS "-O3 -march=native -Wall") # Optimize for this machine, and turn on compiler warnings.
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3")             # Optimize for this architecture.
 endif()
 
 # Enable PIC for shared library generation.
