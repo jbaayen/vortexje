@@ -684,13 +684,14 @@ Solver::solve(double dt, bool propagate)
         cout << "Solver: Done computing doublet distribution in " << solver.iterations() << " iterations with estimated error " << solver.error() << "." << endl;
 
         // Check for convergence from second iteration onwards.
-        // (On the first iteration, the value of previous_doublet_coefficients originates from the previous call to solve().
         bool converged = false;
         if (boundary_layer_iteration > 0) {
-            if (((source_coefficients  - previous_source_coefficients ).norm() < Parameters::boundary_layer_iteration_tolerance) &&
-                ((doublet_coefficients - previous_doublet_coefficients).norm() < Parameters::boundary_layer_iteration_tolerance)) {
+            double delta = (source_coefficients - previous_source_coefficients).norm();
+            
+            cout << "Solver: Boundary layer convergence delta = " << delta << endl;
+            
+            if (delta < Parameters::boundary_layer_iteration_tolerance)
                 converged = true;
-            }
         }
         
         // Set new wake panel doublet coefficients:
