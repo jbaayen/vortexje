@@ -86,7 +86,7 @@ Surface::add_triangle(int node_a, int node_b, int node_c)
    @returns New panel number.
     
    @note This method does not update the panel-panel neighbor data structure.  One must call
-   compute_panel_neighbors() when done adding panels.
+   compute_topology() when done adding panels.
 */
 int
 Surface::add_quadrangle(int node_a, int node_b, int node_c, int node_d)
