@@ -23,7 +23,7 @@ bool   Parameters::unsteady_bernoulli                 = true;
 
 bool   Parameters::convect_wake                       = true;
 
-bool   Parameters::wake_emission_follow_bisector      = false;
+bool   Parameters::wake_emission_follow_bisector      = true;
 
 double Parameters::wake_emission_distance_factor      = 0.25;
 
