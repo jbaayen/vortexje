@@ -33,8 +33,8 @@ main (int argc, char **argv)
     
     LiftingSurfaceBuilder surface_builder(*wing);
 
-    const double chord = 0.75;
-    const double span = 4.5;
+    const double chord = 0.5;
+    const double span = 1.0;
     
     const int n_points_per_airfoil = 32;
     const int n_airfoils = 21;
