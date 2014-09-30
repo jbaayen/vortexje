@@ -106,7 +106,10 @@ public:
     double pressure_coefficient(const std::shared_ptr<Surface> &surface, int panel) const;
     
     Eigen::Vector3d force(const std::shared_ptr<Body> &body) const;
+    Eigen::Vector3d force(const std::shared_ptr<Surface> &surface) const;
+    
     Eigen::Vector3d moment(const std::shared_ptr<Body> &body, const Eigen::Vector3d &x) const;
+    Eigen::Vector3d moment(const std::shared_ptr<Surface> &surface, const Eigen::Vector3d &x) const;
     
     /**
        Data structure bundling a Surface, a panel ID, and a point on the panel.

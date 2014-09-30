@@ -322,6 +322,48 @@ Solver::force(const shared_ptr<Body> &body) const
 }
 
 /**
+   Computes the force caused by the pressure distribution on the given surface.
+   
+   @param[in]   surface   Reference surface.
+  
+   @returns Force vector.
+*/
+Eigen::Vector3d
+Solver::force(const shared_ptr<Surface> &surface) const
+{
+    // Total force on surface:
+    Vector3d F(0, 0, 0);
+    int offset = 0;
+    
+    vector<shared_ptr<Body::SurfaceData> >::const_iterator si;
+    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
+        const shared_ptr<Body::SurfaceData> &d = *si;
+        
+        if (d->surface.get() == surface.get()) {   
+            const shared_ptr<BodyData> &bd = surface_id_to_body.find(d->surface->id)->second;
+            
+            // Dynamic pressure:
+            double q = 0.5 * fluid_density * compute_reference_velocity_squared(bd->body);
+                 
+            for (int i = 0; i < d->surface->n_panels(); i++) {
+                const Vector3d &normal = d->surface->panel_normal(i);
+                double surface_area = d->surface->panel_surface_area(i);
+                F += q * surface_area * pressure_coefficients(offset + i) * normal;
+                
+                F += bd->boundary_layer->friction(d->surface, i);
+            }
+            
+            break;
+        }
+        
+        offset += d->surface->n_panels();
+    }
+                    
+    // Done:
+    return F;      
+}
+
+/**
    Computes the moment caused by the pressure distribution on the given body, relative to the given point.
    
    @param[in]   body   Reference body.
@@ -355,6 +397,52 @@ Solver::moment(const shared_ptr<Body> &body, const Eigen::Vector3d &x) const
                 Vector3d r = d->surface->panel_collocation_point(i, false) - x;
                 M += r.cross(F);
             }
+        }
+        
+        offset += d->surface->n_panels();
+    }
+    
+    // Done:
+    return M;
+}
+
+/**
+   Computes the moment caused by the pressure distribution on the given surface, relative to the given point.
+   
+   @param[in]   surface   Reference surface.
+   @param[in]   x         Reference point.
+  
+   @returns Moment vector.
+*/
+Eigen::Vector3d
+Solver::moment(const shared_ptr<Surface> &surface, const Eigen::Vector3d &x) const
+{
+    // Total moment on surface:
+    Vector3d M(0, 0, 0);
+    int offset = 0;
+    
+    vector<shared_ptr<Body::SurfaceData> >::const_iterator si;
+    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
+        const shared_ptr<Body::SurfaceData> &d = *si;
+
+        if (d->surface.get() == surface.get()) {
+            const shared_ptr<BodyData> &bd = surface_id_to_body.find(d->surface->id)->second;
+            
+            // Dynamic pressure:
+            double q = 0.5 * fluid_density * compute_reference_velocity_squared(bd->body);
+            
+            for (int i = 0; i < d->surface->n_panels(); i++) {                                    
+                const Vector3d &normal = d->surface->panel_normal(i);
+                double surface_area = d->surface->panel_surface_area(i);
+                Vector3d F = q * surface_area * pressure_coefficients(offset + i) * normal;
+                
+                F += bd->boundary_layer->friction(d->surface, i);
+                    
+                Vector3d r = d->surface->panel_collocation_point(i, false) - x;
+                M += r.cross(F);
+            }
+            
+            break;
         }
         
         offset += d->surface->n_panels();
