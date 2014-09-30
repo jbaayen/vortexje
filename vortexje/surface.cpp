@@ -780,9 +780,7 @@ Surface::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) con
 }
 
 /**
-   Computes the potential influence induced by a doublet panel of unit strength.  If the influence
-   has been computed before, the cached influence coefficient is returned.  If not, the coefficient
-   is computed and cached.
+   Computes the potential influence induced by a doublet panel of unit strength. 
    
    @param[in]   other         Surface on which the influence coefficient is evaluated.
    @param[in]   other_panel   Panel on which the influence coefficient is evaluated.
@@ -800,9 +798,7 @@ Surface::doublet_influence(const shared_ptr<Surface> &other, int other_panel, in
 }
 
 /**
-   Computes the potential influence induced by a source panel of unit strength.  If the influence
-   has been computed before, the cached influence coefficient is returned.  If not, the coefficient
-   is computed and cached.
+   Computes the potential influence induced by a source panel of unit strength.  
    
    @param[in]   other         Surface on which the influence coefficient is evaluated.
    @param[in]   other_panel   Panel on which the influence coefficient is evaluated.
@@ -838,9 +834,7 @@ Surface::source_and_doublet_influence(const shared_ptr<Surface> &other, int othe
 }
 
 /**
-   Computes the velocity induced by a source panel of unit strength.  If the velocity
-   has been computed before, the cached velocity is returned.  If not, the quantity
-   is computed and cached.
+   Computes the velocity induced by a source panel of unit strength.  
    
    @param[in]   other         Surface on which the velocity is evaluated.
    @param[in]   other_panel   Panel on which the velocity is evaluated.
@@ -855,9 +849,7 @@ Surface::source_unit_velocity(const shared_ptr<Surface> &other, int other_panel,
 }
 
 /**
-   Computes the velocity induced by a vortex ring of unit strength.  If the velocity
-   has been computed before, the cached velocity is returned.  If not, the quantity
-   is computed and cached.
+   Computes the velocity induced by a vortex ring of unit strength.  
    
    @param[in]   other         Surface on which the velocity is evaluated.
    @param[in]   other_panel   Panel on which the velocity is evaluated.
