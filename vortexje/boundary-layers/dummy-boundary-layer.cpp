@@ -20,7 +20,7 @@ using namespace std;
    @returns Always true.
  */
 bool
-DummyBoundaryLayer::recalculate(const MatrixXd &surface_velocities)
+DummyBoundaryLayer::recalculate(const Vector3d &freestream_velocity, const MatrixXd &surface_velocities)
 {
     return true;
 }

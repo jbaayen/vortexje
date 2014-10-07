@@ -896,7 +896,7 @@ Solver::solve(double dt, bool propagate)
             if (typeid(*bd->boundary_layer.get()) != typeid(DummyBoundaryLayer)) {
                 have_boundary_layer = true;
                 
-                if (!bd->boundary_layer->recalculate(surface_velocities.block(offset, 0, body_n_panels, 3)))
+                if (!bd->boundary_layer->recalculate(freestream_velocity, surface_velocities.block(offset, 0, body_n_panels, 3)))
                     return false;
             }
             
