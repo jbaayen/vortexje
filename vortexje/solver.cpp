@@ -1543,13 +1543,9 @@ Solver::compute_trailing_edge_vortex_displacement(const shared_ptr<Body> &body, 
 {
     Vector3d apparent_velocity = body->node_kinematic_velocity(lifting_surface, lifting_surface->trailing_edge_node(index)) - freestream_velocity;
                     
-    Vector3d wake_velocity;
-    if (Parameters::wake_emission_follow_bisector && lifting_surface->n_chordwise_nodes() > 1)
-        wake_velocity = apparent_velocity.norm() * lifting_surface->trailing_edge_bisector(index);
-    else
-        wake_velocity = -apparent_velocity;
+    Vector3d wake_emission_velocity = lifting_surface->wake_emission_velocity(apparent_velocity, index);
     
-    return Parameters::wake_emission_distance_factor * wake_velocity * dt;   
+    return Parameters::wake_emission_distance_factor * wake_emission_velocity * dt;   
 }
 
 /**

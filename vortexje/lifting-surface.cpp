@@ -125,3 +125,56 @@ LiftingSurface::trailing_edge_bisector(int node_index) const
     
     return trailing_edge_bisector;
 }
+
+/**
+   Returns the wake emission velocity, at the node_index'th trailing edge node.
+  
+   @param[in]   apparent_velocity   Apparent velocity.
+   @param[in]   node_index          Trailing edge node index.
+   
+   @returns The wake emission velocity, at the node_index'th trailinge edge node.
+*/
+Eigen::Vector3d
+LiftingSurface::wake_emission_velocity(const Eigen::Vector3d &apparent_velocity, int node_index) const
+{
+    Vector3d wake_emission_velocity;
+    if (Parameters::wake_emission_follow_bisector && n_chordwise_nodes() > 1) {
+        // Use bisector to determine wake emission direction:
+        int prev_node, next_node;
+        
+        if (node_index > 0)
+            prev_node = trailing_edge_node(node_index - 1);
+        else
+            prev_node = trailing_edge_node(node_index);
+        
+        if (node_index < n_spanwise_nodes() - 1)
+            next_node = trailing_edge_node(node_index + 1);
+        else
+            next_node = trailing_edge_node(node_index);
+            
+        Vector3d bisector = trailing_edge_bisector(node_index);
+            
+        if (prev_node != next_node) {
+            // Project apparent velocity onto the plane spanned by the span direction, and the bisector:
+            Vector3d span_direction = nodes[next_node] - nodes[prev_node];
+            
+            Vector3d wake_normal = span_direction.cross(bisector);
+            wake_normal.normalize();
+            
+            wake_emission_velocity = -(apparent_velocity - apparent_velocity.dot(wake_normal) * wake_normal);
+            
+        } else {
+            // No span direction available.  Project apparent velocity onto bisector:
+            wake_emission_velocity = -apparent_velocity.dot(bisector) * bisector;
+            
+        } 
+        
+    } else {
+        // Emit wake in direction of apparent velocity:
+        wake_emission_velocity = -apparent_velocity;
+        
+    }
+    
+    // Done:
+    return wake_emission_velocity;
+}
