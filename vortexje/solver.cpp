@@ -1248,7 +1248,8 @@ Solver::compute_source_coefficient(const shared_ptr<Body> &body, const shared_pt
                 // strength assigned to them.
                 for (int k = 0; k < d->wake->n_panels() - d->lifting_surface->n_spanwise_panels(); k++) {
                     // Use doublet panel - vortex ring equivalence.
-                    velocity -= d->wake->vortex_ring_unit_velocity(surface, panel, k) * d->wake->doublet_coefficients[k];
+                    velocity -= d->wake->vortex_ring_unit_velocity(surface->panel_collocation_point(panel, true), k)
+                        * d->wake->doublet_coefficients[k];
                 }
             }
         }
