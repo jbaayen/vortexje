@@ -16,3 +16,9 @@ configure_file(gmsh-lifting-surface.msh ${CMAKE_CURRENT_BINARY_DIR}/gmsh-lifting
 
 add_executable(vawt vawt.cpp)
 target_link_libraries(vawt vortexje)
+
+add_executable(hawt hawt.cpp)
+target_link_libraries(hawt vortexje)
+
+configure_file(hawt-airfoil.dat ${CMAKE_CURRENT_BINARY_DIR}/hawt-airfoil.dat COPYONLY)
+configure_file(hawt-blade.dat ${CMAKE_CURRENT_BINARY_DIR}/hawt-blade.dat COPYONLY)
