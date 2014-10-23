@@ -180,9 +180,11 @@ private:
 
     double compute_pressure_coefficient(const Eigen::Vector3d &surface_velocity, double dphidt, double v_ref) const;
     
-    Eigen::Vector3d compute_disturbance_velocity(const Eigen::Vector3d &x) const;
+    Eigen::Vector3d compute_velocity_interpolated(const Eigen::Vector3d &x) const;
     
-    double compute_disturbance_velocity_potential(const Eigen::Vector3d &x) const;
+    Eigen::Vector3d compute_velocity(const Eigen::Vector3d &x) const;
+    
+    double compute_velocity_potential(const Eigen::Vector3d &x) const;
     
     Eigen::Vector3d compute_trailing_edge_vortex_displacement(const std::shared_ptr<Body> &body, const std::shared_ptr<LiftingSurface> &lifting_surface, int index, double dt) const;
 

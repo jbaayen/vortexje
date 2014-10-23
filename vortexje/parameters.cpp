@@ -27,13 +27,15 @@ bool   Parameters::wake_emission_follow_bisector      = true;
 
 double Parameters::wake_emission_distance_factor      = 0.25;
 
-double Parameters::wake_vortex_core_radius            = numeric_limits<double>::epsilon();
+double Parameters::wake_vortex_core_radius            = 0.0;
 
 double Parameters::static_wake_length                 = 100.0;
 
 double Parameters::inversion_tolerance                = numeric_limits<double>::epsilon();
 
 double Parameters::collocation_point_delta            = 1e-12;
+
+double Parameters::interpolation_layer_thickness      = 0.0;
 
 int    Parameters::max_boundary_layer_iterations      = 100;
 

@@ -204,8 +204,7 @@ Solver::set_fluid_density(double value)
 double
 Solver::velocity_potential(const Vector3d &x) const
 {
-    // Sum disturbance potential with freestream velocity potential:
-    return compute_disturbance_velocity_potential(x) + freestream_velocity.dot(x);
+    return compute_velocity_potential(x);
 }
 
 /**
@@ -218,8 +217,7 @@ Solver::velocity_potential(const Vector3d &x) const
 Eigen::Vector3d
 Solver::velocity(const Eigen::Vector3d &x) const
 {
-    // Sum disturbance velocity with freestream velocity:
-    return compute_disturbance_velocity(x) + freestream_velocity;
+    return compute_velocity_interpolated(x);
 }
 
 /**
@@ -1372,7 +1370,7 @@ Solver::compute_scalar_field_gradient(const Eigen::VectorXd &scalar_field, const
 Eigen::Vector3d
 Solver::compute_surface_velocity(const shared_ptr<Body> &body, const shared_ptr<Surface> &surface, int panel) const
 {
-    // Compute disturbance part of surface velocity.
+    // Compute doublet surface gradient:
     Vector3d tangential_velocity = -compute_scalar_field_gradient(doublet_coefficients, body, surface, panel);
 
     // Add flow due to kinematic velocity:
@@ -1419,14 +1417,14 @@ Solver::compute_pressure_coefficient(const Vector3d &surface_velocity, double dp
 }
 
 /**
-   Computes the disturbance velocity potential at the given point.
+   Computes the velocity potential at the given point.
    
    @param[in]   x   Reference point.
    
-   @returns Disturbance velocity potential.
+   @returns Velocity potential.
 */
 double
-Solver::compute_disturbance_velocity_potential(const Vector3d &x) const
+Solver::compute_velocity_potential(const Vector3d &x) const
 {
     double phi = 0.0;
     
@@ -1464,54 +1462,214 @@ Solver::compute_disturbance_velocity_potential(const Vector3d &x) const
     }
                     
     // Done:
-    return phi;
+    return phi + freestream_velocity.dot(x);
 }
 
 /**
-   Computes disturbance potential gradient at the given point.
+   Computes velocity at the given point, interpolating if close to the body.
    
    @param[in]   x   Reference point.
    
-   @returns Disturbance potential gradient.
+   @returns Velocity vector.
 */ 
 Eigen::Vector3d
-Solver::compute_disturbance_velocity(const Eigen::Vector3d &x) const
+Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
 {
-    Vector3d gradient(0, 0, 0);
+    vector<pair<Vector3d, double>, Eigen::aligned_allocator<pair<Vector3d, double> > > close_panels;
     
-    // Iterate all non-wake surfaces:
     int offset = 0;
-    
-    vector<shared_ptr<Body::SurfaceData> >::const_iterator si;
-    for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
-        const shared_ptr<Body::SurfaceData> &d = *si;
 
-        for (int i = 0; i < d->surface->n_panels(); i++) {
-            gradient += d->surface->vortex_ring_unit_velocity(x, i) * doublet_coefficients(offset + i);
-            gradient += d->surface->source_unit_velocity(x, i) * source_coefficients(offset + i);
-        }
-        
-        offset += d->surface->n_panels();
-    }
-    
-    // Iterate wakes:
+    // Iterate bodies:
     vector<shared_ptr<BodyData> >::const_iterator bdi;
     for (bdi = bodies.begin(); bdi != bodies.end(); bdi++) {
         const shared_ptr<BodyData> &bd = *bdi;
         
+        // Iterate surfaces:
+        vector<shared_ptr<Body::SurfaceData> > surfaces;
         vector<shared_ptr<Body::LiftingSurfaceData> >::const_iterator lsi;
+        vector<shared_ptr<Body::SurfaceData> >::const_iterator si; 
+        for (si = bd->body->non_lifting_surfaces.begin(); si != bd->body->non_lifting_surfaces.end(); si++)
+            surfaces.push_back(*si);
+        for (lsi = bd->body->lifting_surfaces.begin(); lsi != bd->body->lifting_surfaces.end(); lsi++)
+            surfaces.push_back(*lsi);
+        
+        for (si = surfaces.begin(); si != surfaces.end(); si++) {
+            const shared_ptr<Body::SurfaceData> &d = *si;
+
+            for (int i = 0; i < d->surface->n_panels(); i++) {
+                // Compute normal distance of the point 'x' from panel:
+                Vector3d x_transformed = d->surface->panel_coordinate_transformation(i) * x;
+                double normal_distance = fabs(x_transformed(2));
+                
+                // We have three zones: 
+                // The boundary layer, followed by the interpolation layer, followed by the rest of the control volume.
+                double boundary_layer_thickness      = bd->boundary_layer->thickness(d->surface, i);
+                double interpolation_layer_thickness = Parameters::interpolation_layer_thickness;
+                double total_thickness               = boundary_layer_thickness + interpolation_layer_thickness;
+                
+                // Are we inside one of the first two zones?
+                if (normal_distance < total_thickness) {
+                    // Check whether A) we are above the panel, and whether B) we are close to one of the panel's edges:
+                    bool x_above_panel = true;
+                    double panel_edge_distance = total_thickness;
+                    for (int l = 0; l < (int) d->surface->panel_nodes[i].size(); l++) {
+                        int next_l;
+                        if (l == (int) d->surface->panel_nodes[i].size() - 1)
+                            next_l = 0;
+                        else
+                            next_l = l + 1;
+                            
+                        Vector3d point_a = d->surface->panel_transformed_points[i][l];
+                        Vector3d point_b = d->surface->panel_transformed_points[i][next_l];
+                            
+                        Vector3d edge = point_b - point_a;
+                        Vector3d normal(-edge(1), edge(0), 0.0);
+                        normal.normalize();
+
+                        // We are above the panel if the projection lies inside all four panel edges:
+                        double normal_component = (x_transformed - point_a).dot(normal);
+                        if (normal_component < 0)
+                            x_above_panel = false;
+                            
+                        if (fabs(normal_component) < panel_edge_distance) {
+                            // Does the point lie beside the panel edge?
+                            if (edge.dot(x_transformed - point_a) * edge.dot(x_transformed - point_b) < 0)
+                                panel_edge_distance = fabs(normal_component);
+                                
+                            // Is the point close to the panel vertex?
+                            double node_distance = (x_transformed - point_a).norm();
+                            if (node_distance < panel_edge_distance)
+                                panel_edge_distance = node_distance;
+                        }
+                    }
+                    
+                    if (x_above_panel || (panel_edge_distance < total_thickness)) {
+                        // We are close and above a panel, or close to one of its edges.
+                        if (normal_distance < boundary_layer_thickness) {
+                            // We are in the boundary layer:
+                            Vector3d boundary_layer_velocity = bd->boundary_layer->velocity(d->surface, i, normal_distance);
+                                
+                            if (x_above_panel)
+                                return boundary_layer_velocity;
+                            else
+                                close_panels.push_back(make_pair(boundary_layer_velocity, panel_edge_distance));
+                        } else {
+                            // We are in the interpolation layer.
+                            // Interpolate between the surface velocity, and the velocity away from the body:
+                            Vector3d lower_velocity = surface_velocity(d->surface, i);
+   
+                            Vector3d upper_point = d->surface->panel_collocation_point(i, false) - d->surface->panel_normal(i) * total_thickness;
+                            Vector3d upper_velocity = compute_velocity(upper_point);
+                                
+                            double interpolation_distance = normal_distance - boundary_layer_thickness;
+                            Vector3d velocity_interpolated =
+                                (interpolation_distance * upper_velocity + (interpolation_layer_thickness - interpolation_distance) * lower_velocity) 
+                                / interpolation_layer_thickness;
+                                    
+                            if (x_above_panel)
+                                return velocity_interpolated;
+                            else
+                                close_panels.push_back(make_pair(velocity_interpolated, panel_edge_distance));
+                        }
+                    }
+                }
+            }
+            
+            offset += d->surface->n_panels();
+        }
+    }
+               
+    // Is the point 'x' close to any panels?
+    if (close_panels.size() > 0) {
+        Vector3d velocity;
+        
+        if (close_panels.size() == 1) {
+            // Yes, one.
+            velocity = close_panels[0].first;
+            
+        } else {
+            // Yes, several.  We need to average.
+            vector<pair<Vector3d, double>, Eigen::aligned_allocator<pair<Vector3d, double> > >::iterator it;
+            
+            double sum = 0.0;
+            for (it = close_panels.begin(); it != close_panels.end(); it++)
+                sum += it->second;
+          
+            velocity = Vector3d(0, 0, 0);
+            for (it = close_panels.begin(); it != close_panels.end(); it++) {
+                // Weigh panel velocity using the sum of all distances, minus this panel's distance. 
+                // This results in higher weights for closer panels, without the numerical instability associated
+                // with an inverse weighting.
+                velocity += (sum - it->second) * it->first;
+            }
+                
+            // Normalize velocity.  The weights sum up to (n - 1) times the sum of the distances.
+            velocity /= (close_panels.size() - 1) * sum;
+        }
+        
+        return velocity;
+        
+    } else {
+        // No close panels.  Compute potential velocity:
+        return compute_velocity(x);
+        
+    }
+}
+
+/**
+   Computes the potential velocity at the given point.
+   
+   @param[in]   x   Reference point.
+   
+   @returns Potential velocity vector.
+*/ 
+Eigen::Vector3d
+Solver::compute_velocity(const Eigen::Vector3d &x) const
+{
+    Vector3d velocity = Vector3d(0, 0, 0);
+    vector<pair<Vector3d, double>, Eigen::aligned_allocator<pair<Vector3d, double> > > close_panels;
+    
+    int offset = 0;
+
+    // Iterate bodies:
+    vector<shared_ptr<BodyData> >::const_iterator bdi;
+    for (bdi = bodies.begin(); bdi != bodies.end(); bdi++) {
+        const shared_ptr<BodyData> &bd = *bdi;
+        
+        // Iterate surfaces:
+        vector<shared_ptr<Body::SurfaceData> > surfaces;
+        vector<shared_ptr<Body::LiftingSurfaceData> >::const_iterator lsi;
+        vector<shared_ptr<Body::SurfaceData> >::const_iterator si; 
+        for (si = bd->body->non_lifting_surfaces.begin(); si != bd->body->non_lifting_surfaces.end(); si++)
+            surfaces.push_back(*si);
+        for (lsi = bd->body->lifting_surfaces.begin(); lsi != bd->body->lifting_surfaces.end(); lsi++)
+            surfaces.push_back(*lsi);
+        
+        for (si = surfaces.begin(); si != surfaces.end(); si++) {
+            const shared_ptr<Body::SurfaceData> &d = *si;
+
+            for (int i = 0; i < d->surface->n_panels(); i++) {
+                // If no close panels were detected so far, add the influence of this panel:
+                velocity += d->surface->vortex_ring_unit_velocity(x, i) * doublet_coefficients(offset + i);
+                velocity += d->surface->source_unit_velocity(x, i) * source_coefficients(offset + i);
+            }
+            
+            offset += d->surface->n_panels();
+        }
+        
+        // If no close panels were detected so far, add the influence of the wakes:
         for (lsi = bd->body->lifting_surfaces.begin(); lsi != bd->body->lifting_surfaces.end(); lsi++) {
             const shared_ptr<Body::LiftingSurfaceData> &d = *lsi;
             
             if (d->wake->n_panels() >= d->lifting_surface->n_spanwise_panels()) {
                 for (int i = 0; i < d->wake->n_panels(); i++)
-                    gradient += d->wake->vortex_ring_unit_velocity(x, i) * d->wake->doublet_coefficients[i];
+                    velocity += d->wake->vortex_ring_unit_velocity(x, i) * d->wake->doublet_coefficients[i];
             }
         }
     }
-               
+    
     // Done:
-    return gradient;
+    return velocity + freestream_velocity;
 }
 
 /**

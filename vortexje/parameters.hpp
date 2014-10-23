@@ -58,6 +58,13 @@ public:
     
     /**
        Wake vortex filament core radius (Rankine model).  Within the core, the velocity decreases linearly to zero.
+       
+       For wake-wake interaction problems, set this to an suitably small number greater than zero.  Care must be taken, however, that
+       the radius is less than half of the distance between two subsequent layers of wake panels.  I.e., it must hold that
+       
+       \f[
+       \text{wake_vortex_core_radius} < 0.5 \cdot \text{wake_emission_distance_factor} \cdot v_{\infty} * dt 
+       \f]
     */
     static double wake_vortex_core_radius;
     
@@ -75,6 +82,21 @@ public:
        Distance to below-surface collocation points (along normal).
     */
     static double collocation_point_delta;
+    
+    /**
+       Thickness of the velocity interpolation layer around the body and its boundary layer.
+       
+       Inside the interpolation layer, velocities will be interpolated linearly between surface (or boundary layer) velocities, and the 
+       velocities a layer thickness away from the body and its boundary layer.
+       
+       For wake-body interaction problems, set this to an suitably small number greater than zero.  Care must be taken, however, that
+       the outer edge of the first row of wake panels lies outside of the interpolation layer.  I.e., it must hold that
+       
+       \f[
+       \text{interpolation_layer_thickness} < \text{wake_emission_distance_factor} \cdot v_{\infty} * dt 
+       \f]
+    */
+    static double interpolation_layer_thickness;
     
     /**
        Maximum number of potential and boundary layer computation iterations.

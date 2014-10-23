@@ -174,7 +174,9 @@ int
 main (int argc, char **argv)
 {    
     // Set simulation parameters:
-    Parameters::convect_wake = true;
+    Parameters::convect_wake                  = true;
+    Parameters::interpolation_layer_thickness = 1e-1;
+    Parameters::wake_vortex_core_radius       = 1e-3;
     
     // Set up VAWT:
     Vector3d position(0, 0, 0);
