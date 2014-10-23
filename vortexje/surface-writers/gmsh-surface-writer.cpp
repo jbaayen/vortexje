@@ -40,7 +40,7 @@ GmshSurfaceWriter::file_extension() const
    @returns true on success.
 */
 bool
-GmshSurfaceWriter::write(const shared_ptr<Surface> &surface, const string &filename, 
+GmshSurfaceWriter::write(const std::shared_ptr<Surface> &surface, const string &filename, 
                          int node_offset, int panel_offset,
                          const std::vector<std::string> &view_names, const vector<MatrixXd, Eigen::aligned_allocator<MatrixXd> > &view_data)
 {

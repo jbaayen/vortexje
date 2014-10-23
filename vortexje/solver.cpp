@@ -82,7 +82,7 @@ Solver::~Solver()
    @param[in]   body   Body to be added.
 */
 void
-Solver::add_body(shared_ptr<Body> body)
+Solver::add_body(std::shared_ptr<Body> body)
 {
     static shared_ptr<DummyBoundaryLayer> dummy_boundary_layer(new DummyBoundaryLayer());
     
@@ -96,7 +96,7 @@ Solver::add_body(shared_ptr<Body> body)
    @param[in]   boundary_layer   Boundary layer model.
 */
 void
-Solver::add_body(shared_ptr<Body> body, shared_ptr<BoundaryLayer> boundary_layer)
+Solver::add_body(std::shared_ptr<Body> body, std::shared_ptr<BoundaryLayer> boundary_layer)
 {
     shared_ptr<BodyData> bd(new BodyData(body, boundary_layer));
     
@@ -288,7 +288,7 @@ Solver::pressure_coefficient(const shared_ptr<Surface> &surface, int panel) cons
    @returns Force vector.
 */
 Eigen::Vector3d
-Solver::force(const shared_ptr<Body> &body) const
+Solver::force(const std::shared_ptr<Body> &body) const
 {
     // Dynamic pressure:
     double q = 0.5 * fluid_density * compute_reference_velocity_squared(body);
@@ -327,7 +327,7 @@ Solver::force(const shared_ptr<Body> &body) const
    @returns Force vector.
 */
 Eigen::Vector3d
-Solver::force(const shared_ptr<Surface> &surface) const
+Solver::force(const std::shared_ptr<Surface> &surface) const
 {
     // Total force on surface:
     Vector3d F(0, 0, 0);
@@ -370,7 +370,7 @@ Solver::force(const shared_ptr<Surface> &surface) const
    @returns Moment vector.
 */
 Eigen::Vector3d
-Solver::moment(const shared_ptr<Body> &body, const Eigen::Vector3d &x) const
+Solver::moment(const std::shared_ptr<Body> &body, const Eigen::Vector3d &x) const
 {
     // Dynamic pressure:
     double q = 0.5 * fluid_density * compute_reference_velocity_squared(body);
@@ -413,7 +413,7 @@ Solver::moment(const shared_ptr<Body> &body, const Eigen::Vector3d &x) const
    @returns Moment vector.
 */
 Eigen::Vector3d
-Solver::moment(const shared_ptr<Surface> &surface, const Eigen::Vector3d &x) const
+Solver::moment(const std::shared_ptr<Surface> &surface, const Eigen::Vector3d &x) const
 {
     // Total moment on surface:
     Vector3d M(0, 0, 0);
@@ -1227,7 +1227,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
  
 // Compute source coefficient for given surface and panel:
 double
-Solver::compute_source_coefficient(const shared_ptr<Body> &body, const shared_ptr<Surface> &surface, int panel, const shared_ptr<BoundaryLayer> &boundary_layer, bool include_wake_influence) const
+Solver::compute_source_coefficient(const std::shared_ptr<Body> &body, const std::shared_ptr<Surface> &surface, int panel, const std::shared_ptr<BoundaryLayer> &boundary_layer, bool include_wake_influence) const
 {
     // Start with apparent velocity:
     Vector3d velocity = body->panel_kinematic_velocity(surface, panel) - freestream_velocity;
@@ -1267,7 +1267,7 @@ Solver::compute_source_coefficient(const shared_ptr<Body> &body, const shared_pt
    @returns Surface potential value.
 */
 double
-Solver::compute_surface_velocity_potential(const shared_ptr<Surface> &surface, int offset, int panel) const
+Solver::compute_surface_velocity_potential(const std::shared_ptr<Surface> &surface, int offset, int panel) const
 {
     double phi = -doublet_coefficients(offset + panel);
     
@@ -1316,7 +1316,7 @@ Solver::compute_surface_velocity_potential_time_derivative(int offset, int panel
    @returns On-body gradient vector.
 */
 Vector3d
-Solver::compute_scalar_field_gradient(const Eigen::VectorXd &scalar_field, const shared_ptr<Body> &body, const shared_ptr<Surface> &surface, int panel) const
+Solver::compute_scalar_field_gradient(const Eigen::VectorXd &scalar_field, const std::shared_ptr<Body> &body, const std::shared_ptr<Surface> &surface, int panel) const
 {
     // We compute the scalar field gradient by fitting a linear model.
     
@@ -1368,7 +1368,7 @@ Solver::compute_scalar_field_gradient(const Eigen::VectorXd &scalar_field, const
    @returns Surface velocity.
 */
 Eigen::Vector3d
-Solver::compute_surface_velocity(const shared_ptr<Body> &body, const shared_ptr<Surface> &surface, int panel) const
+Solver::compute_surface_velocity(const std::shared_ptr<Body> &body, const std::shared_ptr<Surface> &surface, int panel) const
 {
     // Compute doublet surface gradient:
     Vector3d tangential_velocity = -compute_scalar_field_gradient(doublet_coefficients, body, surface, panel);
@@ -1394,7 +1394,7 @@ Solver::compute_surface_velocity(const shared_ptr<Body> &body, const shared_ptr<
    @returns Square of the reference velocity.
 */
 double
-Solver::compute_reference_velocity_squared(const shared_ptr<Body> &body) const
+Solver::compute_reference_velocity_squared(const std::shared_ptr<Body> &body) const
 {
     return (body->velocity - freestream_velocity).squaredNorm();
 }
@@ -1683,7 +1683,7 @@ Solver::compute_velocity(const Eigen::Vector3d &x) const
    @returns The trailing edge vortex displacement.
 */
 Eigen::Vector3d
-Solver::compute_trailing_edge_vortex_displacement(const shared_ptr<Body> &body, const shared_ptr<LiftingSurface> &lifting_surface, int index, double dt) const
+Solver::compute_trailing_edge_vortex_displacement(const std::shared_ptr<Body> &body, const std::shared_ptr<LiftingSurface> &lifting_surface, int index, double dt) const
 {
     Vector3d apparent_velocity = body->node_kinematic_velocity(lifting_surface, lifting_surface->trailing_edge_node(index)) - freestream_velocity;
                     
@@ -1701,7 +1701,7 @@ Solver::compute_trailing_edge_vortex_displacement(const shared_ptr<Body> &body, 
    @returns The index.
 */
 int
-Solver::compute_index(const shared_ptr<Surface> &surface, int panel) const
+Solver::compute_index(const std::shared_ptr<Surface> &surface, int panel) const
 {
     int offset = 0;
     vector<shared_ptr<Body::SurfaceData> >::const_iterator si;

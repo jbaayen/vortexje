@@ -33,8 +33,9 @@ public:
     
     /**
        Normally, this function solves the relevant boundary layer equations.  Here, it does nothing.
-   
-       @param[in]   surface_velocities   (n x 3)-matrix of surface velocities.
+
+       @param[in]   freestream_velocity   Freestream velocity vector.
+       @param[in]   surface_velocities    (n x 3)-matrix of surface velocities.
        
        @returns true on success.
     */    

@@ -129,6 +129,7 @@ public:
            
            @param[in]   surface   Associated Surface object.
            @param[in]   panel     Panel ID.
+           @param[in]   edge      Edge number.
         */
         SurfacePanelEdge(std::shared_ptr<Surface> surface, int panel, int edge) : surface(surface), panel(panel), edge(edge) { };
         

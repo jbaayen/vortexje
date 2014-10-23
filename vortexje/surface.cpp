@@ -789,7 +789,7 @@ Surface::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) con
    @returns Influence coefficient.
 */
 double
-Surface::doublet_influence(const shared_ptr<Surface> &other, int other_panel, int this_panel) const
+Surface::doublet_influence(const std::shared_ptr<Surface> &other, int other_panel, int this_panel) const
 { 
     if ((this == other.get()) && (this_panel == other_panel))
         return -0.5;
@@ -807,7 +807,7 @@ Surface::doublet_influence(const shared_ptr<Surface> &other, int other_panel, in
    @returns Influence coefficient.
 */
 double
-Surface::source_influence(const shared_ptr<Surface> &other, int other_panel, int this_panel) const
+Surface::source_influence(const std::shared_ptr<Surface> &other, int other_panel, int this_panel) const
 {
     return source_influence(other->panel_collocation_point(other_panel, true), this_panel);
 }
@@ -822,7 +822,7 @@ Surface::source_influence(const shared_ptr<Surface> &other, int other_panel, int
    @param[out]  doublet_influence   Doublet influence value.
 */
 void
-Surface::source_and_doublet_influence(const shared_ptr<Surface> &other, int other_panel, int this_panel, double &source_influence, double &doublet_influence) const
+Surface::source_and_doublet_influence(const std::shared_ptr<Surface> &other, int other_panel, int this_panel, double &source_influence, double &doublet_influence) const
 {
     if ((this == other.get()) && (this_panel == other_panel)) {
         doublet_influence = -0.5;
@@ -843,7 +843,7 @@ Surface::source_and_doublet_influence(const shared_ptr<Surface> &other, int othe
    @returns Velocity induced by the source panel.
 */
 Vector3d
-Surface::source_unit_velocity(const shared_ptr<Surface> &other, int other_panel, int this_panel) const
+Surface::source_unit_velocity(const std::shared_ptr<Surface> &other, int other_panel, int this_panel) const
 { 
     return source_unit_velocity(other->panel_collocation_point(other_panel, true), this_panel);
 }
@@ -858,7 +858,7 @@ Surface::source_unit_velocity(const shared_ptr<Surface> &other, int other_panel,
    @returns Velocity induced by the vortex ring.
 */
 Vector3d
-Surface::vortex_ring_unit_velocity(const shared_ptr<Surface> &other, int other_panel, int this_panel) const
+Surface::vortex_ring_unit_velocity(const std::shared_ptr<Surface> &other, int other_panel, int this_panel) const
 {
     return vortex_ring_unit_velocity(other->panel_collocation_point(other_panel, true), this_panel);
 }

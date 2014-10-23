@@ -43,7 +43,7 @@ Body::~Body()
    @param[in]   non_lifting_surface   Non-lifting surface.
 */
 void
-Body::add_non_lifting_surface(shared_ptr<Surface> non_lifting_surface)
+Body::add_non_lifting_surface(std::shared_ptr<Surface> non_lifting_surface)
 {
     non_lifting_surfaces.push_back(shared_ptr<SurfaceData>(new SurfaceData(non_lifting_surface)));
 }
@@ -54,7 +54,7 @@ Body::add_non_lifting_surface(shared_ptr<Surface> non_lifting_surface)
    @param[in]   lifting_surface   Lifting surface.
 */
 void
-Body::add_lifting_surface(shared_ptr<LiftingSurface> lifting_surface)
+Body::add_lifting_surface(std::shared_ptr<LiftingSurface> lifting_surface)
 {
     shared_ptr<Wake> wake(new Wake(lifting_surface));
     
@@ -68,7 +68,7 @@ Body::add_lifting_surface(shared_ptr<LiftingSurface> lifting_surface)
    @param[in]   wake              Wake.
 */
 void
-Body::add_lifting_surface(shared_ptr<LiftingSurface> lifting_surface, shared_ptr<Wake> wake)
+Body::add_lifting_surface(std::shared_ptr<LiftingSurface> lifting_surface, std::shared_ptr<Wake> wake)
 {
     lifting_surfaces.push_back(shared_ptr<LiftingSurfaceData>(new LiftingSurfaceData(lifting_surface, wake)));
 }
@@ -85,7 +85,7 @@ Body::add_lifting_surface(shared_ptr<LiftingSurface> lifting_surface, shared_ptr
    @param[in]   edge_b      Second reference edge.
 */
 void
-Body::stitch_panels(shared_ptr<Surface> surface_a, int panel_a, int edge_a, shared_ptr<Surface> surface_b, int panel_b, int edge_b)
+Body::stitch_panels(std::shared_ptr<Surface> surface_a, int panel_a, int edge_a, std::shared_ptr<Surface> surface_b, int panel_b, int edge_b)
 {
     // Add stitch from A to B:
     stitches[SurfacePanelEdge(surface_a, panel_a, edge_a)] = SurfacePanelEdge(surface_b, panel_b, edge_b);
@@ -103,7 +103,7 @@ Body::stitch_panels(shared_ptr<Surface> surface_a, int panel_a, int edge_a, shar
    @returns List of in-surface and across-surface panel neighbors.
 */
 vector<Body::SurfacePanelEdge>
-Body::panel_neighbors(const shared_ptr<Surface> &surface, int panel) const
+Body::panel_neighbors(const std::shared_ptr<Surface> &surface, int panel) const
 {
     vector<SurfacePanelEdge> neighbors;
     
@@ -136,7 +136,7 @@ Body::panel_neighbors(const shared_ptr<Surface> &surface, int panel) const
    @returns List of in-surface and across-surface panel neighbor for the given edge.
 */
 vector<Body::SurfacePanelEdge>
-Body::panel_neighbors(const shared_ptr<Surface> &surface, int panel, int edge) const
+Body::panel_neighbors(const std::shared_ptr<Surface> &surface, int panel, int edge) const
 {
     vector<SurfacePanelEdge> neighbors;
     
@@ -253,7 +253,7 @@ Body::set_rotational_velocity(const Vector3d &rotational_velocity)
    @return The kinematic velocity.
 */
 Vector3d
-Body::panel_kinematic_velocity(const shared_ptr<Surface> &surface, int panel) const
+Body::panel_kinematic_velocity(const std::shared_ptr<Surface> &surface, int panel) const
 {
     const Vector3d &panel_position = surface->panel_collocation_point(panel, false);
     Vector3d r = panel_position - position;
@@ -269,7 +269,7 @@ Body::panel_kinematic_velocity(const shared_ptr<Surface> &surface, int panel) co
    @return The kinematic velocity.
 */
 Vector3d
-Body::node_kinematic_velocity(const shared_ptr<Surface> &surface, int node) const
+Body::node_kinematic_velocity(const std::shared_ptr<Surface> &surface, int node) const
 {
     Vector3d r = surface->nodes[node] - position;
     return velocity + rotational_velocity.cross(r);
