@@ -21,8 +21,12 @@ namespace Vortexje
 */
 class DummyBoundaryLayer : public BoundaryLayer
 {
-public:        
+public:         
     bool recalculate(const Eigen::Vector3d &freestream_velocity, const Eigen::MatrixXd &surface_velocities);
+    
+    double thickness(const std::shared_ptr<Surface> &surface, int panel) const;
+    
+    Eigen::Vector3d velocity(const std::shared_ptr<Surface> &surface, int panel, double y) const;
     
     double blowing_velocity(const std::shared_ptr<Surface> &surface, int panel) const;
     

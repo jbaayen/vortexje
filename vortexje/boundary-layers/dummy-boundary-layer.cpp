@@ -21,8 +21,37 @@ using namespace std;
  */
 bool
 DummyBoundaryLayer::recalculate(const Vector3d &freestream_velocity, const MatrixXd &surface_velocities)
-{
+{  
     return true;
+}
+
+/**
+   Returns the thickness of the boundary layer at the given panel.
+   
+   @param[in]   surface   Reference surface.
+   @param[in]   panel     Reference panel.
+
+   @returns Zero.
+*/
+double
+DummyBoundaryLayer::thickness(const shared_ptr<Surface> &surface, int panel) const
+{
+    return 0.0;
+}
+
+/**
+   Returns the velocity in the boundary layer at the given panel, at the given wall distance.
+   
+   @param[in]   surface   Reference surface.
+   @param[in]   panel     Reference panel.
+   @param[in]   y         Wall distance.
+
+   @returns Zero vector.
+*/
+Vector3d
+DummyBoundaryLayer::velocity(const shared_ptr<Surface> &surface, int panel, double y) const
+{
+    return Vector3d(0, 0, 0);
 }
 
 /**

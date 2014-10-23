@@ -41,6 +41,27 @@ public:
     virtual bool recalculate(const Eigen::Vector3d &freestream_velocity, const Eigen::MatrixXd &surface_velocities) = 0;
     
     /**
+       Returns the thickness of the boundary layer at the given panel.
+       
+       @param[in]   surface   Reference surface.
+       @param[in]   panel     Reference panel.
+   
+       @returns Boundary layer thickness of the given panel.
+    */
+    virtual double thickness(const std::shared_ptr<Surface> &surface, int panel) const = 0; 
+    
+    /**
+       Returns the velocity in the boundary layer at the given panel, at the given wall distance.
+       
+       @param[in]   surface   Reference surface.
+       @param[in]   panel     Reference panel.
+       @param[in]   y         Wall distance.
+   
+       @returns Boundary layer velocity of the given panel, at the given wall distance.
+    */
+    virtual Eigen::Vector3d velocity(const std::shared_ptr<Surface> &surface, int panel, double y) const = 0; 
+    
+    /**
        Returns the blowing velocity for the given panel.
    
        @param[in]   surface   Reference surface.
