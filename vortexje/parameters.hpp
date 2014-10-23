@@ -63,7 +63,7 @@ public:
        the radius is less than half of the distance between two subsequent layers of wake panels.  I.e., it must hold that
        
        \f[
-         \mbox{wake\_vortex\_core\_radius} < 0.5 \cdot \mbox{wake\_emission\_distance\_factor} \cdot v_{\infty} * dt 
+         \mbox{wake\_vortex\_core\_radius} < 0.5 \cdot \mbox{wake\_emission\_distance\_factor} \cdot v_{\infty} \cdot dt 
        \f]
     */
     static double wake_vortex_core_radius;
@@ -93,7 +93,7 @@ public:
        the outer edge of the first row of wake panels lies outside of the interpolation layer.  I.e., it must hold that
        
        \f[
-         \mbox{interpolation\_layer\_thickness} < \mbox{wake\_emission\_distance\_factor} \cdot v_{\infty} * dt 
+         \mbox{interpolation\_layer\_thickness} < \mbox{wake\_emission\_distance\_factor} \cdot v_{\infty} \cdot dt 
        \f]
     */
     static double interpolation_layer_thickness;
