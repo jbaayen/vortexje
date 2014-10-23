@@ -1270,22 +1270,15 @@ Solver::compute_source_coefficient(const shared_ptr<Body> &body, const shared_pt
 double
 Solver::compute_surface_velocity_potential(const shared_ptr<Surface> &surface, int offset, int panel) const
 {
-    if (Parameters::marcov_surface_velocity) {
-        // Since we use N. Marcov's formula for surface velocity, we also compute the surface velocity
-        // potential directly.
-        return velocity_potential(surface->panel_collocation_point(panel, false));
-        
-    } else {
-        double phi = -doublet_coefficients(offset + panel);
-        
-        // Add flow potential due to kinematic velocity:
-        const shared_ptr<BodyData> &bd = surface_id_to_body.find(surface->id)->second;
-        Vector3d apparent_velocity = bd->body->panel_kinematic_velocity(surface, panel) - freestream_velocity;
-        
-        phi -= apparent_velocity.dot(surface->panel_collocation_point(panel, false));
-        
-        return phi;
-    }
+    double phi = -doublet_coefficients(offset + panel);
+    
+    // Add flow potential due to kinematic velocity:
+    const shared_ptr<BodyData> &bd = surface_id_to_body.find(surface->id)->second;
+    Vector3d apparent_velocity = bd->body->panel_kinematic_velocity(surface, panel) - freestream_velocity;
+    
+    phi -= apparent_velocity.dot(surface->panel_collocation_point(panel, false));
+    
+    return phi;
 }
 
 /**
@@ -1379,15 +1372,7 @@ Eigen::Vector3d
 Solver::compute_surface_velocity(const shared_ptr<Body> &body, const shared_ptr<Surface> &surface, int panel) const
 {
     // Compute disturbance part of surface velocity.
-    Vector3d tangential_velocity;
-    if (Parameters::marcov_surface_velocity) {
-        const Vector3d &x = surface->panel_collocation_point(panel, false);
-        
-        // Use N. Marcov's formula for surface velocity, see L. Dragoş, Mathematical Methods in Aerodynamics, Springer, 2003.
-        Vector3d tangential_velocity = compute_disturbance_velocity(x);
-        tangential_velocity -= 0.5 * compute_scalar_field_gradient(doublet_coefficients, body, surface, panel);
-    } else
-        tangential_velocity = -compute_scalar_field_gradient(doublet_coefficients, body, surface, panel);
+    Vector3d tangential_velocity = -compute_scalar_field_gradient(doublet_coefficients, body, surface, panel);
 
     // Add flow due to kinematic velocity:
     Vector3d apparent_velocity = body->panel_kinematic_velocity(surface, panel) - freestream_velocity;

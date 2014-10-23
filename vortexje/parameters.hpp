@@ -77,13 +77,6 @@ public:
     static double collocation_point_delta;
     
     /**
-       Use N. Marcov's formula for computing the surface velocities.
-       
-       @note See L. Dragoş, Mathematical Methods in Aerodynamics, Springer, 2003.
-    */
-    static bool   marcov_surface_velocity;
-    
-    /**
        Maximum number of potential and boundary layer computation iterations.
     */
     static int    max_boundary_layer_iterations;

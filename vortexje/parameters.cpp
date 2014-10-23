@@ -35,8 +35,6 @@ double Parameters::inversion_tolerance                = numeric_limits<double>::
 
 double Parameters::collocation_point_delta            = 1e-12;
 
-bool   Parameters::marcov_surface_velocity            = false;
-
 int    Parameters::max_boundary_layer_iterations      = 100;
 
 double Parameters::boundary_layer_iteration_tolerance = numeric_limits<double>::epsilon();
