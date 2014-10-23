@@ -302,7 +302,7 @@ Solver::force(const shared_ptr<Body> &body) const
         const shared_ptr<Body::SurfaceData> &d = *si;
         
         const shared_ptr<BodyData> &bd = surface_id_to_body.find(d->surface->id)->second;
-        if (body.get() == bd->body.get()) {        
+        if (body == bd->body) {        
             for (int i = 0; i < d->surface->n_panels(); i++) {
                 const Vector3d &normal = d->surface->panel_normal(i);
                 double surface_area = d->surface->panel_surface_area(i);
@@ -337,7 +337,7 @@ Solver::force(const shared_ptr<Surface> &surface) const
     for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
         const shared_ptr<Body::SurfaceData> &d = *si;
         
-        if (d->surface.get() == surface.get()) {   
+        if (d->surface == surface) {   
             const shared_ptr<BodyData> &bd = surface_id_to_body.find(d->surface->id)->second;
             
             // Dynamic pressure:
@@ -384,7 +384,7 @@ Solver::moment(const shared_ptr<Body> &body, const Eigen::Vector3d &x) const
         const shared_ptr<Body::SurfaceData> &d = *si;
         
         const shared_ptr<BodyData> &bd = surface_id_to_body.find(d->surface->id)->second;
-        if (body.get() == bd->body.get()) { 
+        if (body == bd->body) { 
             for (int i = 0; i < d->surface->n_panels(); i++) {                                    
                 const Vector3d &normal = d->surface->panel_normal(i);
                 double surface_area = d->surface->panel_surface_area(i);
@@ -423,7 +423,7 @@ Solver::moment(const shared_ptr<Surface> &surface, const Eigen::Vector3d &x) con
     for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
         const shared_ptr<Body::SurfaceData> &d = *si;
 
-        if (d->surface.get() == surface.get()) {
+        if (d->surface == surface) {
             const shared_ptr<BodyData> &bd = surface_id_to_body.find(d->surface->id)->second;
             
             // Dynamic pressure:
@@ -1708,7 +1708,7 @@ Solver::compute_index(const shared_ptr<Surface> &surface, int panel) const
     for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
         const shared_ptr<Body::SurfaceData> &d = *si;
         
-        if (surface.get() == d->surface.get())
+        if (surface == d->surface)
             return offset + panel;
         
         offset += d->surface->n_panels();
