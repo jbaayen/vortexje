@@ -1,3 +1,12 @@
+Vortexje:  Copyright 2012 - 2014 Baayen & Heinz GmbH.
+
+Vortexje is available under either of the following two licensing models:
+
+ * A commercial license, offered by Baayen & Heinz GmbH;  or
+ * The GPL v2 license, reproduced below. 
+
+-------------------------------------------------------------------------------
+
                     GNU GENERAL PUBLIC LICENSE
                        Version 2, June 1991
 
