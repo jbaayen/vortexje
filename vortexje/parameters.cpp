@@ -27,6 +27,8 @@ bool   Parameters::wake_emission_follow_bisector      = true;
 
 double Parameters::wake_emission_distance_factor      = 0.25;
 
+double Parameters::wake_vortex_core_radius            = numeric_limits<double>::epsilon();
+
 double Parameters::static_wake_length                 = 100.0;
 
 double Parameters::inversion_tolerance                = numeric_limits<double>::epsilon();

@@ -57,6 +57,11 @@ public:
     static double wake_emission_distance_factor;
     
     /**
+       Wake vortex filament core radius (Rankine model).  Within the core, the velocity decreases linearly to zero.
+    */
+    static double wake_vortex_core_radius;
+    
+    /**
        Length of the wake, in case of no wake convection.
     */
     static double static_wake_length;
