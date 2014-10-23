@@ -19,6 +19,8 @@ namespace Vortexje
 /**
    Representation of lifting surface.
    
+   Note:  The labels "upper" and "lower" must be consistent within the same surface, but are otherwise arbitrary.
+   
    @brief Lifting surface representation.
 */
 class LiftingSurface : public Surface
@@ -30,21 +32,29 @@ public:
          
     /**
        Nodes on the upper side of the surface.  The first dimension is the chordwise direction;  the second the spanwise direction.
+       
+       Note:  This matrix must at least cover the nodes belonging to the upper side panels adjacent to the trailing edge.
     */
     Eigen::MatrixXi upper_nodes;
     
     /**
        Nodes on the lower side of the surface.  The first dimension is the chordwise direction;  the second the spanwise direction.
+       
+       Note:  This matrix must at least cover the nodes belonging to the lower side panels adjacent to the trailing edge.
     */
     Eigen::MatrixXi lower_nodes;
     
     /**
        Panels on the upper side of the surface.  The first dimension is the chordwise direction;  the second the spanwise direction.
+       
+       Note:  This matrix must at least cover the upper side panels adjacent to the trailing edge.
     */
     Eigen::MatrixXi upper_panels;
     
     /**
        Panels on the lower side of the surface.  The first dimension is the chordwise direction;  the second the spanwise direction.
+       
+       Note:  This matrix must at least cover the lower side panels adjacent to the trailing edge.
     */
     Eigen::MatrixXi lower_panels;
     
