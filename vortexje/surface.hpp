@@ -47,6 +47,8 @@ public:
     int add_quadrangle(int node_a, int node_b, int node_c, int node_d);
     
     void compute_topology();
+    
+    void compute_geometry(int panel);
     void compute_geometry();
     
     void cut_panels(int panel_a, int panel_b);

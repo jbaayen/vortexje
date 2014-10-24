@@ -204,146 +204,122 @@ Surface::cut_panels(int panel_a, int panel_b)
 }
 
 /**
+   Computes the normals, collocation points, surface areas, and diameters of the given panel.
+   
+   @param[in]   panel   Reference panel.
+*/
+void
+Surface::compute_geometry(int panel)
+{
+    // Resize arrays, if necessary:
+    panel_normals.resize(n_panels());
+    panel_collocation_points[0].resize(n_panels());
+    panel_collocation_points[1].resize(n_panels());
+    panel_coordinate_transformations.resize(n_panels());
+    panel_transformed_points.resize(n_panels());
+    panel_surface_areas.resize(n_panels());
+    panel_diameters.resize(n_panels());
+    
+    // Get panel nodes:
+    vector<int> &single_panel_nodes = panel_nodes[panel];
+    
+    // Normal:
+    Vector3d normal;
+    if (single_panel_nodes.size() == 3) {
+        Vector3d AB = nodes[single_panel_nodes[1]] - nodes[single_panel_nodes[0]];
+        Vector3d AC = nodes[single_panel_nodes[2]] - nodes[single_panel_nodes[0]];
+        
+        normal = AB.cross(AC);
+        
+    } else { // 4 sides
+        Vector3d AC = nodes[single_panel_nodes[2]] - nodes[single_panel_nodes[0]];
+        Vector3d BD = nodes[single_panel_nodes[3]] - nodes[single_panel_nodes[1]];
+        
+        normal = AC.cross(BD);
+    }
+
+    normal.normalize();
+
+    panel_normals[panel] = normal;
+    
+    // Collocation point:
+    Vector3d collocation_point(0, 0, 0);
+    for (int j = 0; j < (int) single_panel_nodes.size(); j++)
+        collocation_point = collocation_point + nodes[single_panel_nodes[j]];
+
+    collocation_point = collocation_point / single_panel_nodes.size();
+        
+    panel_collocation_points[0][panel] = collocation_point;
+    
+    Vector3d below_surface_collocation_point = collocation_point + Parameters::collocation_point_delta * normal;
+    panel_collocation_points[1][panel] = below_surface_collocation_point;
+    
+    // Coordinate transformation:
+    Vector3d AB = nodes[single_panel_nodes[1]] - nodes[single_panel_nodes[0]];
+    AB.normalize();
+    
+    Matrix3d rotation;
+    rotation.row(0) = AB;
+    rotation.row(1) = normal.cross(AB).normalized(); // Should be normalized already.
+    rotation.row(2) = normal;
+    
+    Transform<double, 3, Affine> transformation = rotation * Translation<double, 3>(-collocation_point);
+
+    panel_coordinate_transformations[panel] = transformation;
+    
+    // Create transformed points.
+    vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > single_panel_transformed_points;
+    single_panel_transformed_points.reserve(single_panel_nodes.size());
+    for (int j = 0; j < (int) single_panel_nodes.size(); j++)
+        single_panel_transformed_points.push_back(transformation * nodes[single_panel_nodes[j]]);
+        
+    panel_transformed_points[panel] = single_panel_transformed_points;
+    
+    // Surface area: 
+    double surface_area = 0.0;
+    if (single_panel_nodes.size() == 3) {
+        Vector3d AB = nodes[single_panel_nodes[1]] - nodes[single_panel_nodes[0]];
+        Vector3d AC = nodes[single_panel_nodes[2]] - nodes[single_panel_nodes[0]];
+        
+        surface_area = 0.5 * AB.cross(AC).norm();
+        
+    } else { // 4 sides
+        Vector3d AC = nodes[single_panel_nodes[2]] - nodes[single_panel_nodes[0]];
+        Vector3d BD = nodes[single_panel_nodes[3]] - nodes[single_panel_nodes[1]];
+        
+        surface_area = 0.5 * AC.cross(BD).norm();
+    }
+    
+    panel_surface_areas[panel] = surface_area;
+    
+    // Diameter:
+    double diameter = numeric_limits<double>::min();
+    
+    for (int j = 0; j < (int) panel_nodes[panel].size(); j++) {
+        Vector3d a = nodes[panel_nodes[panel][j]];
+        
+        for (int k = 0; k < j; k++) {
+            Vector3d b = nodes[panel_nodes[panel][k]];
+            
+            double diameter_candidate = (b - a).norm();
+            if (diameter_candidate > diameter)
+                diameter = diameter_candidate;
+        }
+    }
+    
+    panel_diameters[panel] = diameter;
+}
+
+/**
    Computes the normals, collocation points, surface areas, and diameters of all panels.
 */
 void
 Surface::compute_geometry()
 {
-    // Normals:
-    cout << "Surface " << id << ": Generating panel normals." << endl;
-        
-    panel_normals.clear();
-    panel_normals.reserve(n_panels());
+    cout << "Surface " << id << ": Computing geometry." << endl;
     
-    for (int i = 0; i < n_panels(); i++) {
-        vector<int> &single_panel_nodes = panel_nodes[i];
-        
-        Vector3d normal;
-        if (single_panel_nodes.size() == 3) {
-            Vector3d AB = nodes[single_panel_nodes[1]] - nodes[single_panel_nodes[0]];
-            Vector3d AC = nodes[single_panel_nodes[2]] - nodes[single_panel_nodes[0]];
-            
-            normal = AB.cross(AC);
-            
-        } else { // 4 sides
-            Vector3d AC = nodes[single_panel_nodes[2]] - nodes[single_panel_nodes[0]];
-            Vector3d BD = nodes[single_panel_nodes[3]] - nodes[single_panel_nodes[1]];
-            
-            normal = AC.cross(BD);
-        }
-
-        normal.normalize();
-
-        panel_normals.push_back(normal);
-    }
-    
-    // Collocation points: 
-    cout << "Surface " << id << ": Generating panel collocation points." << endl;
-    
-    panel_collocation_points[0].clear();
-    panel_collocation_points[0].reserve(n_panels());
-    
-    panel_collocation_points[1].clear();
-    panel_collocation_points[1].reserve(n_panels());
-
-    for (int i = 0; i < n_panels(); i++) {
-        vector<int> &single_panel_nodes = panel_nodes[i];
-        
-        Vector3d collocation_point(0, 0, 0);
-        for (int j = 0; j < (int) single_panel_nodes.size(); j++)
-            collocation_point = collocation_point + nodes[single_panel_nodes[j]];
-
-        collocation_point = collocation_point / single_panel_nodes.size();
-            
-        panel_collocation_points[0].push_back(collocation_point);
-        
-        Vector3d below_surface_collocation_point = collocation_point + Parameters::collocation_point_delta * panel_normal(i);
-        panel_collocation_points[1].push_back(below_surface_collocation_point);
-    }
-    
-    // Coordinate transformations:
-    cout << "Surface " << id << ": Generating panel coordinate transformations." << endl;
-        
-    panel_coordinate_transformations.clear();
-    panel_coordinate_transformations.reserve(n_panels());
-    
-    panel_transformed_points.clear();
-    panel_transformed_points.reserve(n_panels());
-    
-    for (int i = 0; i < n_panels(); i++) {
-        vector<int> &single_panel_nodes = panel_nodes[i];
-        
-        Vector3d AB = nodes[single_panel_nodes[1]] - nodes[single_panel_nodes[0]];
-        AB.normalize();
-        
-        const Vector3d &normal = panel_normal(i);
-        
-        Matrix3d rotation;
-        rotation.row(0) = AB;
-        rotation.row(1) = normal.cross(AB).normalized(); // Should be normalized already.
-        rotation.row(2) = normal;
-        
-        Transform<double, 3, Affine> transformation = rotation * Translation<double, 3>(-panel_collocation_point(i, false));
-
-        panel_coordinate_transformations.push_back(transformation);
-        
-        // Create transformed points.
-        vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > single_panel_transformed_points;
-        single_panel_transformed_points.reserve(single_panel_nodes.size());
-        for (int j = 0; j < (int) single_panel_nodes.size(); j++)
-            single_panel_transformed_points.push_back(transformation * nodes[single_panel_nodes[j]]);
-        panel_transformed_points.push_back(single_panel_transformed_points);
-    }
-    
-    // Surface areas:
-    cout << "Surface " << id << ": Generating panel surface area cache." << endl;
-    
-    panel_surface_areas.clear();
-    panel_surface_areas.reserve(n_panels());
-    
-    for (int i = 0; i < n_panels(); i++) {
-        vector<int> &single_panel_nodes = panel_nodes[i];
-        
-        double surface_area = 0.0;
-        if (single_panel_nodes.size() == 3) {
-            Vector3d AB = nodes[single_panel_nodes[1]] - nodes[single_panel_nodes[0]];
-            Vector3d AC = nodes[single_panel_nodes[2]] - nodes[single_panel_nodes[0]];
-            
-            surface_area = 0.5 * AB.cross(AC).norm();
-            
-        } else { // 4 sides
-            Vector3d AC = nodes[single_panel_nodes[2]] - nodes[single_panel_nodes[0]];
-            Vector3d BD = nodes[single_panel_nodes[3]] - nodes[single_panel_nodes[1]];
-            
-            surface_area = 0.5 * AC.cross(BD).norm();
-        }
-        
-        panel_surface_areas.push_back(surface_area);
-    }
-    
-    // Diameters:
-    cout << "Surface " << id << ": Generating panel diameter cache." << endl;
-    
-    panel_diameters.clear();
-    panel_diameters.reserve(n_panels());
-    
-    for (int i = 0; i < n_panels(); i++) {
-        double diameter = numeric_limits<double>::min();
-        
-        for (int j = 0; j < (int) panel_nodes[i].size(); j++) {
-            Vector3d a = nodes[panel_nodes[i][j]];
-            
-            for (int k = 0; k < j; k++) {
-                Vector3d b = nodes[panel_nodes[i][k]];
-                
-                double diameter_candidate = (b - a).norm();
-                if (diameter_candidate > diameter)
-                    diameter = diameter_candidate;
-            }
-        }
-        
-        panel_diameters.push_back(diameter);
-    }
+    for (int i = 0; i < n_panels(); i++)
+        compute_geometry(i);
 }
 
 /**

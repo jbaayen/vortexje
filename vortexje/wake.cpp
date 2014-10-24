@@ -55,6 +55,7 @@ Wake::add_layer()
             vertices.push_back(node - lifting_surface->n_spanwise_nodes());
             vertices.push_back(node);
             
+            int panel = n_panels();
             panel_nodes.push_back(vertices);
         
             map<int, pair<int, int> > local_panel_neighbors;
@@ -64,14 +65,14 @@ Wake::add_layer()
             node_panel_neighbors.push_back(empty);
             
             doublet_coefficients.push_back(0);
+            
+            compute_geometry(panel);
 
         } else {
             shared_ptr<vector<int> > empty = make_shared<vector<int> >();
             node_panel_neighbors.push_back(empty);
         }
     }
-        
-    compute_geometry();
 }
 
 /**
@@ -86,6 +87,7 @@ Wake::translate_trailing_edge(const Eigen::Vector3d &translation)
         return;
         
     int k0;
+    
     if (Parameters::convect_wake)
         k0 = n_nodes() - lifting_surface->n_spanwise_nodes();
     else
@@ -94,7 +96,13 @@ Wake::translate_trailing_edge(const Eigen::Vector3d &translation)
     for (int k = k0; k < n_nodes(); k++)                
         nodes[k] += translation;
         
-    compute_geometry();
+    if (Parameters::convect_wake)
+        k0 = n_panels() - lifting_surface->n_spanwise_panels();
+    else
+        k0 = 0;
+    
+    for (int k = k0; k < n_panels(); k++)
+        compute_geometry(k);
 }
 
 /**
@@ -109,6 +117,7 @@ Wake::transform_trailing_edge(const Eigen::Transform<double, 3, Eigen::Affine> &
         return;
         
     int k0;
+    
     if (Parameters::convect_wake)
         k0 = n_nodes() - lifting_surface->n_spanwise_nodes();
     else
@@ -117,7 +126,13 @@ Wake::transform_trailing_edge(const Eigen::Transform<double, 3, Eigen::Affine> &
     for (int k = k0; k < n_nodes(); k++)                
         nodes[k] = transformation * nodes[k];
         
-    compute_geometry();
+    if (Parameters::convect_wake)
+        k0 = n_panels() - lifting_surface->n_spanwise_panels();
+    else
+        k0 = 0;
+    
+    for (int k = k0; k < n_panels(); k++)
+        compute_geometry(k);
 }
 
 /**
