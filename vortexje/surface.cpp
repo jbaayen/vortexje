@@ -407,7 +407,7 @@ Surface::transform(const Eigen::Transform<double, 3, Eigen::Affine> &transformat
             panel_collocation_points[j][i] = transformation * panel_collocation_points[j][i];
     
     for (int i = 0; i < n_panels(); i++)
-        panel_normals[i] = transformation * panel_normals[i];
+        panel_normals[i] = transformation.linear() * panel_normals[i];
         
     for (int i = 0; i < n_panels(); i++)
         panel_coordinate_transformations[i] = panel_coordinate_transformations[i] * transformation.inverse();
