@@ -68,9 +68,22 @@ public:
     int trailing_edge_upper_panel(int index) const;
     int trailing_edge_lower_panel(int index) const;
     
-    Eigen::Vector3d trailing_edge_bisector(int node_index) const;
+    void finish_trailing_edge();
+    
+    virtual void transform(const Eigen::Transform<double, 3, Eigen::Affine> &transformation);
     
     virtual Eigen::Vector3d wake_emission_velocity(const Eigen::Vector3d &apparent_velocity, int node_index) const;
+    
+private:
+    /**
+       Cached list of trailing edge bisector vectors.
+    */
+    Eigen::MatrixXd trailing_edge_bisectors;
+    
+    /**
+       Cached list of vectors normal to the initial wake strip surface.
+    */
+    Eigen::MatrixXd wake_normals;
 };
 
 };

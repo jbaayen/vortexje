@@ -105,25 +105,87 @@ LiftingSurface::trailing_edge_lower_panel(int index) const
 }
 
 /**
-   Returns the unit vector bisecting the trailing edge, at the node_index'th trailing edge node.
-  
-   @param[in]   node_index   Trailing edge node index.
+   Finishes the set up of the trailing edge.  
    
-   @returns The unit vector bisecting the trailing edge, at the node_index'th trailinge edge node.
+   This function computes the trailing edge bisectors, the initial wake strip normals, and terminates the neigbor relationships
+   along the trailing edge.
 */
-Eigen::Vector3d
-LiftingSurface::trailing_edge_bisector(int node_index) const
+void
+LiftingSurface::finish_trailing_edge() 
 {
-    Vector3d upper = nodes[upper_nodes(upper_nodes.rows() - 1, node_index)] - nodes[upper_nodes(upper_nodes.rows() - 2, node_index)];
-    Vector3d lower = nodes[lower_nodes(lower_nodes.rows() - 1, node_index)] - nodes[lower_nodes(lower_nodes.rows() - 2, node_index)];
+    // Compute trailing edge bisectors and normals to the initial wake strip surface:
+    trailing_edge_bisectors.resize(n_spanwise_nodes(), 3);
+    wake_normals.resize(n_spanwise_nodes(), 3);
     
-    upper.normalize();
-    lower.normalize();
+    if (n_chordwise_nodes() > 1) {
+        for (int i = 0; i < n_spanwise_nodes(); i++) {
+            // Compute bisector: 
+            Vector3d upper = nodes[upper_nodes(upper_nodes.rows() - 1, i)] - nodes[upper_nodes(upper_nodes.rows() - 2, i)];
+            Vector3d lower = nodes[lower_nodes(lower_nodes.rows() - 1, i)] - nodes[lower_nodes(lower_nodes.rows() - 2, i)];
+            
+            upper.normalize();
+            lower.normalize();
+            
+            Vector3d trailing_edge_bisector = upper + lower;
+            trailing_edge_bisector.normalize();
+            
+            trailing_edge_bisectors.row(i) = trailing_edge_bisector;
+            
+            // Compute normal to the initial wake strip surface, spanned by the bisector and by the span direction:
+            int prev_node, next_node;
+            
+            if (i > 0)
+                prev_node = trailing_edge_node(i - 1);
+            else
+                prev_node = trailing_edge_node(i);
+            
+            if (i < n_spanwise_nodes() - 1)
+                next_node = trailing_edge_node(i + 1);
+            else
+                next_node = trailing_edge_node(i);
+                
+            Vector3d wake_normal(0, 0, 0);
+            
+            if (prev_node != next_node) {
+                Vector3d span_direction = nodes[next_node] - nodes[prev_node];
+                
+                wake_normal = span_direction.cross(trailing_edge_bisector);
+                wake_normal.normalize();
+            }
+            
+            wake_normals.row(i) = wake_normal;
+        }
+        
+    } else {
+        // No bisector information available:
+        trailing_edge_bisectors.setZero();
+        wake_normals.setZero();
+    }
     
-    Vector3d trailing_edge_bisector = upper + lower;
-    trailing_edge_bisector.normalize();
+    // Terminate neighbor relationships across trailing edge.
+    for (int i = 0; i < n_spanwise_panels(); i++)
+        cut_panels(trailing_edge_upper_panel(i), trailing_edge_lower_panel(i));
+}
+
+/**
+   Transforms this lifting surface.
+   
+   @param[in]   transformation   Affine transformation.
+*/
+void
+LiftingSurface::transform(const Eigen::Transform<double, 3, Eigen::Affine> &transformation)
+{
+    // Call super:
+    this->Surface::transform(transformation);
     
-    return trailing_edge_bisector;
+    // Transform bisectors and wake normals:
+    for (int i = 0; i < n_spanwise_nodes(); i++) {
+        Vector3d trailing_edge_bisector = trailing_edge_bisectors.row(i);
+        trailing_edge_bisectors.row(i) = transformation.linear() * trailing_edge_bisector;
+        
+        Vector3d wake_normal = wake_normals.row(i);
+        wake_normals.row(i) = transformation.linear() * wake_normal;
+    }
 }
 
 /**
@@ -138,36 +200,12 @@ Eigen::Vector3d
 LiftingSurface::wake_emission_velocity(const Eigen::Vector3d &apparent_velocity, int node_index) const
 {
     Vector3d wake_emission_velocity;
-    if (Parameters::wake_emission_follow_bisector && n_chordwise_nodes() > 1) {
-        // Use bisector to determine wake emission direction:
-        int prev_node, next_node;
+    
+    if (Parameters::wake_emission_follow_bisector) {
+        Vector3d wake_normal = wake_normals.row(node_index);
         
-        if (node_index > 0)
-            prev_node = trailing_edge_node(node_index - 1);
-        else
-            prev_node = trailing_edge_node(node_index);
-        
-        if (node_index < n_spanwise_nodes() - 1)
-            next_node = trailing_edge_node(node_index + 1);
-        else
-            next_node = trailing_edge_node(node_index);
-            
-        Vector3d bisector = trailing_edge_bisector(node_index);
-            
-        if (prev_node != next_node) {
-            // Project apparent velocity onto the plane spanned by the span direction, and the bisector:
-            Vector3d span_direction = nodes[next_node] - nodes[prev_node];
-            
-            Vector3d wake_normal = span_direction.cross(bisector);
-            wake_normal.normalize();
-            
-            wake_emission_velocity = -(apparent_velocity - apparent_velocity.dot(wake_normal) * wake_normal);
-            
-        } else {
-            // No span direction available.  Project apparent velocity onto bisector:
-            wake_emission_velocity = -apparent_velocity.dot(bisector) * bisector;
-            
-        } 
+        // Project apparent velocity onto wake emission plane:
+        wake_emission_velocity = -(apparent_velocity - apparent_velocity.dot(wake_normal) * wake_normal);
         
     } else {
         // Emit wake in direction of apparent velocity:
