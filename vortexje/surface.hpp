@@ -94,8 +94,6 @@ public:
     
     double panel_surface_area(int panel) const;
     
-    double panel_diameter(int panel) const;
-    
     virtual void source_and_doublet_influence(const Eigen::Vector3d &x, int this_panel, double &source_influence, double &doublet_influence) const;
     
     double source_influence(const Eigen::Vector3d &x, int this_panel) const;
@@ -132,11 +130,6 @@ protected:
        Panel number to surface area map.
     */
     std::vector<double> panel_surface_areas;
-    
-    /**
-       Panel number to diameter map.
-    */
-    std::vector<double> panel_diameters;
 };
 
 };

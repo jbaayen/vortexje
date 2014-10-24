@@ -204,7 +204,7 @@ Surface::cut_panels(int panel_a, int panel_b)
 }
 
 /**
-   Computes the normals, collocation points, surface areas, and diameters of the given panel.
+   Computes the normal, collocation point, and surface area of the specified panel.
    
    @param[in]   panel   Reference panel.
 */
@@ -218,7 +218,6 @@ Surface::compute_geometry(int panel)
     panel_coordinate_transformations.resize(n_panels());
     panel_transformed_points.resize(n_panels());
     panel_surface_areas.resize(n_panels());
-    panel_diameters.resize(n_panels());
     
     // Get panel nodes:
     vector<int> &single_panel_nodes = panel_nodes[panel];
@@ -291,27 +290,10 @@ Surface::compute_geometry(int panel)
     }
     
     panel_surface_areas[panel] = surface_area;
-    
-    // Diameter:
-    double diameter = numeric_limits<double>::min();
-    
-    for (int j = 0; j < (int) panel_nodes[panel].size(); j++) {
-        Vector3d a = nodes[panel_nodes[panel][j]];
-        
-        for (int k = 0; k < j; k++) {
-            Vector3d b = nodes[panel_nodes[panel][k]];
-            
-            double diameter_candidate = (b - a).norm();
-            if (diameter_candidate > diameter)
-                diameter = diameter_candidate;
-        }
-    }
-    
-    panel_diameters[panel] = diameter;
 }
 
 /**
-   Computes the normals, collocation points, surface areas, and diameters of all panels.
+   Computes the normals, collocation points, and surface areas of all panels.
 */
 void
 Surface::compute_geometry()
@@ -459,19 +441,6 @@ double
 Surface::panel_surface_area(int panel) const
 {  
     return panel_surface_areas[panel];
-}
-
-/**
-   Returns the diameter of the given panel.
-   
-   @param[in]   panel   Panel of which the diameter is returned.
-   
-   @returns Panel diameter.
-*/
-double
-Surface::panel_diameter(int panel) const
-{
-    return panel_diameters[panel];
 }
 
 // Simultaneously compute influence of source and doublet panel edges on given point.
