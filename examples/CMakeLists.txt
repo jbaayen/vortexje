@@ -1,24 +1,5 @@
-add_executable(clarky-section clarky-section.cpp)
-target_link_libraries(clarky-section vortexje)
-
-configure_file(clarky.dat ${CMAKE_CURRENT_BINARY_DIR}/clarky.dat COPYONLY)
-
-add_executable(naca0012-section-oscillation naca0012-section-oscillation.cpp)
-target_link_libraries(naca0012-section-oscillation vortexje)
-
-add_executable(naca0025-rounded-tips naca0025-rounded-tips.cpp)
-target_link_libraries(naca0025-rounded-tips vortexje)
-
-add_executable(gmsh-lifting-surface gmsh-lifting-surface.cpp)
-target_link_libraries(gmsh-lifting-surface vortexje)
-
-configure_file(gmsh-lifting-surface.msh ${CMAKE_CURRENT_BINARY_DIR}/gmsh-lifting-surface.msh COPYONLY)
-
-add_executable(vawt vawt.cpp)
-target_link_libraries(vawt vortexje)
-
-add_executable(hawt hawt.cpp)
-target_link_libraries(hawt vortexje)
-
-configure_file(hawt-airfoil.dat ${CMAKE_CURRENT_BINARY_DIR}/hawt-airfoil.dat COPYONLY)
-configure_file(hawt-blade.dat ${CMAKE_CURRENT_BINARY_DIR}/hawt-blade.dat COPYONLY)
+add_subdirectory(clarky-section)
+add_subdirectory(gmsh-lifting-surface)
+add_subdirectory(hawt)
+add_subdirectory(naca0012-section-oscillation)
+add_subdirectory(vawt)
