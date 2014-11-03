@@ -1475,7 +1475,7 @@ Solver::compute_velocity_potential(const Vector3d &x) const
 Eigen::Vector3d
 Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
 {
-    vector<pair<Vector3d, double>, Eigen::aligned_allocator<pair<Vector3d, double> > > close_panels;
+    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > close_panel_velocities;
     
     int offset = 0;
 
@@ -1536,7 +1536,7 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
 
                             // We are above the panel if the projection lies inside all four panel edges:
                             double normal_component = (x_transformed - point_a).dot(normal);
-                            if (normal_component < 0)
+                            if (normal_component <= 0)
                                 x_above_panel = false;
                                 
                             double edge_distance = sqrt(pow(normal_component, 2) + pow(x_transformed(2), 2));
@@ -1552,16 +1552,21 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
                             }
                         }
                         
-                        if (x_above_panel || (panel_edge_distance < total_thickness)) {
-                            // We are close and above a panel, or close to one of its edges.
-                            if (normal_distance < boundary_layer_thickness) {
+                        // Compute distance to panel:
+                        double panel_distance;
+                        if (x_above_panel)
+                            panel_distance = normal_distance;
+                        else
+                            panel_distance = panel_edge_distance;
+                        
+                        // Are we close to the panel?
+                        if (panel_distance < total_thickness) {
+                            // Yes.
+                            if (panel_distance < boundary_layer_thickness) {
                                 // We are in the boundary layer:
-                                Vector3d boundary_layer_velocity = bd->boundary_layer->velocity(d->surface, i, normal_distance);
+                                Vector3d boundary_layer_velocity = bd->boundary_layer->velocity(d->surface, i, panel_distance);
                                     
-                                if (x_above_panel)
-                                    return boundary_layer_velocity;
-                                else
-                                    close_panels.push_back(make_pair(boundary_layer_velocity, panel_edge_distance));
+                                close_panel_velocities.push_back(boundary_layer_velocity);
                             } else {
                                 // We are in the interpolation layer.
                                 // Interpolate between the surface velocity, and the velocity away from the body:
@@ -1570,15 +1575,14 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
                                 Vector3d upper_point = d->surface->panel_collocation_point(i, false) - d->surface->panel_normal(i) * total_thickness;
                                 Vector3d upper_velocity = compute_velocity(upper_point);
                                     
-                                double interpolation_distance = normal_distance - boundary_layer_thickness;
+                                double interpolation_distance = panel_distance - boundary_layer_thickness;
                                 Vector3d velocity_interpolated =
                                     (interpolation_distance * upper_velocity + (interpolation_layer_thickness - interpolation_distance) * lower_velocity) 
                                     / interpolation_layer_thickness;
                                         
-                                if (x_above_panel)
-                                    return velocity_interpolated;
-                                else
-                                    close_panels.push_back(make_pair(velocity_interpolated, panel_edge_distance));
+                                close_panel_velocities.push_back(velocity_interpolated);
+                                
+                                // Even if we are above a panel, we must keep going, to handle concave corners.
                             }
                         }
                     }
@@ -1593,31 +1597,23 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
     }
                
     // Is the point 'x' close to any panels?
-    if (close_panels.size() > 0) {
+    if (close_panel_velocities.size() > 0) {
         Vector3d velocity;
         
-        if (close_panels.size() == 1) {
+        if (close_panel_velocities.size() == 1) {
             // Yes, one.
-            velocity = close_panels[0].first;
+            velocity = close_panel_velocities[0];
             
         } else {
             // Yes, several.  We need to average.
-            vector<pair<Vector3d, double>, Eigen::aligned_allocator<pair<Vector3d, double> > >::iterator it;
-            
-            double sum = 0.0;
-            for (it = close_panels.begin(); it != close_panels.end(); it++)
-                sum += it->second;
-          
+            vector<Vector3d, Eigen::aligned_allocator<Vector3d> >::iterator it;
+
             velocity = Vector3d(0, 0, 0);
-            for (it = close_panels.begin(); it != close_panels.end(); it++) {
-                // Weigh panel velocity using the sum of all distances, minus this panel's distance. 
-                // This results in higher weights for closer panels, without the numerical instability associated
-                // with an inverse weighting.
-                velocity += (sum - it->second) * it->first;
-            }
+            for (it = close_panel_velocities.begin(); it != close_panel_velocities.end(); it++)
+                velocity += *it;
                 
             // Normalize velocity.  The weights sum up to (n - 1) times the sum of the distances.
-            velocity /= (close_panels.size() - 1) * sum;
+            velocity /= close_panel_velocities.size();
         }
         
         return velocity;
@@ -1640,7 +1636,6 @@ Eigen::Vector3d
 Solver::compute_velocity(const Eigen::Vector3d &x) const
 {
     Vector3d velocity = Vector3d(0, 0, 0);
-    vector<pair<Vector3d, double>, Eigen::aligned_allocator<pair<Vector3d, double> > > close_panels;
     
     int offset = 0;
 
