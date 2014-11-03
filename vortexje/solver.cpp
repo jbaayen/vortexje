@@ -1496,84 +1496,97 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
         for (si = surfaces.begin(); si != surfaces.end(); si++) {
             const shared_ptr<Body::SurfaceData> &d = *si;
 
+            bool inside_surface = true;
             for (int i = 0; i < d->surface->n_panels(); i++) {
-                // Compute normal distance of the point 'x' from panel:
+                // Transform the point 'x' into the panel coordinate system:
                 Vector3d x_transformed = d->surface->panel_coordinate_transformation(i) * x;
-                double normal_distance = fabs(x_transformed(2));
                 
-                // We have three zones: 
-                // The boundary layer, followed by the interpolation layer, followed by the rest of the control volume.
-                double boundary_layer_thickness      = bd->boundary_layer->thickness(d->surface, i);
-                double interpolation_layer_thickness = Parameters::interpolation_layer_thickness;
-                double total_thickness               = boundary_layer_thickness + interpolation_layer_thickness;
+                // Are we outside of the surface?
+                if (x_transformed(2) < Parameters::inversion_tolerance) {
+                    // Yes.
+                    inside_surface = false;
                 
-                // Are we inside one of the first two zones?
-                if (normal_distance < total_thickness) {
-                    // Check whether A) we are above the panel, and whether B) we are close to one of the panel's edges:
-                    bool x_above_panel = true;
-                    double panel_edge_distance = total_thickness;
-                    for (int l = 0; l < (int) d->surface->panel_nodes[i].size(); l++) {
-                        int next_l;
-                        if (l == (int) d->surface->panel_nodes[i].size() - 1)
-                            next_l = 0;
-                        else
-                            next_l = l + 1;
-                            
-                        Vector3d point_a = d->surface->panel_transformed_points[i][l];
-                        Vector3d point_b = d->surface->panel_transformed_points[i][next_l];
-                            
-                        Vector3d edge = point_b - point_a;
-                        Vector3d normal(-edge(1), edge(0), 0.0);
-                        normal.normalize();
-
-                        // We are above the panel if the projection lies inside all four panel edges:
-                        double normal_component = (x_transformed - point_a).dot(normal);
-                        if (normal_component < 0)
-                            x_above_panel = false;
-                            
-                        if (fabs(normal_component) < panel_edge_distance) {
-                            // Does the point lie beside the panel edge?
-                            if (edge.dot(x_transformed - point_a) * edge.dot(x_transformed - point_b) < 0)
-                                panel_edge_distance = fabs(normal_component);
-                                
-                            // Is the point close to the panel vertex?
-                            double node_distance = (x_transformed - point_a).norm();
-                            if (node_distance < panel_edge_distance)
-                                panel_edge_distance = node_distance;
-                        }
-                    }
+                    // Compute normal distance of the point 'x' from panel:
+                    double normal_distance = fabs(x_transformed(2));
                     
-                    if (x_above_panel || (panel_edge_distance < total_thickness)) {
-                        // We are close and above a panel, or close to one of its edges.
-                        if (normal_distance < boundary_layer_thickness) {
-                            // We are in the boundary layer:
-                            Vector3d boundary_layer_velocity = bd->boundary_layer->velocity(d->surface, i, normal_distance);
-                                
-                            if (x_above_panel)
-                                return boundary_layer_velocity;
+                    // We have three zones: 
+                    // The boundary layer, followed by the interpolation layer, followed by the rest of the control volume.
+                    double boundary_layer_thickness      = bd->boundary_layer->thickness(d->surface, i);
+                    double interpolation_layer_thickness = Parameters::interpolation_layer_thickness;
+                    double total_thickness               = boundary_layer_thickness + interpolation_layer_thickness;
+                    
+                    // Are we inside one of the first two zones?
+                    if (normal_distance < total_thickness) {
+                        // Check whether A) we are above the panel, and whether B) we are close to one of the panel's edges:
+                        bool x_above_panel = true;
+                        double panel_edge_distance = total_thickness;
+                        for (int l = 0; l < (int) d->surface->panel_nodes[i].size(); l++) {
+                            int next_l;
+                            if (l == (int) d->surface->panel_nodes[i].size() - 1)
+                                next_l = 0;
                             else
-                                close_panels.push_back(make_pair(boundary_layer_velocity, panel_edge_distance));
-                        } else {
-                            // We are in the interpolation layer.
-                            // Interpolate between the surface velocity, and the velocity away from the body:
-                            Vector3d lower_velocity = surface_velocity(d->surface, i);
-   
-                            Vector3d upper_point = d->surface->panel_collocation_point(i, false) - d->surface->panel_normal(i) * total_thickness;
-                            Vector3d upper_velocity = compute_velocity(upper_point);
+                                next_l = l + 1;
                                 
-                            double interpolation_distance = normal_distance - boundary_layer_thickness;
-                            Vector3d velocity_interpolated =
-                                (interpolation_distance * upper_velocity + (interpolation_layer_thickness - interpolation_distance) * lower_velocity) 
-                                / interpolation_layer_thickness;
+                            Vector3d point_a = d->surface->panel_transformed_points[i][l];
+                            Vector3d point_b = d->surface->panel_transformed_points[i][next_l];
+                                
+                            Vector3d edge = point_b - point_a;
+                            Vector3d normal(-edge(1), edge(0), 0.0);
+                            normal.normalize();
+
+                            // We are above the panel if the projection lies inside all four panel edges:
+                            double normal_component = (x_transformed - point_a).dot(normal);
+                            if (normal_component < 0)
+                                x_above_panel = false;
+                                
+                            double edge_distance = sqrt(pow(normal_component, 2) + pow(x_transformed(2), 2));
+                            if (edge_distance < panel_edge_distance) {
+                                // Does the point lie beside the panel edge?
+                                if (edge.dot(x_transformed - point_a) * edge.dot(x_transformed - point_b) < 0)
+                                    panel_edge_distance = edge_distance;
                                     
-                            if (x_above_panel)
-                                return velocity_interpolated;
-                            else
-                                close_panels.push_back(make_pair(velocity_interpolated, panel_edge_distance));
+                                // Is the point close to the panel vertex?
+                                double node_distance = (x_transformed - point_a).norm();
+                                if (node_distance < panel_edge_distance)
+                                    panel_edge_distance = node_distance;
+                            }
+                        }
+                        
+                        if (x_above_panel || (panel_edge_distance < total_thickness)) {
+                            // We are close and above a panel, or close to one of its edges.
+                            if (normal_distance < boundary_layer_thickness) {
+                                // We are in the boundary layer:
+                                Vector3d boundary_layer_velocity = bd->boundary_layer->velocity(d->surface, i, normal_distance);
+                                    
+                                if (x_above_panel)
+                                    return boundary_layer_velocity;
+                                else
+                                    close_panels.push_back(make_pair(boundary_layer_velocity, panel_edge_distance));
+                            } else {
+                                // We are in the interpolation layer.
+                                // Interpolate between the surface velocity, and the velocity away from the body:
+                                Vector3d lower_velocity = surface_velocity(d->surface, i);
+       
+                                Vector3d upper_point = d->surface->panel_collocation_point(i, false) - d->surface->panel_normal(i) * total_thickness;
+                                Vector3d upper_velocity = compute_velocity(upper_point);
+                                    
+                                double interpolation_distance = normal_distance - boundary_layer_thickness;
+                                Vector3d velocity_interpolated =
+                                    (interpolation_distance * upper_velocity + (interpolation_layer_thickness - interpolation_distance) * lower_velocity) 
+                                    / interpolation_layer_thickness;
+                                        
+                                if (x_above_panel)
+                                    return velocity_interpolated;
+                                else
+                                    close_panels.push_back(make_pair(velocity_interpolated, panel_edge_distance));
+                            }
                         }
                     }
                 }
             }
+            
+            if (inside_surface)
+                return freestream_velocity;
             
             offset += d->surface->n_panels();
         }
