@@ -1484,6 +1484,8 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
     for (bdi = bodies.begin(); bdi != bodies.end(); bdi++) {
         const shared_ptr<BodyData> &bd = *bdi;
         
+        bool inside_body = true;
+        
         // Iterate surfaces:
         vector<shared_ptr<Body::SurfaceData> > surfaces;
         vector<shared_ptr<Body::LiftingSurfaceData> >::const_iterator lsi;
@@ -1496,7 +1498,6 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
         for (si = surfaces.begin(); si != surfaces.end(); si++) {
             const shared_ptr<Body::SurfaceData> &d = *si;
 
-            bool inside_surface = true;
             for (int i = 0; i < d->surface->n_panels(); i++) {
                 // Transform the point 'x' into the panel coordinate system:
                 Vector3d x_transformed = d->surface->panel_coordinate_transformation(i) * x;
@@ -1504,7 +1505,7 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
                 // Are we outside of the surface?
                 if (x_transformed(2) < Parameters::inversion_tolerance) {
                     // Yes.
-                    inside_surface = false;
+                    inside_body = false;
                 
                     // Compute normal distance of the point 'x' from panel:
                     double normal_distance = fabs(x_transformed(2));
@@ -1589,11 +1590,12 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
                 }
             }
             
-            if (inside_surface)
-                return freestream_velocity;
-            
             offset += d->surface->n_panels();
         }
+        
+        // If we are inside a body, return the freestream velocity:
+        if (inside_body)
+            return freestream_velocity; 
     }
                
     // Is the point 'x' close to any panels?
