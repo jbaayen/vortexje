@@ -1468,7 +1468,9 @@ Solver::compute_velocity_potential(const Vector3d &x) const
 }
 
 /**
-   Computes velocity at the given point, interpolating if close to the body.
+   Computes velocity at the given point, interpolating if close to the body. 
+   
+   The interpolation code assumes the outer angles between panels to be over 90 degrees.
    
    @param[in]   x            Reference point.
    @param[in]   ignore_set   Set of panel IDs not to interpolate for.
@@ -1481,6 +1483,8 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x, std::set<int> &i
     vector<Vector3d, Eigen::aligned_allocator<Vector3d> > close_panel_velocities;
     
     int offset = 0;
+    
+    bool in_interior_layer_of_a_panel = false;
 
     // Iterate bodies:
     vector<shared_ptr<BodyData> >::const_iterator bdi;
@@ -1506,90 +1510,97 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x, std::set<int> &i
                     
                 // Transform the point 'x' into the panel coordinate system:
                 Vector3d x_transformed = d->surface->panel_coordinate_transformation(i) * x;
+   
+                // Compute normal distance of the point 'x' from panel:
+                double normal_distance = fabs(x_transformed(2));
                 
-                // Verify that we are at the outer side of the panel:
-                if (x_transformed(2) < Parameters::inversion_tolerance) {           
-                    // Compute normal distance of the point 'x' from panel:
-                    double normal_distance = fabs(x_transformed(2));
-                    
-                    // We have three zones: 
-                    // The boundary layer, followed by the interpolation layer, followed by the rest of the control volume.
-                    double boundary_layer_thickness      = bd->boundary_layer->thickness(d->surface, i);
-                    double interpolation_layer_thickness = Parameters::interpolation_layer_thickness;
-                    double total_thickness               = boundary_layer_thickness + interpolation_layer_thickness;
-                    
-                    // Are we inside one of the first two layers?
-                    if (normal_distance < total_thickness) {
-                        // Yes.  Check whether A) we are above the panel, and whether B) we are close to one of the panel's edges:
-                        bool x_above_panel = true;
-                        double panel_edge_distance = total_thickness;
-                        for (int l = 0; l < (int) d->surface->panel_nodes[i].size(); l++) {
-                            int next_l;
-                            if (l == (int) d->surface->panel_nodes[i].size() - 1)
-                                next_l = 0;
-                            else
-                                next_l = l + 1;
-                                
-                            Vector3d point_a = d->surface->panel_transformed_points[i][l];
-                            Vector3d point_b = d->surface->panel_transformed_points[i][next_l];
-                                
-                            Vector3d edge = point_b - point_a;
-                            Vector3d normal(-edge(1), edge(0), 0.0);
-                            normal.normalize();
-
-                            // We are above the panel if the projection lies inside all four panel edges:
-                            double normal_component = (x_transformed - point_a).dot(normal);
-                            if (normal_component <= 0)
-                                x_above_panel = false;
-                                
-                            double edge_distance = sqrt(pow(normal_component, 2) + pow(x_transformed(2), 2));
-                            if (edge_distance < panel_edge_distance) {
-                                // Does the point lie beside the panel edge?
-                                if (edge.dot(x_transformed - point_a) * edge.dot(x_transformed - point_b) < 0)
-                                    panel_edge_distance = edge_distance;
-                                    
-                                // Is the point close to the panel vertex?
-                                double node_distance = (x_transformed - point_a).norm();
-                                if (node_distance < panel_edge_distance)
-                                    panel_edge_distance = node_distance;
-                            }
-                        }
-                        
-                        // Compute distance to panel:
-                        double panel_distance;
-                        if (x_above_panel)
-                            panel_distance = normal_distance;
+                // We have three zones: 
+                // The boundary layer, followed by the interpolation layer, followed by the rest of the control volume.
+                double boundary_layer_thickness      = bd->boundary_layer->thickness(d->surface, i);
+                double interpolation_layer_thickness = Parameters::interpolation_layer_thickness;
+                double total_thickness               = boundary_layer_thickness + interpolation_layer_thickness;
+                
+                // Are we inside one of the first two layers?
+                if (normal_distance < total_thickness) {
+                    // Yes.  Check whether A) we are above the panel, and whether B) we are close to one of the panel's edges:
+                    bool x_above_panel = true;
+                    double panel_edge_distance = total_thickness;
+                    for (int l = 0; l < (int) d->surface->panel_nodes[i].size(); l++) {
+                        int next_l;
+                        if (l == (int) d->surface->panel_nodes[i].size() - 1)
+                            next_l = 0;
                         else
-                            panel_distance = panel_edge_distance;
-                        
-                        // Are we close to the panel?
-                        if (panel_distance < total_thickness) {
-                            // Yes.
+                            next_l = l + 1;
+                            
+                        Vector3d point_a = d->surface->panel_transformed_points[i][l];
+                        Vector3d point_b = d->surface->panel_transformed_points[i][next_l];
+                            
+                        Vector3d edge = point_b - point_a;
+                        Vector3d normal(-edge(1), edge(0), 0.0);
+                        normal.normalize();
+
+                        // We are above the panel if the projection lies inside all four panel edges:
+                        double normal_component = (x_transformed - point_a).dot(normal);
+                        if (normal_component <= 0)
+                            x_above_panel = false;
+                            
+                        double edge_distance = sqrt(pow(normal_component, 2) + pow(x_transformed(2), 2));
+                        if (edge_distance < panel_edge_distance) {
+                            // Does the point lie beside the panel edge?
+                            if (edge.dot(x_transformed - point_a) * edge.dot(x_transformed - point_b) < 0)
+                                panel_edge_distance = edge_distance;
+                                
+                            // Is the point close to the panel vertex?
+                            double node_distance = (x_transformed - point_a).norm();
+                            if (node_distance < panel_edge_distance)
+                                panel_edge_distance = node_distance;
+                        }
+                    }
+                    
+                    // Compute distance to panel:
+                    double panel_distance;
+                    if (x_above_panel)
+                        panel_distance = normal_distance;
+                    else
+                        panel_distance = panel_edge_distance;
+                    
+                    // Are we close to the panel?
+                    if (panel_distance < total_thickness) {                            
+                        // Yes.  Verify that we are at the outer side of the panel:
+                        if (x_transformed(2) < Parameters::inversion_tolerance) {
+                            Vector3d velocity;
+                            
                             if (panel_distance < boundary_layer_thickness) {
                                 // We are in the boundary layer:
-                                Vector3d boundary_layer_velocity = bd->boundary_layer->velocity(d->surface, i, panel_distance);
+                                velocity = bd->boundary_layer->velocity(d->surface, i, panel_distance);
                                     
-                                close_panel_velocities.push_back(boundary_layer_velocity);
                             } else {
                                 // We are in the interpolation layer.
                                 // Interpolate between the surface velocity, and the velocity away from the body:
                                 Vector3d lower_velocity = surface_velocity(d->surface, i);
        
+                                // This point lies in the control volume only, if A) no other body lies in the way, and B) the exterior angles are more than 90 degrees each.
                                 Vector3d upper_point = d->surface->panel_collocation_point(i, false) - d->surface->panel_normal(i) * total_thickness;
                                 
                                 // Compute the upper velocity again using interpolation, in case we are now close to another panel.  This can happen in concave corners.
+                                // We must take care, however, to avoid the possibility of an infinite loop.
                                 ignore_set.insert(i);
                                 Vector3d upper_velocity = compute_velocity_interpolated(upper_point, ignore_set);
                                     
+                                // Interpolate:
                                 double interpolation_distance = panel_distance - boundary_layer_thickness;
-                                Vector3d velocity_interpolated =
-                                    (interpolation_distance * upper_velocity + (interpolation_layer_thickness - interpolation_distance) * lower_velocity) 
-                                    / interpolation_layer_thickness;
-                                        
-                                close_panel_velocities.push_back(velocity_interpolated);
-                                
-                                // Even if we are above a panel, we must keep going, to handle concave corners.
+                                velocity = (interpolation_distance * upper_velocity + (interpolation_layer_thickness - interpolation_distance) * lower_velocity) 
+                                            / interpolation_layer_thickness;
                             }
+                            
+                            // Store interpolated velocity.  We cannot return here.  In concave corners, a point may be close to more than one panel.
+                            close_panel_velocities.push_back(velocity);
+                            
+                        } else {
+                            in_interior_layer_of_a_panel = true;
+                            
+                            // We cannot return the freestream velocity here.  Possibly, we are a sharp edge (such as the trailing edge of an airfoil), and
+                            // also close to the exterior of another panel.
                         }
                     }
                 }
@@ -1620,6 +1631,10 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x, std::set<int> &i
         }
         
         return velocity;
+        
+    } else if (in_interior_layer_of_a_panel) {
+        // We are in the interior layer close to the surface.  Return undisturbed freestream velocity:
+        return freestream_velocity;
         
     } else {
         // No close panels.  Compute potential velocity:

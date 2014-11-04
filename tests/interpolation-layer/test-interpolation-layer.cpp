@@ -20,7 +20,8 @@ using namespace Vortexje;
 
 static const double pi = 3.141592653589793238462643383279502884;
 
-#define TEST_TOLERANCE 1e-12
+#define TEST_TOLERANCE  1e-12
+#define INSIDE_DISTANCE 1e-2
 
 int
 main (int argc, char **argv)
@@ -168,6 +169,23 @@ main (int argc, char **argv)
                 
                 exit(1);
             }
+            
+            // Check velocity inside body:
+            point = perturbed_collocation_point + INSIDE_DISTANCE * wing->panel_normal(i);
+            
+            velocity           = solver.velocity(point);
+            reference_velocity = freestream_velocity;
+            
+            if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
+                cerr << " *** INSIDE BODY VELOCITY TEST FAILED *** " << endl;
+                cerr << " panel = " << i << endl;
+                cerr << " perturbation = " << perturbations[j] << endl;
+                cerr << " |V_ref| = " << reference_velocity.norm() << endl;
+                cerr << " |V| = " << velocity.norm() << endl;
+                cerr << " ******************* " << endl;
+                
+                exit(1);
+            }
         }
     }
     
@@ -233,6 +251,22 @@ main (int argc, char **argv)
         
         if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
             cerr << " *** INTERPOLATION LAYER (CORNER) EDGE VELOCITY TEST FAILED *** " << endl;
+            cerr << " node = " << i << endl;
+            cerr << " |V_ref| = " << reference_velocity.norm() << endl;
+            cerr << " |V| = " << velocity.norm() << endl;
+            cerr << " ******************* " << endl;
+            
+            exit(1);
+        }
+        
+        // Check velocity inside body:
+        point = airfoil_point + 1e-4 * direction;
+
+        velocity           = solver.velocity(point);
+        reference_velocity = freestream_velocity;
+        
+        if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
+            cerr << " *** INSIDE BODY (CORNER) VELOCITY TEST FAILED *** " << endl;
             cerr << " node = " << i << endl;
             cerr << " |V_ref| = " << reference_velocity.norm() << endl;
             cerr << " |V| = " << velocity.norm() << endl;
