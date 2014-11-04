@@ -1584,8 +1584,9 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x, std::set<int> &i
                                 
                                 // Compute the upper velocity again using interpolation, in case we are now close to another panel.  This can happen in concave corners.
                                 // We must take care, however, to avoid the possibility of an infinite loop.
-                                ignore_set.insert(i);
-                                Vector3d upper_velocity = compute_velocity_interpolated(upper_point, ignore_set);
+                                set<int> ignore_set_copy(ignore_set);
+                                ignore_set_copy.insert(i);
+                                Vector3d upper_velocity = compute_velocity_interpolated(upper_point, ignore_set_copy);
                                     
                                 // Interpolate:
                                 double interpolation_distance = panel_distance - boundary_layer_thickness;
