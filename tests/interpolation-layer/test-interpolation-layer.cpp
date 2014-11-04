@@ -27,7 +27,7 @@ int
 main (int argc, char **argv)
 {
     // Set parameters:
-    Parameters::interpolation_layer_thickness = 2.5e-2;
+    Parameters::interpolation_layer_thickness = 2e-2;
     Parameters::convect_wake                  = false;
     Parameters::static_wake_length            = 1e2;
     
@@ -127,6 +127,7 @@ main (int argc, char **argv)
             
             if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
                 cerr << " *** INTERPOLATION LAYER SURFACE VELOCITY TEST FAILED *** " << endl;
+                cerr << " panel = " << i << endl;
                 cerr << " perturbation = " << perturbations[j] << endl;
                 cerr << " |V_ref| = " << reference_velocity.norm() << endl;
                 cerr << " |V| = " << velocity.norm() << endl;
@@ -143,6 +144,7 @@ main (int argc, char **argv)
             
             if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
                 cerr << " *** INTERPOLATION LAYER INNER VELOCITY TEST FAILED *** " << endl;
+                cerr << " panel = " << i << endl;
                 cerr << " perturbation = " << perturbations[j] << endl;
                 cerr << " |V_ref| = " << reference_velocity.norm() << endl;
                 cerr << " |V| = " << velocity.norm() << endl;
@@ -159,23 +161,8 @@ main (int argc, char **argv)
             
             if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
                 cerr << " *** INTERPOLATION LAYER EDGE VELOCITY TEST FAILED *** " << endl;
-                cerr << " perturbation = " << endl;
-                cerr << " |V_ref| = " << reference_velocity.norm() << endl;
-                cerr << " |V| = " << velocity.norm() << endl;
-                cerr << " ******************* " << endl;
-                
-                exit(1);
-            }
-            
-            // Check velocity inside body:
-            point = perturbed_collocation_point + INSIDE_DISTANCE * wing->panel_normal(i);
-            
-            velocity           = solver.velocity(point);
-            reference_velocity = freestream_velocity;
-            
-            if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
-                cerr << " *** INSIDE BODY VELOCITY TEST FAILED *** " << endl;
-                cerr << " perturbation = " << endl;
+                cerr << " panel = " << i << endl;
+                cerr << " perturbation = " << perturbations[j] << endl;
                 cerr << " |V_ref| = " << reference_velocity.norm() << endl;
                 cerr << " |V| = " << velocity.norm() << endl;
                 cerr << " ******************* " << endl;
@@ -215,6 +202,7 @@ main (int argc, char **argv)
         
         if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
             cerr << " *** INTERPOLATION LAYER (CORNER) SURFACE VELOCITY TEST FAILED *** " << endl;
+            cerr << " node = " << i << endl;
             cerr << " |V_ref| = " << reference_velocity.norm() << endl;
             cerr << " |V| = " << velocity.norm() << endl;
             cerr << " ******************* " << endl;
@@ -230,6 +218,7 @@ main (int argc, char **argv)
         
         if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
             cerr << " *** INTERPOLATION LAYER (CORNER) INNER VELOCITY TEST FAILED *** " << endl;
+            cerr << " node = " << i << endl;
             cerr << " |V_ref| = " << reference_velocity.norm() << endl;
             cerr << " |V| = " << velocity.norm() << endl;
             cerr << " ******************* " << endl;
@@ -245,21 +234,7 @@ main (int argc, char **argv)
         
         if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
             cerr << " *** INTERPOLATION LAYER (CORNER) EDGE VELOCITY TEST FAILED *** " << endl;
-            cerr << " |V_ref| = " << reference_velocity.norm() << endl;
-            cerr << " |V| = " << velocity.norm() << endl;
-            cerr << " ******************* " << endl;
-            
-            exit(1);
-        }
-        
-        // Check velocity inside body:
-        point = airfoil_point + 1e-4 * direction;
-
-        velocity           = solver.velocity(point);
-        reference_velocity = freestream_velocity;
-        
-        if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
-            cerr << " *** INSIDE BODY (CORNER) VELOCITY TEST FAILED *** " << endl;
+            cerr << " node = " << i << endl;
             cerr << " |V_ref| = " << reference_velocity.norm() << endl;
             cerr << " |V| = " << velocity.norm() << endl;
             cerr << " ******************* " << endl;

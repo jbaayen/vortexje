@@ -1484,8 +1484,6 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
     for (bdi = bodies.begin(); bdi != bodies.end(); bdi++) {
         const shared_ptr<BodyData> &bd = *bdi;
         
-        bool inside_body = true;
-        
         // Iterate surfaces:
         vector<shared_ptr<Body::SurfaceData> > surfaces;
         vector<shared_ptr<Body::LiftingSurfaceData> >::const_iterator lsi;
@@ -1502,11 +1500,8 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
                 // Transform the point 'x' into the panel coordinate system:
                 Vector3d x_transformed = d->surface->panel_coordinate_transformation(i) * x;
                 
-                // Are we outside of the surface?
-                if (x_transformed(2) < Parameters::inversion_tolerance) {
-                    // Yes.
-                    inside_body = false;
-                
+                // Verify that we are at the outer side of the panel:
+                if (x_transformed(2) < Parameters::inversion_tolerance) {           
                     // Compute normal distance of the point 'x' from panel:
                     double normal_distance = fabs(x_transformed(2));
                     
@@ -1516,9 +1511,9 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
                     double interpolation_layer_thickness = Parameters::interpolation_layer_thickness;
                     double total_thickness               = boundary_layer_thickness + interpolation_layer_thickness;
                     
-                    // Are we inside one of the first two zones?
+                    // Are we inside one of the first two layers?
                     if (normal_distance < total_thickness) {
-                        // Check whether A) we are above the panel, and whether B) we are close to one of the panel's edges:
+                        // Yes.  Check whether A) we are above the panel, and whether B) we are close to one of the panel's edges:
                         bool x_above_panel = true;
                         double panel_edge_distance = total_thickness;
                         for (int l = 0; l < (int) d->surface->panel_nodes[i].size(); l++) {
@@ -1592,10 +1587,6 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
             
             offset += d->surface->n_panels();
         }
-        
-        // If we are inside a body, return the freestream velocity:
-        if (inside_body)
-            return freestream_velocity; 
     }
                
     // Is the point 'x' close to any panels?
