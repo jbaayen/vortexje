@@ -20,7 +20,7 @@ using namespace Vortexje;
 
 static const double pi = 3.141592653589793238462643383279502884;
 
-#define TEST_TOLERANCE  1e-12
+#define TEST_TOLERANCE  1e-9
 #define INSIDE_DISTANCE 1e-2
 
 int
@@ -95,19 +95,20 @@ main (int argc, char **argv)
     solver.initialize_wakes();
     solver.solve();
 
-    // Check velocities on and above panel collocation points:
+    // Check for a number of perturbations:
     vector<double> perturbations;
     perturbations.push_back(0);
-    perturbations.push_back(1e-1);
+    perturbations.push_back(0.1);
+    perturbations.push_back(0.99);
     
     for (int j = 0; j < (int) perturbations.size(); j++) {
+        // Check velocities on and above panel collocation points:
         for (int i = 0; i < n_points_per_airfoil; i++) {  
             Vector3d point, velocity, reference_velocity;
             
             Vector3d collocation_point = wing->panel_collocation_point(i, false);
             
             Vector3d inner_velocity = solver.surface_velocity(wing, i);
-            Vector3d outer_velocity = solver.velocity(collocation_point - (Parameters::interpolation_layer_thickness + Parameters::inversion_tolerance) * wing->panel_normal(i));
             
             int next_i;
             if (i == n_points_per_airfoil - 1)
@@ -115,9 +116,11 @@ main (int argc, char **argv)
             else
                 next_i = i + 1;
                 
-            Vector3d perturbation_dir = airfoil_points[next_i] - airfoil_points[i];
+            Vector3d perturbation_max = 0.5 * (airfoil_points[next_i] - airfoil_points[i]);
             
-            Vector3d perturbed_collocation_point = collocation_point + perturbations[j] * perturbation_dir;
+            Vector3d perturbed_collocation_point = collocation_point + perturbations[j] * perturbation_max;
+            
+            Vector3d outer_velocity = solver.velocity(perturbed_collocation_point - (Parameters::interpolation_layer_thickness + Parameters::inversion_tolerance) * wing->panel_normal(i));
             
             // Check surface velocity:
             point = perturbed_collocation_point;
@@ -170,15 +173,62 @@ main (int argc, char **argv)
                 exit(1);
             }
             
-            // Check velocity inside body:
-            point = perturbed_collocation_point + INSIDE_DISTANCE * wing->panel_normal(i);
+            // Check velocity inside body.  Only for "small" perturbances, that remain inside the body.
+            if (perturbations[j] <= 0.1) {
+                point = perturbed_collocation_point + INSIDE_DISTANCE * wing->panel_normal(i);
+                
+                velocity           = solver.velocity(point);
+                reference_velocity = freestream_velocity;
+                
+                if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
+                    cerr << " *** INSIDE BODY VELOCITY TEST FAILED *** " << endl;
+                    cerr << " panel = " << i << endl;
+                    cerr << " perturbation = " << perturbations[j] << endl;
+                    cerr << " |V_ref| = " << reference_velocity.norm() << endl;
+                    cerr << " |V| = " << velocity.norm() << endl;
+                    cerr << " ******************* " << endl;
+                    
+                    exit(1);
+                }
+            }
+        }
+    
+        // Check velocities on and above corner points:
+        for (int i = 0; i < n_points_per_airfoil; i++) {
+            Vector3d point, velocity, reference_velocity;
+            
+            int prev_i;
+            if (i == 0)
+                prev_i = n_points_per_airfoil - 1;
+            else
+                prev_i = i - 1;
+                
+            Vector3d airfoil_point = airfoil_points[i];
+                
+            Vector3d prev_normal = wing->panel_normal(prev_i);
+            Vector3d normal      = wing->panel_normal(i);
+            
+            double lambda_1 = 0.5 + 0.5 * perturbations[j];
+            double lambda_2 = 1.0 - lambda_1;
+                
+            Vector3d direction = lambda_1 * prev_normal + lambda_2  * normal;
+            direction.normalize();
+            
+            Vector3d inner_velocity = 0.5 * solver.surface_velocity(wing, prev_i) + 0.5 * solver.surface_velocity(wing, i);
+            
+            Vector3d outer_point = airfoil_point - Parameters::interpolation_layer_thickness * direction;
+
+            Vector3d outer_velocity = solver.velocity(outer_point);
+                                         
+            // Check surface velocity:
+            point = airfoil_point;
             
             velocity           = solver.velocity(point);
-            reference_velocity = freestream_velocity;
+            reference_velocity = inner_velocity;
             
             if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
-                cerr << " *** INSIDE BODY VELOCITY TEST FAILED *** " << endl;
-                cerr << " panel = " << i << endl;
+                cerr << " *** INTERPOLATION LAYER (CORNER) SURFACE VELOCITY TEST FAILED *** " << endl;
+                cerr << " node = " << i << endl;
                 cerr << " perturbation = " << perturbations[j] << endl;
                 cerr << " |V_ref| = " << reference_velocity.norm() << endl;
                 cerr << " |V| = " << velocity.norm() << endl;
@@ -186,93 +236,61 @@ main (int argc, char **argv)
                 
                 exit(1);
             }
-        }
-    }
-    
-    // Check velocities on and above corner points:
-    for (int i = 0; i < n_points_per_airfoil; i++) {
-        Vector3d point, velocity, reference_velocity;
-        
-        int prev_i;
-        if (i == 0)
-            prev_i = n_points_per_airfoil - 1;
-        else
-            prev_i = i - 1;
-        
-        Vector3d collocation_point      = wing->panel_collocation_point(i     , false);
-        Vector3d prev_collocation_point = wing->panel_collocation_point(prev_i, false);
-        
-        Vector3d inner_velocity = 0.5 * (solver.surface_velocity(wing, prev_i) + solver.surface_velocity(wing, i));
-        Vector3d outer_velocity = 0.5 * (solver.velocity(prev_collocation_point - (Parameters::interpolation_layer_thickness + Parameters::inversion_tolerance) * wing->panel_normal(prev_i)) +
-                                         solver.velocity(collocation_point - (Parameters::interpolation_layer_thickness + Parameters::inversion_tolerance) * wing->panel_normal(i)));
-                                         
-        Vector3d airfoil_point = airfoil_points[i];
+            
+            // Don't run the below tests on sharp edges, when perturbed:
+            if ((i == 0 || i == 1 || i == 4 || i == 5) && j > 0)
+                continue;
+           
+            // Check velocity inside interpolation layer:
+            point = airfoil_point - 0.25 * Parameters::interpolation_layer_thickness * direction;
+            
+            velocity           = solver.velocity(point);
+            reference_velocity = 0.75 * inner_velocity + 0.25 * outer_velocity;
+            
+            if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
+                cerr << " *** INTERPOLATION LAYER (CORNER) INNER VELOCITY TEST FAILED *** " << endl;
+                cerr << " node = " << i << endl;
+                cerr << " perturbation = " << perturbations[j] << endl;
+                cerr << " |V_ref| = " << reference_velocity.norm() << endl;
+                cerr << " |V| = " << velocity.norm() << endl;
+                cerr << " ******************* " << endl;
+                
+                exit(1);
+            }
+            
+            // Check velocity at edge of interpolation layer:
+            point = airfoil_point - (Parameters::interpolation_layer_thickness - Parameters::inversion_tolerance) * direction;
+            
+            velocity           = solver.velocity(point);
+            reference_velocity = outer_velocity;
+            
+            if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
+                cerr << " *** INTERPOLATION LAYER (CORNER) EDGE VELOCITY TEST FAILED *** " << endl;
+                cerr << " node = " << i << endl;
+                cerr << " perturbation = " << perturbations[j] << endl;
+                cerr << " |V_ref| = " << reference_velocity.norm() << endl;
+                cerr << " |V| = " << velocity.norm() << endl;
+                cerr << " ******************* " << endl;
+                
+                exit(1);
+            }
+            
+            // Check velocity inside body:
+            point = airfoil_point + 1e-4 * direction;
 
-        Vector3d direction = wing->panel_normal(prev_i) + wing->panel_normal(i);
-        direction.normalize();
+            velocity           = solver.velocity(point);
+            reference_velocity = freestream_velocity;
             
-        // Check surface velocity:
-        point = airfoil_point;
-        
-        velocity           = solver.velocity(point);
-        reference_velocity = inner_velocity;
-        
-        if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
-            cerr << " *** INTERPOLATION LAYER (CORNER) SURFACE VELOCITY TEST FAILED *** " << endl;
-            cerr << " node = " << i << endl;
-            cerr << " |V_ref| = " << reference_velocity.norm() << endl;
-            cerr << " |V| = " << velocity.norm() << endl;
-            cerr << " ******************* " << endl;
-            
-            exit(1);
-        }
-        
-        // Check velocity inside interpolation layer:
-        point = airfoil_point - 0.25 * Parameters::interpolation_layer_thickness * direction;
-        
-        velocity           = solver.velocity(point);
-        reference_velocity = 0.75 * inner_velocity + 0.25 * outer_velocity;
-        
-        if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
-            cerr << " *** INTERPOLATION LAYER (CORNER) INNER VELOCITY TEST FAILED *** " << endl;
-            cerr << " node = " << i << endl;
-            cerr << " |V_ref| = " << reference_velocity.norm() << endl;
-            cerr << " |V| = " << velocity.norm() << endl;
-            cerr << " ******************* " << endl;
-            
-            exit(1);
-        }
-        
-        // Check velocity at edge of interpolation layer:
-        point = airfoil_point - (Parameters::interpolation_layer_thickness - Parameters::inversion_tolerance) * direction;
-        
-        velocity           = solver.velocity(point);
-        reference_velocity = outer_velocity;
-        
-        if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
-            cerr << " *** INTERPOLATION LAYER (CORNER) EDGE VELOCITY TEST FAILED *** " << endl;
-            cerr << " node = " << i << endl;
-            cerr << " |V_ref| = " << reference_velocity.norm() << endl;
-            cerr << " |V| = " << velocity.norm() << endl;
-            cerr << " ******************* " << endl;
-            
-            exit(1);
-        }
-        
-        // Check velocity inside body:
-        point = airfoil_point + 1e-4 * direction;
-
-        velocity           = solver.velocity(point);
-        reference_velocity = freestream_velocity;
-        
-        if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
-            cerr << " *** INSIDE BODY (CORNER) VELOCITY TEST FAILED *** " << endl;
-            cerr << " node = " << i << endl;
-            cerr << " |V_ref| = " << reference_velocity.norm() << endl;
-            cerr << " |V| = " << velocity.norm() << endl;
-            cerr << " ******************* " << endl;
-            
-            exit(1);
+            if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
+                cerr << " *** INSIDE BODY (CORNER) VELOCITY TEST FAILED *** " << endl;
+                cerr << " node = " << i << endl;
+                cerr << " perturbation = " << perturbations[j] << endl;
+                cerr << " |V_ref| = " << reference_velocity.norm() << endl;
+                cerr << " |V| = " << velocity.norm() << endl;
+                cerr << " ******************* " << endl;
+                
+                exit(1);
+            }
         }
     }
     
