@@ -217,7 +217,9 @@ Solver::velocity_potential(const Vector3d &x) const
 Eigen::Vector3d
 Solver::velocity(const Eigen::Vector3d &x) const
 {
-    return compute_velocity_interpolated(x);
+    std::set<int> ignore_set;
+    
+    return compute_velocity_interpolated(x, ignore_set);
 }
 
 /**
@@ -1468,12 +1470,13 @@ Solver::compute_velocity_potential(const Vector3d &x) const
 /**
    Computes velocity at the given point, interpolating if close to the body.
    
-   @param[in]   x   Reference point.
+   @param[in]   x            Reference point.
+   @param[in]   ignore_set   Set of panel IDs not to interpolate for.
    
    @returns Velocity vector.
 */ 
 Eigen::Vector3d
-Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
+Solver::compute_velocity_interpolated(const Eigen::Vector3d &x, std::set<int> &ignore_set) const
 {
     vector<Vector3d, Eigen::aligned_allocator<Vector3d> > close_panel_velocities;
     
@@ -1497,6 +1500,10 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
             const shared_ptr<Body::SurfaceData> &d = *si;
 
             for (int i = 0; i < d->surface->n_panels(); i++) {
+                // Ignore the given set of panels.
+                if (ignore_set.find(i) != ignore_set.end())
+                    continue;
+                    
                 // Transform the point 'x' into the panel coordinate system:
                 Vector3d x_transformed = d->surface->panel_coordinate_transformation(i) * x;
                 
@@ -1569,7 +1576,10 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x) const
                                 Vector3d lower_velocity = surface_velocity(d->surface, i);
        
                                 Vector3d upper_point = d->surface->panel_collocation_point(i, false) - d->surface->panel_normal(i) * total_thickness;
-                                Vector3d upper_velocity = compute_velocity(upper_point);
+                                
+                                // Compute the upper velocity again using interpolation, in case we are now close to another panel.  This can happen in concave corners.
+                                ignore_set.insert(i);
+                                Vector3d upper_velocity = compute_velocity_interpolated(upper_point, ignore_set);
                                     
                                 double interpolation_distance = panel_distance - boundary_layer_thickness;
                                 Vector3d velocity_interpolated =

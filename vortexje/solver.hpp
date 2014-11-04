@@ -10,6 +10,7 @@
 #define __SOLVER_HPP__
 
 #include <memory>
+#include <set>
 #include <string>
 #include <fstream>
 
@@ -180,7 +181,7 @@ private:
 
     double compute_pressure_coefficient(const Eigen::Vector3d &surface_velocity, double dphidt, double v_ref) const;
     
-    Eigen::Vector3d compute_velocity_interpolated(const Eigen::Vector3d &x) const;
+    Eigen::Vector3d compute_velocity_interpolated(const Eigen::Vector3d &x, std::set<int> &ignore_set) const;
     
     Eigen::Vector3d compute_velocity(const Eigen::Vector3d &x) const;
     
