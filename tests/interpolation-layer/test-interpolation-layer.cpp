@@ -20,8 +20,7 @@ using namespace Vortexje;
 
 static const double pi = 3.141592653589793238462643383279502884;
 
-#define TEST_TOLERANCE  1e-12
-#define INSIDE_DISTANCE 1e-2
+#define TEST_TOLERANCE 1e-12
 
 int
 main (int argc, char **argv)
