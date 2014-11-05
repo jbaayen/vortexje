@@ -20,8 +20,7 @@ using namespace Vortexje;
 
 static const double pi = 3.141592653589793238462643383279502884;
 
-#define TEST_TOLERANCE  1e-9
-#define INSIDE_DISTANCE 1e-2
+#define TEST_TOLERANCE 1e-9
 
 int
 main (int argc, char **argv)
@@ -173,23 +172,29 @@ main (int argc, char **argv)
                 exit(1);
             }
             
-            // Check velocity inside body.  Only for "small" perturbances, that remain inside the body.
-            if (perturbations[j] <= 0.1) {
-                point = perturbed_collocation_point + INSIDE_DISTANCE * wing->panel_normal(i);
+            // Don't run the below tests on the trailing edge:
+            if (i == 4 || i == 5)
+                continue;
+            
+            // Don't run the below tests on sharp edges, when perturbed:
+            if ((i == 0 || i == 9 || i == 4 || i == 5) && j > 0)
+                continue;
+
+            // Check velocity inside body. 
+            point = perturbed_collocation_point + 1e-2 * Parameters::interpolation_layer_thickness * wing->panel_normal(i);
+            
+            velocity           = solver.velocity(point);
+            reference_velocity = (1.0 - 1e-2) * inner_velocity + 1e-2 * freestream_velocity;
+            
+            if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
+                cerr << " *** INSIDE BODY VELOCITY TEST FAILED *** " << endl;
+                cerr << " panel = " << i << endl;
+                cerr << " perturbation = " << perturbations[j] << endl;
+                cerr << " |V_ref| = " << reference_velocity.norm() << endl;
+                cerr << " |V| = " << velocity.norm() << endl;
+                cerr << " ******************* " << endl;
                 
-                velocity           = solver.velocity(point);
-                reference_velocity = freestream_velocity;
-                
-                if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
-                    cerr << " *** INSIDE BODY VELOCITY TEST FAILED *** " << endl;
-                    cerr << " panel = " << i << endl;
-                    cerr << " perturbation = " << perturbations[j] << endl;
-                    cerr << " |V_ref| = " << reference_velocity.norm() << endl;
-                    cerr << " |V| = " << velocity.norm() << endl;
-                    cerr << " ******************* " << endl;
-                    
-                    exit(1);
-                }
+                exit(1);
             }
         }
     
@@ -238,7 +243,7 @@ main (int argc, char **argv)
             }
             
             // Don't run the below tests on sharp edges, when perturbed:
-            if ((i == 0 || i == 1 || i == 4 || i == 5) && j > 0)
+            if ((i == 0 || i == 9 || i == 4 || i == 5) && j > 0)
                 continue;
            
             // Check velocity inside interpolation layer:
@@ -275,11 +280,20 @@ main (int argc, char **argv)
                 exit(1);
             }
             
+            // Don't run the below tests on sharp edges, or when perturbed:
+            if ((i == 0 || i == 9 || i == 4 || i == 5) || j > 0)
+                continue;
+            
             // Check velocity inside body:
-            point = airfoil_point + 1e-4 * direction;
+            point = airfoil_point + 1e-2 * Parameters::interpolation_layer_thickness * direction;
+            
+            lambda_1 = (wing->panel_coordinate_transformation(prev_i) * point)(2);
+            lambda_2 = (wing->panel_coordinate_transformation(i) * point)(2);
+
+            double w = 0.5 * (lambda_1 + lambda_2) / Parameters::interpolation_layer_thickness;      
 
             velocity           = solver.velocity(point);
-            reference_velocity = freestream_velocity;
+            reference_velocity = (1.0 - w) * inner_velocity + w * freestream_velocity;
             
             if ((velocity - reference_velocity).norm() > TEST_TOLERANCE) {
                 cerr << " *** INSIDE BODY (CORNER) VELOCITY TEST FAILED *** " << endl;
