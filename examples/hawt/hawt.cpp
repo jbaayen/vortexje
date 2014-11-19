@@ -214,7 +214,8 @@ public:
             
             blade->translate(position);
 
-            add_lifting_surface(blade);
+            shared_ptr<RamasamyLeishmanWake> wake(new RamasamyLeishmanWake(blade));           
+            add_lifting_surface(blade, wake);
         }
     }
     
@@ -234,17 +235,19 @@ main (int argc, char **argv)
     // Set simulation parameters:
     Parameters::unsteady_bernoulli            = true;
     Parameters::convect_wake                  = true;
-    Parameters::interpolation_layer_thickness = 1e-3;
-    Parameters::wake_vortex_core_radius       = 1e-3;
+    Parameters::interpolation_layer_thickness = 1.5e-3;
+    
+    RamasamyLeishmanWake::Parameters::initial_vortex_core_radius = 1.5e-3;
+    RamasamyLeishmanWake::Parameters::min_vortex_core_radius     = 1.5e-3;
     
     // Set up HAWT:
     Vector3d position(0, 0, 0);
     
     shared_ptr<HAWT> hawt(new HAWT(string("hawt"),
-                              N_BLADES,
-                              position,
-                              0.0,
-                              TIP_SPEED_RATIO * WIND_VELOCITY / ROTOR_RADIUS));
+                                   N_BLADES,
+                                   position,
+                                   0.0,
+                                   TIP_SPEED_RATIO * WIND_VELOCITY / ROTOR_RADIUS));
     
     // Set up solver:
     Solver solver("hawt-log");
