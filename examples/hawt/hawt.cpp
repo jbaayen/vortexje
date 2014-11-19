@@ -234,7 +234,7 @@ main (int argc, char **argv)
     // Set simulation parameters:
     Parameters::unsteady_bernoulli            = true;
     Parameters::convect_wake                  = true;
-    Parameters::interpolation_layer_thickness = 1e-1;
+    Parameters::interpolation_layer_thickness = 1e-3;
     Parameters::wake_vortex_core_radius       = 1e-3;
     
     // Set up HAWT:
