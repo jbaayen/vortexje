@@ -1481,14 +1481,21 @@ Solver::compute_velocity_potential(const Vector3d &x) const
 Eigen::Vector3d
 Solver::compute_velocity_interpolated(const Eigen::Vector3d &x, std::set<int> &ignore_set) const
 {
+    // Lists of close velocities, ordered by primacy:
     vector<Vector3d, Eigen::aligned_allocator<Vector3d> > close_panel_velocities;
     vector<Vector3d, Eigen::aligned_allocator<Vector3d> > close_panel_edge_velocities;
+    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > interior_close_panel_velocities;
+    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > interior_close_panel_edge_velocities;
     
+    vector<vector<Vector3d, Eigen::aligned_allocator<Vector3d> >* > velocity_lists;
+    velocity_lists.push_back(&close_panel_velocities);
+    velocity_lists.push_back(&close_panel_edge_velocities);
+    velocity_lists.push_back(&interior_close_panel_velocities);
+    velocity_lists.push_back(&interior_close_panel_edge_velocities);
+    
+    // Iterate bodies:
     int offset = 0;
     
-    bool in_interior_layer_of_a_panel = false;
-
-    // Iterate bodies:
     vector<shared_ptr<BodyData> >::const_iterator bdi;
     for (bdi = bodies.begin(); bdi != bodies.end(); bdi++) {
         const shared_ptr<BodyData> &bd = *bdi;
@@ -1512,6 +1519,13 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x, std::set<int> &i
                     
                 // Transform the point 'x' into the panel coordinate system:
                 Vector3d x_transformed = d->surface->panel_coordinate_transformation(i) * x;
+                
+                // Are we in the exterior, relative to the panel?
+                bool in_exterior;
+                if (x_transformed(2) < Parameters::inversion_tolerance)
+                    in_exterior = true;
+                else
+                    in_exterior = false;
    
                 // Compute normal distance of the point 'x' from panel:
                 double normal_distance = fabs(x_transformed(2));
@@ -1524,8 +1538,8 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x, std::set<int> &i
                 
                 // Are we inside one of the first two layers?
                 if (normal_distance < total_thickness) {
-                    // Yes.  Check whether A) we are above the panel, and whether B) we are close to one of the panel's edges:
-                    bool x_above_panel = true;
+                    // Yes.  Check whether A) the point projection lies inside the panel, and whether B) we are close to one of the panel's edges:
+                    bool projection_in_panel = true;
                     double panel_edge_distance = total_thickness;
                     Vector3d panel_to_point_direction(0, 0, 0);
                     for (int l = 0; l < (int) d->surface->panel_nodes[i].size(); l++) {
@@ -1545,7 +1559,7 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x, std::set<int> &i
                         // We are above the panel if the projection lies inside all four panel edges:
                         double normal_component = (x_transformed - point_a).dot(normal);
                         if (normal_component <= 0)
-                            x_above_panel = false;
+                            projection_in_panel = false;
                             
                         double edge_distance = sqrt(pow(normal_component, 2) + pow(x_transformed(2), 2));
                         if (edge_distance < panel_edge_distance) {
@@ -1570,7 +1584,7 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x, std::set<int> &i
                     // Compute distance to panel:
                     double panel_distance;
                     Vector3d to_point_direction;
-                    if (x_above_panel) {
+                    if (projection_in_panel) {
                         panel_distance = normal_distance;
                         to_point_direction = Vector3d(0, 0, -1);
                     } else {
@@ -1580,50 +1594,57 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x, std::set<int> &i
                     
                     // Are we close to the panel?
                     if (panel_distance < total_thickness) {                            
-                        // Yes.  Verify that we are at the outer side of the panel:
-                        if (x_transformed(2) < Parameters::inversion_tolerance) {
-                            Vector3d velocity;
-                            
-                            if (panel_distance < boundary_layer_thickness) {
-                                // We are in the boundary layer:
-                                velocity = bd->boundary_layer->velocity(d->surface, i, panel_distance);
-                                    
-                            } else if (panel_distance > 0) {
-                                // We are in the interpolation layer.
-                                // Interpolate between the surface velocity, and the velocity away from the body:
-                                Vector3d lower_velocity = surface_velocity(d->surface, i);
-       
-                                // This point lies in the control volume only, if A) no other body lies in the way, and B) the exterior angles\ are more than 90 degrees each.
-                                Vector3d upper_point_transformed = x_transformed + (total_thickness - panel_distance) * to_point_direction;
-                                Vector3d upper_point = d->surface->panel_coordinate_transformation(i).inverse() * upper_point_transformed;
+                        // Yes. 
+                        Vector3d velocity;
+                        
+                        if (panel_distance < boundary_layer_thickness) {
+                            // We are in the boundary layer:
+                            velocity = bd->boundary_layer->velocity(d->surface, i, panel_distance);
                                 
+                        } else if (panel_distance > 0) {
+                            // We are in the interpolation layer.
+                            // Interpolate between the surface velocity, and the velocity away from the body:
+                            Vector3d lower_velocity = surface_velocity(d->surface, i);
+   
+                            // This point lies in the control volume only, if A) no other body lies in the way, and B) the exterior angles\ are more than 90 degrees each.
+                            Vector3d upper_point_transformed = x_transformed + (total_thickness - panel_distance) * to_point_direction;
+                            Vector3d upper_point = d->surface->panel_coordinate_transformation(i).inverse() * upper_point_transformed;
+                            
+                            Vector3d upper_velocity;
+                            if (in_exterior) {
                                 // Compute the upper velocity again using interpolation, in case we are now close to another panel.  This can happen in concave corners.
                                 // We must take care, however, to avoid the possibility of an infinite loop.
                                 set<int> ignore_set_copy(ignore_set);
                                 ignore_set_copy.insert(i);
-                                Vector3d upper_velocity = compute_velocity_interpolated(upper_point, ignore_set_copy);
-                                    
-                                // Interpolate:
-                                double interpolation_distance = panel_distance - boundary_layer_thickness;
-                                velocity = (interpolation_distance * upper_velocity + (interpolation_layer_thickness - interpolation_distance) * lower_velocity) 
-                                            / interpolation_layer_thickness;
+                                upper_velocity = compute_velocity_interpolated(upper_point, ignore_set_copy);
+                                
                             } else {
-                                // We are on the panel.  Use surface velocity:
-                                velocity = surface_velocity(d->surface, i);
+                                // In the interior, we have the undisturbed freestream velocity.
+                                upper_velocity = freestream_velocity;
                                 
                             }
+                                
+                            // Interpolate:
+                            double interpolation_distance = panel_distance - boundary_layer_thickness;
+                            velocity = (interpolation_distance * upper_velocity + (interpolation_layer_thickness - interpolation_distance) * lower_velocity) 
+                                        / interpolation_layer_thickness;
+                        } else {
+                            // We are on the panel.  Use surface velocity:
+                            velocity = surface_velocity(d->surface, i);
                             
-                            // Store interpolated velocity.  We cannot return here.  In concave corners, a point may be close to more than one panel.
-                            if (x_above_panel)
+                        }
+                        
+                        // Store interpolated velocity.  We cannot return here.  In concave corners, a point may be close to more than one panel.
+                        if (in_exterior) {
+                            if (projection_in_panel)
                                 close_panel_velocities.push_back(velocity);
                             else
                                 close_panel_edge_velocities.push_back(velocity);
-                            
                         } else {
-                            in_interior_layer_of_a_panel = true;
-                            
-                            // We cannot return the freestream velocity here.  Possibly, we are a sharp edge (such as the trailing edge of an airfoil), and
-                            // also close to the exterior of another panel.
+                            if (projection_in_panel)
+                                interior_close_panel_velocities.push_back(velocity);
+                            else
+                                interior_close_panel_edge_velocities.push_back(velocity);
                         }
                     }
                 }
@@ -1632,41 +1653,26 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x, std::set<int> &i
             offset += d->surface->n_panels();
         }
     }
-               
-    // Exterior panels take priority over exterior edges, and exterior edges take priority over the interior layer.
-    if (close_panel_velocities.size() > 0) {
-        // Average:
-        Vector3d velocity = Vector3d(0, 0, 0);
-        vector<Vector3d, Eigen::aligned_allocator<Vector3d> >::iterator it;
-        for (it = close_panel_velocities.begin(); it != close_panel_velocities.end(); it++)
-            velocity += *it;
+    
+    // Are we close to any panels?   
+    for (int i = 0; i < (int) velocity_lists.size(); i++) {
+        // Yes, at primacy level i:
+        if (velocity_lists[i]->size() > 0) {
+            // Average:
+            Vector3d velocity = Vector3d(0, 0, 0);
+            vector<Vector3d, Eigen::aligned_allocator<Vector3d> >::iterator it;
+            for (it = velocity_lists[i]->begin(); it != velocity_lists[i]->end(); it++)
+                velocity += *it;
+                
+            // Normalize velocity.  The weights sum up to (n - 1) times the sum of the distances.
+            velocity /= velocity_lists[i]->size();
             
-        // Normalize velocity.  The weights sum up to (n - 1) times the sum of the distances.
-        velocity /= close_panel_velocities.size();
-        
-        return velocity;
-        
-    } else if (close_panel_edge_velocities.size() > 0) {
-        // Average:
-        Vector3d velocity = Vector3d(0, 0, 0);
-        vector<Vector3d, Eigen::aligned_allocator<Vector3d> >::iterator it;
-        for (it = close_panel_edge_velocities.begin(); it != close_panel_edge_velocities.end(); it++)
-            velocity += *it;
-            
-        // Normalize velocity.  The weights sum up to (n - 1) times the sum of the distances.
-        velocity /= close_panel_edge_velocities.size();
-        
-        return velocity;
-        
-    } else if (in_interior_layer_of_a_panel) {
-        // We are in the interior layer close to the surface.  Return undisturbed freestream velocity:
-        return freestream_velocity;
-        
-    } else {
-        // No close panels.  Compute potential velocity:
-        return compute_velocity(x);
-        
+            return velocity;
+        }
     }
+
+    // No close panels.  Compute potential velocity:
+    return compute_velocity(x);
 }
 
 /**

@@ -125,6 +125,22 @@ main (int argc, char **argv)
         exit(1);
     }
     
+    r = 0.0;
+    Vector3d locus_point(te_middle + (Parameters::static_wake_length + r) * Vector3d(1, 0, 0));
+ 
+    Vector3d reference_locus_point_velocity(0, -wake->doublet_coefficients[0] * r / (2 * pi * pow(Parameters::wake_vortex_core_radius, 2)), 0);
+    //Vector3d reference_locus_point_velocity(0, -wake->doublet_coefficients[0] / (2 * pi * r), 0);
+    
+    Vector3d locus_point_velocity = solver.velocity(locus_point) - freestream_velocity;
+    if ((locus_point_velocity - reference_locus_point_velocity).norm() > TEST_TOLERANCE) {
+        cerr << " *** LOCUS POINT TEST FAILED *** " << endl;
+        cerr << " |V_ref| = " << reference_locus_point_velocity.norm() << endl;
+        cerr << " |V| = " << locus_point_velocity.norm() << endl;
+        cerr << " ******************* " << endl;
+        
+        exit(1);
+    }
+    
     // Done:
     return 0;
 }

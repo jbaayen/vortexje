@@ -60,10 +60,10 @@ public:
        Wake vortex filament core radius (Rankine model).  Within the core, the velocity decreases linearly to zero.
        
        For wake-wake interaction problems, set this to an suitably small number greater than zero.  Care must be taken, however, that
-       the radius is less than half of the distance between two subsequent layers of wake panels.  I.e., it must hold that
+       the radius is less than the distance between two subsequent layers of wake panels.  I.e., it must hold that
        
        \f[
-         \mbox{wake\_vortex\_core\_radius} < 0.5 \cdot \mbox{wake\_emission\_distance\_factor} \cdot v_{\infty} \cdot dt 
+         \mbox{wake\_vortex\_core\_radius} < \mbox{wake\_emission\_distance\_factor} \cdot v_{\infty} \cdot dt 
        \f]
     */
     static double wake_vortex_core_radius;
