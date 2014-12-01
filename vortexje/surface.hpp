@@ -63,6 +63,10 @@ public:
     
     /**
        Node number to neigboring panel numbers map.
+       
+       A shared pointer is used to encapsulate the list of neighboring panel IDs.  This is to allow
+       physically different nodes to share and maintain an identical list of panel neighbours, as
+       required by the panel flattening procedure.
     */
     std::vector<std::shared_ptr<std::vector<int> > > node_panel_neighbors;
     
@@ -72,9 +76,14 @@ public:
     std::vector<std::vector<int> > panel_nodes;
     
     /**
-       Panel number to (edge number to (neighboring panel number, edge number)) map.
+       Panel number to (edge number to (neighboring panel number, edge number)-list) map.
+       
+       Edges are numbered locally in the positive direction, starting from 0.
+       
+       By including a vector of (neighboring panel number, edge number) pairs for every (panel, edge) pair,
+       an edge of a large panel may border several edges of smaller panels.
     */
-    std::vector<std::map<int, std::pair<int, int> > > panel_neighbors;
+    std::vector<std::vector<std::vector<std::pair<int, int> > > > panel_neighbors;
     
     /**
        Panel number to comprising vertex points (in the panel coordinate system) map.

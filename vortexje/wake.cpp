@@ -59,7 +59,8 @@ Wake::add_layer()
             int panel = n_panels();
             panel_nodes.push_back(vertices);
         
-            map<int, pair<int, int> > local_panel_neighbors;
+            vector<vector<pair<int, int> > > local_panel_neighbors;
+            local_panel_neighbors.resize(vertices.size());
             panel_neighbors.push_back(local_panel_neighbors);
             
             shared_ptr<vector<int> > empty = make_shared<vector<int> >();

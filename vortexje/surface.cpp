@@ -111,7 +111,8 @@ Surface::compute_topology()
 {   
     // Compute panel neighbors:
     for (int i = 0; i < (int) panel_nodes.size(); i++) {
-        map<int, pair<int, int> > single_panel_neighbors;
+        vector<vector<pair<int, int> > > single_panel_neighbors;
+        single_panel_neighbors.resize(panel_nodes[i].size());
         
         // Every node gives rise to one edge, which gives rise to at most one neighbor.
         for (int j = 0; j < (int) panel_nodes[i].size(); j++) {          
@@ -159,7 +160,7 @@ Surface::compute_topology()
                     
                     assert(potential_neighbor_edge >= 0);
                     
-                    single_panel_neighbors[j] = make_pair(potential_neighbor, potential_neighbor_edge);
+                    single_panel_neighbors[j].push_back(make_pair(potential_neighbor, potential_neighbor_edge));
                 }
             }
         }
@@ -187,13 +188,17 @@ Surface::cut_panels(int panel_a, int panel_b)
             panel_ids[1] = panel_a;
         }
         
-        map<int, pair<int, int> > &single_panel_neighbors = panel_neighbors[panel_ids[0]];
-        map<int, pair<int, int> >::iterator it;
-        for (it = single_panel_neighbors.begin(); it != single_panel_neighbors.end(); ) {
-            if (it->second.first == panel_ids[1])
-                single_panel_neighbors.erase(it++);
-            else    
-                it++;
+        vector<vector<pair<int, int> > > &single_panel_neighbors = panel_neighbors[panel_ids[0]];
+        vector<vector<pair<int, int> > >::iterator it;
+        for (it = single_panel_neighbors.begin(); it != single_panel_neighbors.end(); it++) {
+            vector<pair<int, int> > &edge_neighbors = *it;
+            vector<pair<int, int> >::iterator sit;
+            for (sit = edge_neighbors.begin(); sit != edge_neighbors.end(); ) {
+                if (sit->first == panel_ids[1])
+                    sit = edge_neighbors.erase(sit);
+                else  
+                    sit++;
+            }
         }
     }  
 }

@@ -558,14 +558,16 @@ Solver::trace_streamline(const SurfacePanelPoint &start) const
         SurfacePanelPoint n(cur.surface, cur.panel, mean_point);
         streamline.push_back(n);
         
-        // Find neighbor across edge:
+        // Find neighbor across edge: 
+        // N.B.:  This code assumes that every panel has at most one neighbor across an edge.  
+        //        The rest of Vortexje supports more general geometries, however.  This code needs work.
         const shared_ptr<BodyData> &bd = surface_to_body.find(cur.surface)->second;
         vector<Body::SurfacePanelEdge> neighbors = bd->body->panel_neighbors(cur.surface, cur.panel, edge_id);
         
         // No neighbor?
         if (neighbors.size() == 0)
             break;
-            
+
         // Verify the direction of the neighboring velocity vector:
         Vector3d neighbor_velocity = surface_velocity(neighbors[0].surface, neighbors[0].panel);
         

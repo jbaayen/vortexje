@@ -222,7 +222,7 @@ protected:
     /**
        List of stitches.
     */
-    std::map<SurfacePanelEdge, SurfacePanelEdge, CompareSurfacePanelEdge> stitches;
+    std::map<SurfacePanelEdge, std::vector<SurfacePanelEdge>, CompareSurfacePanelEdge> stitches;
 };
 
 };
