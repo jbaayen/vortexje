@@ -31,7 +31,7 @@ double Parameters::wake_vortex_core_radius            = 0.0;
 
 double Parameters::static_wake_length                 = 100.0;
 
-double Parameters::inversion_tolerance                = numeric_limits<double>::epsilon();
+double Parameters::zero_threshold                     = numeric_limits<double>::epsilon();
 
 double Parameters::collocation_point_delta            = 1e-12;
 

@@ -119,7 +119,7 @@ main (int argc, char **argv)
             
             Vector3d perturbed_collocation_point = collocation_point + perturbations[j] * perturbation_max;
             
-            Vector3d outer_velocity = solver.velocity(perturbed_collocation_point - (Parameters::interpolation_layer_thickness + Parameters::inversion_tolerance) * wing->panel_normal(i));
+            Vector3d outer_velocity = solver.velocity(perturbed_collocation_point - (Parameters::interpolation_layer_thickness + Parameters::zero_threshold) * wing->panel_normal(i));
             
             // Check surface velocity:
             point = perturbed_collocation_point;
@@ -156,7 +156,7 @@ main (int argc, char **argv)
             }
             
             // Check velocity at edge of interpolation layer:
-            point = perturbed_collocation_point - (Parameters::interpolation_layer_thickness - Parameters::inversion_tolerance) * wing->panel_normal(i);
+            point = perturbed_collocation_point - (Parameters::interpolation_layer_thickness - Parameters::zero_threshold) * wing->panel_normal(i);
             
             velocity           = solver.velocity(point);
             reference_velocity = outer_velocity;
@@ -308,7 +308,7 @@ main (int argc, char **argv)
             }
             
             // Check velocity at edge of interpolation layer:
-            point = inner_point - (Parameters::interpolation_layer_thickness - Parameters::inversion_tolerance) * direction;
+            point = inner_point - (Parameters::interpolation_layer_thickness - Parameters::zero_threshold) * direction;
             
             velocity           = solver.velocity(point);
             reference_velocity = outer_velocity;

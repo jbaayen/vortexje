@@ -74,9 +74,9 @@ public:
     static double static_wake_length;
     
     /**
-       Quantities below this threshold will be treated as nil.
+       Quantities below this threshold will be treated as zero.
     */
-    static double inversion_tolerance;
+    static double zero_threshold;
     
     /**
        Distance to below-surface collocation points (along normal).

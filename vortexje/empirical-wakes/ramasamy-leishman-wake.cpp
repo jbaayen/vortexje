@@ -199,10 +199,10 @@ RamasamyLeishmanWake::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int th
         double r_1xr_2_sqnorm = r_1xr_2.squaredNorm();
         double r_1xr_2_norm = sqrt(r_1xr_2_sqnorm);
         
-        if (r_0_norm < Vortexje::Parameters::inversion_tolerance ||
-            r_1_norm < Vortexje::Parameters::inversion_tolerance ||
-            r_2_norm < Vortexje::Parameters::inversion_tolerance ||
-            r_1xr_2_sqnorm < Vortexje::Parameters::inversion_tolerance)
+        if (r_0_norm < Vortexje::Parameters::zero_threshold ||
+            r_1_norm < Vortexje::Parameters::zero_threshold ||
+            r_2_norm < Vortexje::Parameters::zero_threshold ||
+            r_1xr_2_sqnorm < Vortexje::Parameters::zero_threshold)
             continue;
             
         double d = r_1xr_2_norm / r_0_norm;

@@ -152,7 +152,7 @@ SurfaceBuilder::create_panels_between_shapes(const vector<int> &first_nodes, con
             int new_nodes[4];
             for (int j = 0; j < 4; j++) {
                 // If the new points don't match the original ones, create new nodes:
-                if ((vertices[j] - surface.nodes[unique_nodes[j]]).norm() < Parameters::inversion_tolerance) {
+                if ((vertices[j] - surface.nodes[unique_nodes[j]]).norm() < Parameters::zero_threshold) {
                     new_nodes[j] = unique_nodes[j];
                 } else {         
                     new_nodes[j] = surface.nodes.size();

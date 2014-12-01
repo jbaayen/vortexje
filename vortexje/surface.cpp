@@ -449,7 +449,7 @@ source_and_doublet_edge_influence(const Vector3d &x, const Vector3d &node_a, con
 {
     double d = sqrt(pow(node_b(0) - node_a(0), 2) + pow(node_b(1) - node_a(1), 2));
 
-    if (d < Parameters::inversion_tolerance) {
+    if (d < Parameters::zero_threshold) {
         if (source_edge_influence != NULL)
             *source_edge_influence = 0.0;
         if (doublet_edge_influence != NULL)
@@ -609,7 +609,7 @@ source_edge_unit_velocity(const Vector3d &x, const Vector3d &node_a, const Vecto
 {   
     double d = sqrt(pow(node_b(0) - node_a(0), 2) + pow(node_b(1) - node_a(1), 2));
     
-    if (d < Parameters::inversion_tolerance)
+    if (d < Parameters::zero_threshold)
         return Vector3d(0, 0, 0);
         
     double z = x(2);
@@ -713,9 +713,9 @@ Surface::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) con
         Vector3d r_1xr_2 = r_1.cross(r_2);
         double r_1xr_2_sqnorm = r_1xr_2.squaredNorm();
         
-        if (r_1_norm < Parameters::inversion_tolerance ||
-            r_2_norm < Parameters::inversion_tolerance ||
-            r_1xr_2_sqnorm < Parameters::inversion_tolerance)
+        if (r_1_norm < Parameters::zero_threshold ||
+            r_2_norm < Parameters::zero_threshold ||
+            r_1xr_2_sqnorm < Parameters::zero_threshold)
             continue;
 
         velocity += r_1xr_2 / r_1xr_2_sqnorm * r_0.dot(r_1 / r_1_norm - r_2 / r_2_norm);

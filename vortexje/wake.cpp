@@ -181,10 +181,10 @@ Wake::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
         Vector3d r_1xr_2 = r_1.cross(r_2);
         double r_1xr_2_sqnorm = r_1xr_2.squaredNorm();
         
-        if (r_0_norm < Parameters::inversion_tolerance ||
-            r_1_norm < Parameters::inversion_tolerance ||
-            r_2_norm < Parameters::inversion_tolerance ||
-            r_1xr_2_sqnorm < Parameters::inversion_tolerance)
+        if (r_0_norm < Parameters::zero_threshold ||
+            r_1_norm < Parameters::zero_threshold ||
+            r_2_norm < Parameters::zero_threshold ||
+            r_1xr_2_sqnorm < Parameters::zero_threshold)
             continue;
 
         double r = sqrt(r_1xr_2_sqnorm) / r_0_norm;

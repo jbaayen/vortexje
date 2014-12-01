@@ -476,7 +476,7 @@ Solver::trace_streamline(const SurfacePanelPoint &start) const
         Vector3d velocity = surface_velocity(cur.surface, cur.panel);
         
         // Stop following the streamline at stagnation points:
-        if (velocity.norm() < Parameters::inversion_tolerance)
+        if (velocity.norm() < Parameters::zero_threshold)
             break;
         
         // Transform into a panel frame:
@@ -520,7 +520,7 @@ Solver::trace_streamline(const SurfacePanelPoint &start) const
             }
             
             ColPivHouseholderQR<Matrix2d> solver(A);
-            solver.setThreshold(Parameters::inversion_tolerance);
+            solver.setThreshold(Parameters::zero_threshold);
             if (!solver.isInvertible())
                 continue;
             
@@ -531,7 +531,7 @@ Solver::trace_streamline(const SurfacePanelPoint &start) const
                 continue;
                 
             // Do not accept infinitesimally small solutions:
-            if (x(0) < Parameters::inversion_tolerance)
+            if (x(0) < Parameters::zero_threshold)
                 continue;
                 
             // Is this the smallest positive 't' (velocity coefficient)?   
@@ -1352,7 +1352,7 @@ Solver::compute_scalar_field_gradient(const Eigen::VectorXd &scalar_field, const
     
     // Solve model equations:
     JacobiSVD<MatrixXd> svd(A, ComputeThinU | ComputeThinV);
-    svd.setThreshold(Parameters::inversion_tolerance);
+    svd.setThreshold(Parameters::zero_threshold);
     
     VectorXd model_coefficients = svd.solve(b);
     
@@ -1524,7 +1524,7 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x, std::set<int> &i
                 
                 // Are we in the exterior, relative to the panel?
                 bool in_exterior;
-                if (x_transformed(2) < Parameters::inversion_tolerance)
+                if (x_transformed(2) < Parameters::zero_threshold)
                     in_exterior = true;
                 else
                     in_exterior = false;
