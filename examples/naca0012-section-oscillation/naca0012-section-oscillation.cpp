@@ -29,7 +29,7 @@ main (int argc, char **argv)
     Parameters::convect_wake       = true;
     
     // Create wing:
-    shared_ptr<LiftingSurface> wing(new LiftingSurface());
+    shared_ptr<LiftingSurface> wing(new LiftingSurface("main"));
     
     LiftingSurfaceBuilder surface_builder(*wing);
 
@@ -65,7 +65,7 @@ main (int argc, char **argv)
     surface_builder.finish(node_strips, panel_strips, trailing_edge_point_id);
     
     // Create body:
-    shared_ptr<Body> body(new Body(string("section")));
+    shared_ptr<Body> body(new Body(string("wing-section")));
     body->add_lifting_surface(wing);
     
     // Set up oscillation:

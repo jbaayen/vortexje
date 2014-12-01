@@ -28,7 +28,7 @@ class LiftingSurface : public Surface
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     
-    LiftingSurface();
+    LiftingSurface(const std::string &id);
          
     /**
        Nodes on the upper side of the surface.  The first dimension is the chordwise direction;  the second the spanwise direction.

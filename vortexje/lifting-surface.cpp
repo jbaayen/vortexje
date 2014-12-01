@@ -16,7 +16,7 @@ using namespace Vortexje;
 /**
    Constructs an empty LiftingSurface.
 */
-LiftingSurface::LiftingSurface() : Surface()
+LiftingSurface::LiftingSurface(const string &id) : Surface(id)
 {
     // Do nothing.
 }

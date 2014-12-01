@@ -35,11 +35,11 @@ public:
     /**
        Automatically generated surface identification number.
     */
-    int id;
+    std::string id;
     
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     
-    Surface();
+    Surface(const std::string &id);
     
     virtual ~Surface();
               

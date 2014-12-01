@@ -24,7 +24,8 @@ static const double one_over_4pi = 1.0 / (4 * pi);
    
    @param[in]   lifting_surface   Associated lifting surface.
 */
-Wake::Wake(shared_ptr<LiftingSurface> lifting_surface): lifting_surface(lifting_surface)
+Wake::Wake(shared_ptr<LiftingSurface> lifting_surface)
+    : Surface(lifting_surface->id + string("_wake")), lifting_surface(lifting_surface)
 {
 }
 

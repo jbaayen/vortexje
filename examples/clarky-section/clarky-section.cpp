@@ -86,7 +86,7 @@ read_airfoil(const std::string &filename, int &trailing_edge_point_id)
 
 // Main:
 int
-main (int argc, char **argv)
+main(int argc, char **argv)
 {
     // Enable wake convection:
     Parameters::convect_wake = true;
@@ -96,7 +96,7 @@ main (int argc, char **argv)
     vector<Vector3d, Eigen::aligned_allocator<Vector3d> > clarky_airfoil = read_airfoil("clarky.dat", trailing_edge_point_id);
     
     // Create lifting surface object:
-    shared_ptr<LiftingSurface> wing(new LiftingSurface());
+    shared_ptr<LiftingSurface> wing(new LiftingSurface("main"));
 
     // Construct wing section:
     LiftingSurfaceBuilder surface_builder(*wing);
@@ -138,7 +138,7 @@ main (int argc, char **argv)
     wing->rotate(Vector3d::UnitZ(), -alpha);
     
     // Create surface body:
-    shared_ptr<Body> body(new Body(string("section")));
+    shared_ptr<Body> body(new Body(string("wing-section")));
     body->add_lifting_surface(wing);
     
     // Set up solver:

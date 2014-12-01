@@ -108,7 +108,7 @@ Solver::add_body(std::shared_ptr<Body> body, std::shared_ptr<BoundaryLayer> boun
         
         non_wake_surfaces.push_back(d);
            
-        surface_id_to_body[d->surface->id] = bd;
+        surface_to_body[d->surface] = bd;
         
         n_non_wake_panels += d->surface->n_panels();
     }
@@ -119,8 +119,8 @@ Solver::add_body(std::shared_ptr<Body> body, std::shared_ptr<BoundaryLayer> boun
         
         non_wake_surfaces.push_back(d);
            
-        surface_id_to_body[d->surface->id] = bd;
-        surface_id_to_body[d->wake->id]    = bd;
+        surface_to_body[d->surface] = bd;
+        surface_to_body[d->wake]    = bd;
         
         n_non_wake_panels += d->lifting_surface->n_panels();
     }
@@ -148,27 +148,28 @@ Solver::add_body(std::shared_ptr<Body> body, std::shared_ptr<BoundaryLayer> boun
     
     mkdir_helper(body_log_folder);
     
-    for (int i = 0; i < (int) body->non_lifting_surfaces.size(); i++) {
-        stringstream ss;
-        ss << body_log_folder << "/non_lifting_surface_" << i;
+    for (si = bd->body->non_lifting_surfaces.begin(); si != bd->body->non_lifting_surfaces.end(); si++) {
+        shared_ptr<Body::SurfaceData> d = *si;
         
-        string s = ss.str();
-        mkdir_helper(s);
+        stringstream ss;
+        ss << body_log_folder << "/" << d->surface->id;
+        
+        mkdir_helper(ss.str());
     }
-    
-    for (int i = 0; i < (int) body->lifting_surfaces.size(); i++) {
-        stringstream ss;
-        ss << body_log_folder << "/lifting_surface_" << i;
+          
+    for (lsi = bd->body->lifting_surfaces.begin(); lsi != bd->body->lifting_surfaces.end(); lsi++) {
+        shared_ptr<Body::LiftingSurfaceData> d = *lsi;
         
-        string s = ss.str();
-        mkdir_helper(s);
+        stringstream ss;
+        ss << body_log_folder << "/" << d->lifting_surface->id;
+        
+        mkdir_helper(ss.str());
         
         ss.str(string());
         ss.clear();
-        ss << body_log_folder << "/wake_" << i;
+        ss << body_log_folder << "/" << d->wake->id;
         
-        s = ss.str();
-        mkdir_helper(s);      
+        mkdir_helper(ss.str());      
     }
 }
 
@@ -303,7 +304,7 @@ Solver::force(const std::shared_ptr<Body> &body) const
     for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
         const shared_ptr<Body::SurfaceData> &d = *si;
         
-        const shared_ptr<BodyData> &bd = surface_id_to_body.find(d->surface->id)->second;
+        const shared_ptr<BodyData> &bd = surface_to_body.find(d->surface)->second;
         if (body == bd->body) {        
             for (int i = 0; i < d->surface->n_panels(); i++) {
                 const Vector3d &normal = d->surface->panel_normal(i);
@@ -340,7 +341,7 @@ Solver::force(const std::shared_ptr<Surface> &surface) const
         const shared_ptr<Body::SurfaceData> &d = *si;
         
         if (d->surface == surface) {   
-            const shared_ptr<BodyData> &bd = surface_id_to_body.find(d->surface->id)->second;
+            const shared_ptr<BodyData> &bd = surface_to_body.find(d->surface)->second;
             
             // Dynamic pressure:
             double q = 0.5 * fluid_density * compute_reference_velocity_squared(bd->body);
@@ -385,7 +386,7 @@ Solver::moment(const std::shared_ptr<Body> &body, const Eigen::Vector3d &x) cons
     for (si = non_wake_surfaces.begin(); si != non_wake_surfaces.end(); si++) {
         const shared_ptr<Body::SurfaceData> &d = *si;
         
-        const shared_ptr<BodyData> &bd = surface_id_to_body.find(d->surface->id)->second;
+        const shared_ptr<BodyData> &bd = surface_to_body.find(d->surface)->second;
         if (body == bd->body) { 
             for (int i = 0; i < d->surface->n_panels(); i++) {                                    
                 const Vector3d &normal = d->surface->panel_normal(i);
@@ -426,7 +427,7 @@ Solver::moment(const std::shared_ptr<Surface> &surface, const Eigen::Vector3d &x
         const shared_ptr<Body::SurfaceData> &d = *si;
 
         if (d->surface == surface) {
-            const shared_ptr<BodyData> &bd = surface_id_to_body.find(d->surface->id)->second;
+            const shared_ptr<BodyData> &bd = surface_to_body.find(d->surface)->second;
             
             // Dynamic pressure:
             double q = 0.5 * fluid_density * compute_reference_velocity_squared(bd->body);
@@ -558,7 +559,7 @@ Solver::trace_streamline(const SurfacePanelPoint &start) const
         streamline.push_back(n);
         
         // Find neighbor across edge:
-        const shared_ptr<BodyData> &bd = surface_id_to_body.find(cur.surface->id)->second;
+        const shared_ptr<BodyData> &bd = surface_to_body.find(cur.surface)->second;
         vector<Body::SurfacePanelEdge> neighbors = bd->body->panel_neighbors(cur.surface, cur.panel, edge_id);
         
         // No neighbor?
@@ -661,7 +662,7 @@ Solver::solve(double dt, bool propagate)
             const shared_ptr<Body::SurfaceData> &d = *si;
             int i;
             
-            const shared_ptr<BodyData> &bd = surface_id_to_body.find(d->surface->id)->second;
+            const shared_ptr<BodyData> &bd = surface_to_body.find(d->surface)->second;
             
             #pragma omp parallel
             {
@@ -922,7 +923,7 @@ Solver::solve(double dt, bool propagate)
             const shared_ptr<Body::SurfaceData> &d = *si;
             int i;
             
-            const shared_ptr<BodyData> &bd = surface_id_to_body.find(d->surface->id)->second;
+            const shared_ptr<BodyData> &bd = surface_to_body.find(d->surface)->second;
             
             #pragma omp parallel
             {
@@ -945,7 +946,7 @@ Solver::solve(double dt, bool propagate)
         const shared_ptr<Body::SurfaceData> &d = *si;
         int i;
         
-        const shared_ptr<BodyData> &bd = surface_id_to_body.find(d->surface->id)->second;
+        const shared_ptr<BodyData> &bd = surface_to_body.find(d->surface)->second;
         double v_ref_squared = compute_reference_velocity_squared(bd->body);
         
         double dphidt;
@@ -1149,7 +1150,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             view_data.push_back(non_lifting_surface_velocity_vectors);
             
             stringstream ss;
-            ss << log_folder << "/" << bd->body->id << "/non_lifting_surface_" << idx << "/step_" << step_number << writer.file_extension();
+            ss << log_folder << "/" << bd->body->id << "/" << d->surface->id << "/step_" << step_number << writer.file_extension();
 
             writer.write(d->surface, ss.str(), save_node_offset, save_panel_offset, view_names, view_data);
             
@@ -1196,7 +1197,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             view_data.push_back(lifting_surface_velocity_vectors);
             
             stringstream ss;
-            ss << log_folder << "/" << bd->body->id << "/lifting_surface_" << idx << "/step_" << step_number << writer.file_extension();
+            ss << log_folder << "/" << bd->body->id << "/" << d->lifting_surface->id << "/step_" << step_number << writer.file_extension();
 
             writer.write(d->lifting_surface, ss.str(), save_node_offset, save_panel_offset, view_names, view_data);
             
@@ -1215,7 +1216,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             view_data.push_back(wake_doublet_coefficients);
             
             stringstream ssw;
-            ssw << log_folder << "/" << bd->body->id << "/wake_" << idx << "/step_" << step_number << writer.file_extension();
+            ssw << log_folder << "/" << bd->body->id << "/" << d->wake->id << "/step_" << step_number << writer.file_extension();
             
             writer.write(d->wake, ssw.str(), 0, save_panel_offset, view_names, view_data);
             
@@ -1274,7 +1275,7 @@ Solver::compute_surface_velocity_potential(const std::shared_ptr<Surface> &surfa
     double phi = -doublet_coefficients(offset + panel);
     
     // Add flow potential due to kinematic velocity:
-    const shared_ptr<BodyData> &bd = surface_id_to_body.find(surface->id)->second;
+    const shared_ptr<BodyData> &bd = surface_to_body.find(surface)->second;
     Vector3d apparent_velocity = bd->body->panel_kinematic_velocity(surface, panel) - freestream_velocity;
     
     phi -= apparent_velocity.dot(surface->panel_collocation_point(panel, false));

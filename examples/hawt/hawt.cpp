@@ -31,7 +31,8 @@ class Blade : public LiftingSurface
 {
 public:
     // Constructor:
-    Blade()
+    Blade(const string &id)
+        : LiftingSurface(id)
     {
         // Read data:
         read_airfoil("hawt-airfoil.dat");
@@ -207,7 +208,9 @@ public:
         
         // Initialize blades:
         for (int i = 0; i < n_blades; i++) {
-            shared_ptr<Blade> blade(new Blade());
+            stringstream ss;
+            ss << "blade_" << i;
+            shared_ptr<Blade> blade(new Blade(ss.str()));
             
             double theta_blade = theta_0 + 2 * M_PI / n_blades * i;
             blade->rotate(Vector3d::UnitX(), theta_blade);

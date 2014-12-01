@@ -29,7 +29,7 @@ run_test(double alpha)
     Parameters::convect_wake       = false;
     
     // Create wing:
-    shared_ptr<LiftingSurface> wing(new LiftingSurface());
+    shared_ptr<LiftingSurface> wing(new LiftingSurface("main"));
     
     LiftingSurfaceBuilder surface_builder(*wing);
 
@@ -68,7 +68,7 @@ run_test(double alpha)
     wing->rotate(Vector3d::UnitZ(), -alpha);
     
     // Create surface body:
-    shared_ptr<Body> body(new Body(string("test-wing")));
+    shared_ptr<Body> body(new Body(string("wing-section")));
     body->add_lifting_surface(wing);
     
     // Set up solver:

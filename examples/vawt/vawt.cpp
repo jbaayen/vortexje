@@ -34,7 +34,8 @@ class Blade : public LiftingSurface
 {
 public:
     // Constructor:
-    Blade()
+    Blade(const string &id)
+        : LiftingSurface(id)
     {
         // Create blade:
         LiftingSurfaceBuilder surface_builder(*this);
@@ -83,6 +84,7 @@ class Tower : public Surface
 public:
     // Constructor:
     Tower()
+        : Surface("tower")
     {
         // Create cylinder:      
         SurfaceBuilder surface_builder(*this);
@@ -145,7 +147,9 @@ public:
         
         // Initialize blades:
         for (int i = 0; i < n_blades; i++) {
-            shared_ptr<Blade> blade(new Blade());
+            stringstream ss;
+            ss << "blade_" << i;
+            shared_ptr<Blade> blade(new Blade(ss.str()));
             
             Vector3d translation(rotor_radius, 0, 0);
             blade->translate(translation);

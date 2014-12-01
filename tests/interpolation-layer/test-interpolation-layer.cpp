@@ -32,7 +32,7 @@ main (int argc, char **argv)
     Parameters::static_wake_length            = 1e2;
     
     // Create wing:
-    shared_ptr<LiftingSurface> wing(new LiftingSurface());
+    shared_ptr<LiftingSurface> wing(new LiftingSurface("main"));
     
     LiftingSurfaceBuilder surface_builder(*wing);
 
@@ -78,7 +78,7 @@ main (int argc, char **argv)
     shared_ptr<Wake> wake(new Wake(wing));
     
     // Create surface body:
-    shared_ptr<Body> body(new Body(string("test-wing")));
+    shared_ptr<Body> body(new Body(string("wing-section")));
     body->add_lifting_surface(wing, wake);
     
     // Set up solver:

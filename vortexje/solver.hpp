@@ -157,7 +157,7 @@ private:
     std::vector<std::shared_ptr<Body::SurfaceData> > non_wake_surfaces;
     int n_non_wake_panels;
     
-    std::map<int, std::shared_ptr<BodyData> > surface_id_to_body;
+    std::map<std::shared_ptr<Surface>, std::shared_ptr<BodyData> > surface_to_body;
     
     Eigen::VectorXd source_coefficients;   
     Eigen::VectorXd doublet_coefficients;
