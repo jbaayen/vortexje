@@ -53,23 +53,16 @@ VTKFieldWriter::write_velocity_field(const Solver &solver, const std::string &fi
                                      double z_min, double z_max,
                                      double dx, double dy, double dz)
 {
-    cout << "Solver: Computing and saving velocity vector field to " << filename << "." << endl;
-    
+    double x, y, z;
+
     int nx = round((x_max - x_min) / dx) + 1;
     int ny = round((y_max - y_min) / dy) + 1;
     int nz = round((z_max - z_min) / dz) + 1;
 
-    // Write output in VTK format:
-    ofstream f;
-    f.open(filename.c_str());
-    
-    write_preamble(f, x_min, y_min, z_min, dx, dy, dz, nx, ny, nz);
-    
-    double x, y, z;
-    
-    // Velocity vector field;    
-    f << "VECTORS Velocity double" << endl;
-    
+    // Compute velocity vector field:
+    cout << "VTKFieldWriter: Computing velocity vector field." << endl;
+
+    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > velocities;
     z = z_min;
     for (int i = 0; i < nz; i++) {
         y = y_min;
@@ -77,6 +70,38 @@ VTKFieldWriter::write_velocity_field(const Solver &solver, const std::string &fi
             x = x_min;
             for (int k = 0; k < nx; k++) {
                 Vector3d v = solver.velocity(Vector3d(x, y, z));
+                
+                velocities.push_back(v);
+            
+                x += dx;
+            }
+            
+            y += dy;
+        }
+        
+        z += dz;
+    }
+
+    // Write output in VTK format:
+    cout << "VTKFieldWriter: Saving velocity vector field to " << filename << "." << endl;
+    
+    ofstream f;
+    f.open(filename.c_str());
+    
+    write_preamble(f, x_min, y_min, z_min, dx, dy, dz, nx, ny, nz);
+    
+    // Velocity vector field;    
+    f << "VECTORS Velocity double" << endl;
+    
+    int i = 0;
+    z = z_min;
+    for (int i = 0; i < nz; i++) {
+        y = y_min;
+        for (int j = 0; j < ny; j++) {
+            x = x_min;
+            for (int k = 0; k < nx; k++) {
+                Vector3d v = velocities[i];
+                i++;
                 
                 f << v(0) << " " << v(1) << " " << v(2) << endl;
             
@@ -122,31 +147,56 @@ VTKFieldWriter::write_velocity_potential_field(const Solver &solver, const std::
                                                double z_min, double z_max,
                                                double dx, double dy, double dz)
 {
-    cout << "Solver: Computing and saving velocity potential field to " << filename << "." << endl;
+    double x, y, z;
 
     int nx = round((x_max - x_min) / dx) + 1;
     int ny = round((y_max - y_min) / dy) + 1;
     int nz = round((z_max - z_min) / dz) + 1;
-    
+
+    // Compute velocity vector field:
+    cout << "VTKFieldWriter: Computing velocity potential field." << endl;
+
+    vector<double> velocity_potentials;
+    z = z_min;
+    for (int i = 0; i < nz; i++) {
+        y = y_min;
+        for (int j = 0; j < ny; j++) {
+            x = x_min;
+            for (int k = 0; k < nx; k++) {
+                double p = solver.velocity_potential(Vector3d(x, y, z));
+                
+                velocity_potentials.push_back(p);
+            
+                x += dx;
+            }
+            
+            y += dy;
+        }
+        
+        z += dz;
+    }
+
     // Write output in VTK format:
+    cout << "VTKFieldWriter: Saving velocity potential field to " << filename << "." << endl;
+    
     ofstream f;
     f.open(filename.c_str());
     
     write_preamble(f, x_min, y_min, z_min, dx, dy, dz, nx, ny, nz);
     
-    double x, y, z;
-    
     // Velocity potential field:    
     f << "SCALARS VelocityPotential double 1" << endl;
     f << "LOOKUP_TABLE default" << endl;
     
+    int i = 0;
     z = z_min;
     for (int i = 0; i < nz; i++) {
         y = y_min;
         for (int j = 0; j < ny; j++) {
             x = z_min;
             for (int k = 0; k < nx; k++) {
-                double p = solver.velocity_potential(Vector3d(x, y, z));
+                double p = velocity_potentials[i];
+                i++;
                 
                 f << p << endl;
             
