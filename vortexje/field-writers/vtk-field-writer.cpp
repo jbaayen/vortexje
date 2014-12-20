@@ -53,8 +53,6 @@ VTKFieldWriter::write_velocity_field(const Solver &solver, const std::string &fi
                                      double z_min, double z_max,
                                      double dx, double dy, double dz)
 {
-    double x, y, z;
-
     int nx = round((x_max - x_min) / dx) + 1;
     int ny = round((y_max - y_min) / dy) + 1;
     int nz = round((z_max - z_min) / dz) + 1;
@@ -63,23 +61,20 @@ VTKFieldWriter::write_velocity_field(const Solver &solver, const std::string &fi
     cout << "VTKFieldWriter: Computing velocity vector field." << endl;
 
     vector<Vector3d, Eigen::aligned_allocator<Vector3d> > velocities;
-    z = z_min;
-    for (int i = 0; i < nz; i++) {
-        y = y_min;
-        for (int j = 0; j < ny; j++) {
-            x = x_min;
-            for (int k = 0; k < nx; k++) {
-                Vector3d v = solver.velocity(Vector3d(x, y, z));
-                
-                velocities.push_back(v);
-            
-                x += dx;
-            }
-            
-            y += dy;
+    velocities.resize(nx * ny * nz);
+    
+    int i;
+    
+    #pragma omp parallel
+    {
+        #pragma omp for schedule(dynamic, 1)
+        for (i = 0; i < nx * ny * nz; i++) {
+            double x, y, z;
+            x = x_min + (i % (nx * ny)) % nx * dx;
+            y = y_min + (i % (nx * ny)) / nx * dy;
+            z = z_min + (i / (nx * ny)) * dz;
+            velocities[i] = solver.velocity(Vector3d(x, y, z));
         }
-        
-        z += dz;
     }
 
     // Write output in VTK format:
@@ -132,8 +127,6 @@ VTKFieldWriter::write_velocity_potential_field(const Solver &solver, const std::
                                                double z_min, double z_max,
                                                double dx, double dy, double dz)
 {
-    double x, y, z;
-
     int nx = round((x_max - x_min) / dx) + 1;
     int ny = round((y_max - y_min) / dy) + 1;
     int nz = round((z_max - z_min) / dz) + 1;
@@ -142,23 +135,20 @@ VTKFieldWriter::write_velocity_potential_field(const Solver &solver, const std::
     cout << "VTKFieldWriter: Computing velocity potential field." << endl;
 
     vector<double> velocity_potentials;
-    z = z_min;
-    for (int i = 0; i < nz; i++) {
-        y = y_min;
-        for (int j = 0; j < ny; j++) {
-            x = x_min;
-            for (int k = 0; k < nx; k++) {
-                double p = solver.velocity_potential(Vector3d(x, y, z));
-                
-                velocity_potentials.push_back(p);
-            
-                x += dx;
-            }
-            
-            y += dy;
+    velocity_potentials.resize(nx * ny * nz);
+    
+    int i;
+    
+    #pragma omp parallel
+    {
+        #pragma omp for schedule(dynamic, 1)
+        for (i = 0; i < nx * ny * nz; i++) {
+            double x, y, z;
+            x = x_min + (i % (nx * ny)) % nx * dx;
+            y = y_min + (i % (nx * ny)) / nx * dy;
+            z = z_min + (i / (nx * ny)) * dz;
+            velocity_potentials[i] = solver.velocity_potential(Vector3d(x, y, z));
         }
-        
-        z += dz;
     }
 
     // Write output in VTK format:
