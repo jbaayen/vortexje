@@ -93,25 +93,10 @@ VTKFieldWriter::write_velocity_field(const Solver &solver, const std::string &fi
     // Velocity vector field;    
     f << "VECTORS Velocity double" << endl;
     
-    int i = 0;
-    z = z_min;
-    for (int i = 0; i < nz; i++) {
-        y = y_min;
-        for (int j = 0; j < ny; j++) {
-            x = x_min;
-            for (int k = 0; k < nx; k++) {
-                Vector3d v = velocities[i];
-                i++;
-                
-                f << v(0) << " " << v(1) << " " << v(2) << endl;
-            
-                x += dx;
-            }
-            
-            y += dy;
-        }
-        
-        z += dz;
+    vector<Vector3d, Eigen::aligned_allocator<Vector3d> >::const_iterator it;
+    for (it = velocities.begin(); it != velocities.end(); it++) {
+        Vector3d v = *it;
+        f << v(0) << " " << v(1) << " " << v(2) << endl;
     }
     
     // Close file:
@@ -188,25 +173,11 @@ VTKFieldWriter::write_velocity_potential_field(const Solver &solver, const std::
     f << "SCALARS VelocityPotential double 1" << endl;
     f << "LOOKUP_TABLE default" << endl;
     
-    int i = 0;
-    z = z_min;
-    for (int i = 0; i < nz; i++) {
-        y = y_min;
-        for (int j = 0; j < ny; j++) {
-            x = z_min;
-            for (int k = 0; k < nx; k++) {
-                double p = velocity_potentials[i];
-                i++;
-                
-                f << p << endl;
-            
-                x += dx;
-            }
-            
-            y += dy;
-        }
+    vector<double>::const_iterator it;
+    for (it = velocity_potentials.begin(); it != velocity_potentials.end(); it++) {
+        double p = *it;
         
-        z += dz;
+        f << p << endl;
     }
     
     // Close file:
