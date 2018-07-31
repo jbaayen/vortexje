@@ -42,7 +42,7 @@ VTKSurfaceWriter::file_extension() const
 bool
 VTKSurfaceWriter::write(const std::shared_ptr<Surface> &surface, const string &filename, 
                         int node_offset, int panel_offset,
-                        const std::vector<std::string> &view_names, const vector<MatrixXd, Eigen::aligned_allocator<MatrixXd> > &view_data)
+                        const std::vector<std::string> &view_names, const vector_aligned<MatrixXd> &view_data)
 {
     cout << "Surface " << surface->id << ": Saving to " << filename << "." << endl;
     

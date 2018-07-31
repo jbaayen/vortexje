@@ -53,7 +53,7 @@ public:
         vector<vector<int> > panel_strips;
         
         for (int i = 0; i < n_airfoils; i++) {
-            vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points =
+            vector_aligned<Vector3d> airfoil_points =
                 NACA4AirfoilGenerator::generate(0, 0, 0.12, true, chord, n_points_per_airfoil, trailing_edge_point_id);
             for (int j = 0; j < (int) airfoil_points.size(); j++)
                 airfoil_points[j](2) += i * span / (double) (n_airfoils - 1);
@@ -98,7 +98,7 @@ public:
         vector<int> prev_nodes;
         
         for (int i = 0; i < n_layers; i++) {
-            vector<Vector3d, Eigen::aligned_allocator<Vector3d> > points =
+            vector_aligned<Vector3d> points =
                 EllipseGenerator::generate(r, r, n_points);
             for (int j = 0; j < (int) points.size(); j++)
                 points[j](2) += i * h / (double) (n_layers - 1);

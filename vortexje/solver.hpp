@@ -15,11 +15,11 @@
 #include <fstream>
 
 #include <Eigen/Core>
-#include <Eigen/StdVector>
 
 #include <vortexje/body.hpp>
 #include <vortexje/surface-writer.hpp>
 #include <vortexje/boundary-layer.hpp>
+#include <vortexje/vector-aligned.hpp>
 
 namespace Vortexje
 {
@@ -147,7 +147,7 @@ public:
         Eigen::Vector3d point;
     };
     
-    std::vector<SurfacePanelPoint, Eigen::aligned_allocator<SurfacePanelPoint> > trace_streamline(const SurfacePanelPoint &start) const;
+    vector_aligned<SurfacePanelPoint> trace_streamline(const SurfacePanelPoint &start) const;
     
     void log(int step_number, SurfaceWriter &writer) const;
 

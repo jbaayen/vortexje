@@ -50,13 +50,13 @@ main (int argc, char **argv)
     double alpha = pi * 5.0 / 180.0;
     AngleAxis<double> rotation(-alpha, Vector3d::UnitZ());
     
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points =
+    vector_aligned<Vector3d> airfoil_points =
         NACA4AirfoilGenerator::generate(0.09, 0.4, 0.12, true, chord, n_points_per_airfoil, trailing_edge_point_id);
     for (int i = 0; i < n_points_per_airfoil; i++)
         airfoil_points[i] = rotation * airfoil_points[i];
         
     for (int i = 0; i < n_airfoils; i++) {
-        vector<Vector3d, Eigen::aligned_allocator<Vector3d> > translated_airfoil_points = airfoil_points;
+        vector_aligned<Vector3d> translated_airfoil_points = airfoil_points;
         for (int j = 0; j < (int) airfoil_points.size(); j++)
             translated_airfoil_points[j](2) += i * span / (double) (n_airfoils - 1);
              

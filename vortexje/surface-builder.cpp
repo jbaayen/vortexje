@@ -35,7 +35,7 @@ SurfaceBuilder::SurfaceBuilder(Surface &surface) : surface(surface)
    @returns A list of new node numbers.
 */
 vector<int>
-SurfaceBuilder::create_nodes_for_points(const vector<Vector3d, Eigen::aligned_allocator<Vector3d> > &points)
+SurfaceBuilder::create_nodes_for_points(const vector_aligned<Vector3d> &points)
 {
     vector<int> new_nodes;
     

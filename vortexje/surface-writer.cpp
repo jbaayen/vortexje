@@ -41,7 +41,7 @@ SurfaceWriter::write(const std::shared_ptr<Surface> &surface, const std::string 
                      int node_offset, int panel_offset)
 {
     vector<string> empty_names;
-    vector<MatrixXd, Eigen::aligned_allocator<MatrixXd> > empty_data;
+    vector_aligned<MatrixXd> empty_data;
     
     return write(surface, filename, 0, 0, empty_names, empty_data);
 }

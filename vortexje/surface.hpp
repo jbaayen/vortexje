@@ -16,9 +16,9 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <Eigen/StdVector>
 
 #include <vortexje/parameters.hpp>
+#include <vortexje/vector-aligned.hpp>
 
 namespace Vortexje
 {
@@ -59,7 +59,7 @@ public:
     /**
        Node number to point map.
     */
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > nodes;
+    vector_aligned<Eigen::Vector3d> nodes;
     
     /**
        Node number to neigboring panel numbers map.
@@ -88,7 +88,7 @@ public:
     /**
        Panel number to comprising vertex points (in the panel coordinate system) map.
     */
-    std::vector<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > > panel_transformed_points;
+    std::vector<vector_aligned<Eigen::Vector3d> > panel_transformed_points;
     
     void rotate(const Eigen::Vector3d &axis, double angle);
     virtual void transform(const Eigen::Matrix3d &transformation);
@@ -123,17 +123,17 @@ protected:
     /**
        Panel number to collocation point map.
     */
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > panel_collocation_points[2];
+    vector_aligned<Eigen::Vector3d> panel_collocation_points[2];
     
     /**
        Panel number to normal map.
     */
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > panel_normals;
+    vector_aligned<Eigen::Vector3d> panel_normals;
     
     /**
        Panel number to panel coordinate transformation map.
     */
-    std::vector<Eigen::Transform<double, 3, Eigen::Affine>, Eigen::aligned_allocator<Eigen::Transform<double, 3, Eigen::Affine> > > panel_coordinate_transformations;
+    vector_aligned<Eigen::Transform<double, 3, Eigen::Affine> > panel_coordinate_transformations;
     
     /**
        Panel number to surface area map.

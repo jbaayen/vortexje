@@ -460,10 +460,10 @@ Solver::moment(const std::shared_ptr<Surface> &surface, const Eigen::Vector3d &x
    
    @returns A list of points tracing the streamline.
 */
-vector<Solver::SurfacePanelPoint, Eigen::aligned_allocator<Solver::SurfacePanelPoint> >
+vector_aligned<Solver::SurfacePanelPoint>
 Solver::trace_streamline(const SurfacePanelPoint &start) const
 {
-    vector<SurfacePanelPoint, Eigen::aligned_allocator<Solver::SurfacePanelPoint> > streamline;
+    vector_aligned<SurfacePanelPoint> streamline;
     
     SurfacePanelPoint cur(start.surface, start.panel, start.point);
     
@@ -1000,7 +1000,7 @@ Solver::update_wakes(double dt)
         cout << "Solver: Convecting wakes." << endl;
         
         // Compute velocity values at wake nodes, with the wakes in their original state:
-        vector<vector<Vector3d, Eigen::aligned_allocator<Vector3d> >, Eigen::aligned_allocator<vector<Vector3d> > > wake_velocities;
+        vector_aligned<vector_aligned<Vector3d> > wake_velocities;
         
         vector<shared_ptr<BodyData> >::const_iterator bdi;
         for (bdi = bodies.begin(); bdi != bodies.end(); bdi++) {
@@ -1010,7 +1010,7 @@ Solver::update_wakes(double dt)
             for (lsi = bd->body->lifting_surfaces.begin(); lsi != bd->body->lifting_surfaces.end(); lsi++) {
                 const shared_ptr<Body::LiftingSurfaceData> &d = *lsi;
                 
-                vector<Vector3d, Eigen::aligned_allocator<Vector3d> > local_wake_velocities;
+                vector_aligned<Vector3d> local_wake_velocities;
                 local_wake_velocities.resize(d->wake->n_nodes());
                 
                 int i;
@@ -1037,7 +1037,7 @@ Solver::update_wakes(double dt)
                 shared_ptr<Body::LiftingSurfaceData> d = *lsi;
                 
                 // Retrieve local wake velocities:
-                vector<Vector3d, Eigen::aligned_allocator<Vector3d> > &local_wake_velocities = wake_velocities[idx];
+                vector_aligned<Vector3d> &local_wake_velocities = wake_velocities[idx];
                 idx++;
                 
                 // Convect wake nodes that coincide with the trailing edge.
@@ -1137,7 +1137,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             offset += d->surface->n_panels();
             
             vector<string> view_names;
-            vector<MatrixXd, Eigen::aligned_allocator<MatrixXd> > view_data;
+            vector_aligned<MatrixXd> view_data;
             
             view_names.push_back(VIEW_NAME_DOUBLET_DISTRIBUTION);
             view_data.push_back(non_lifting_surface_doublet_coefficients);
@@ -1184,7 +1184,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             offset += d->lifting_surface->n_panels();
             
             vector<string> view_names;
-            vector<MatrixXd, Eigen::aligned_allocator<MatrixXd> > view_data;
+            vector_aligned<MatrixXd> view_data;
             
             view_names.push_back(VIEW_NAME_DOUBLET_DISTRIBUTION);
             view_data.push_back(lifting_surface_doublet_coefficients);
@@ -1484,12 +1484,12 @@ Eigen::Vector3d
 Solver::compute_velocity_interpolated(const Eigen::Vector3d &x, std::set<int> &ignore_set) const
 {
     // Lists of close velocities, ordered by primacy:
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > close_panel_velocities;
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > close_panel_edge_velocities;
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > interior_close_panel_velocities;
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > interior_close_panel_edge_velocities;
+    vector_aligned<Vector3d> close_panel_velocities;
+    vector_aligned<Vector3d> close_panel_edge_velocities;
+    vector_aligned<Vector3d> interior_close_panel_velocities;
+    vector_aligned<Vector3d> interior_close_panel_edge_velocities;
     
-    vector<vector<Vector3d, Eigen::aligned_allocator<Vector3d> >* > velocity_lists;
+    vector<vector_aligned<Vector3d>* > velocity_lists;
     velocity_lists.push_back(&close_panel_velocities);
     velocity_lists.push_back(&close_panel_edge_velocities);
     velocity_lists.push_back(&interior_close_panel_velocities);
@@ -1662,7 +1662,7 @@ Solver::compute_velocity_interpolated(const Eigen::Vector3d &x, std::set<int> &i
         if (velocity_lists[i]->size() > 0) {
             // Average:
             Vector3d velocity = Vector3d(0, 0, 0);
-            vector<Vector3d, Eigen::aligned_allocator<Vector3d> >::iterator it;
+            vector_aligned<Vector3d>::iterator it;
             for (it = velocity_lists[i]->begin(); it != velocity_lists[i]->end(); it++)
                 velocity += *it;
                 

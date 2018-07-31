@@ -10,9 +10,9 @@
 #define __SURFACE_BUILDER_HPP__
 
 #include <Eigen/Core>
-#include <Eigen/StdVector>
 
 #include <vortexje/lifting-surface.hpp>
+#include <vortexje/vector-aligned.hpp>
 
 namespace Vortexje
 {
@@ -34,7 +34,7 @@ public:
     */
     Surface &surface;
     
-    std::vector<int> create_nodes_for_points(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > &points);
+    std::vector<int> create_nodes_for_points(const vector_aligned<Eigen::Vector3d> &points);
     
     std::vector<int> create_panels_between_shapes(const std::vector<int> &first_nodes, const std::vector<int> &second_nodes, bool cyclic = true);
     

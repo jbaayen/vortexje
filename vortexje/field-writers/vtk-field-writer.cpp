@@ -60,7 +60,7 @@ VTKFieldWriter::write_velocity_field(const Solver &solver, const std::string &fi
     // Compute velocity vector field:
     cout << "VTKFieldWriter: Computing velocity vector field." << endl;
 
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > velocities;
+    vector_aligned<Vector3d> velocities;
     velocities.resize(nx * ny * nz);
     
     int i;
@@ -88,7 +88,7 @@ VTKFieldWriter::write_velocity_field(const Solver &solver, const std::string &fi
     // Velocity vector field;    
     f << "VECTORS Velocity double" << endl;
     
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> >::const_iterator it;
+    vector_aligned<Vector3d>::const_iterator it;
     for (it = velocities.begin(); it != velocities.end(); it++) {
         Vector3d v = *it;
         f << v(0) << " " << v(1) << " " << v(2) << endl;

@@ -76,7 +76,7 @@ compute_y_t(double x, double max_camber, double max_camber_dist, double max_thic
    
    @note See S. Yon, J. Katz, and A. Plotkin, Effect of Airfoil (Trailing-Edge) Thickness on the Numerical Solution of Panel Methods Based on the Dirichlet Boundary Condition, AIAA Journal, Vol. 30, No. 3, March 1992, for the issues that may arise when using an infinitely thin trailing edge.
 */
-vector<Vector3d, Eigen::aligned_allocator<Vector3d> >
+vector_aligned<Vector3d>
 NACA4AirfoilGenerator::generate(double max_camber, double max_camber_dist, double max_thickness, bool finite_te_thickness, double chord, int n_points, int &trailing_edge_point_id)
 {
     if (n_points % 2 == 1) {
@@ -84,7 +84,7 @@ NACA4AirfoilGenerator::generate(double max_camber, double max_camber_dist, doubl
         exit(1);
     }
     
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points;
+    vector_aligned<Vector3d> airfoil_points;
     
     // Add upper nodes:
     for (int i = 0; i < n_points / 2; i++) {
