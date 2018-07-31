@@ -47,7 +47,7 @@ public:
         vector<vector<int> > panel_strips;
         
         for (int i = 0; i < (int) blade_dr.size(); i++) {
-            vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points;
+            vector_aligned<Vector3d> airfoil_points;
             for (int j = 0; j < (int) unscaled_airfoil_points.size(); j++) {
                 Vector3d airfoil_point(blade_chord[i] * (unscaled_airfoil_points[j](0) - 0.25),
                                        blade_thickness[i] / unscaled_airfoil_thickness * unscaled_airfoil_points[j](1),
@@ -75,7 +75,7 @@ public:
     }
     
 private:
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > unscaled_airfoil_points;
+    vector_aligned<Vector3d> unscaled_airfoil_points;
     double unscaled_airfoil_thickness;
     
     int trailing_edge_point_id;
@@ -89,8 +89,8 @@ private:
     void
     read_airfoil(const std::string &filename)
     {
-        vector<Vector3d, Eigen::aligned_allocator<Vector3d> > upper_points;
-        vector<Vector3d, Eigen::aligned_allocator<Vector3d> > lower_points;
+        vector_aligned<Vector3d> upper_points;
+        vector_aligned<Vector3d> lower_points;
         
         // Parse file:
         ifstream f;

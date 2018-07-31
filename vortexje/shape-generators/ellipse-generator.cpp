@@ -25,10 +25,10 @@ static const double pi = 3.141592653589793238462643383279502884;
    
    @returns List of points.
 */
-vector<Vector3d, Eigen::aligned_allocator<Vector3d> >
+vector_aligned<Vector3d>
 EllipseGenerator::generate(double a, double b, int n_points)
 {
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > points;
+    vector_aligned<Vector3d> points;
     
     // Go in the clockwise (negative) direction, for consistency with the airfoil generators.
     double dt = -2 * pi / (double) n_points;

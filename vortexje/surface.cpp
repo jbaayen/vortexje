@@ -267,7 +267,7 @@ Surface::compute_geometry(int panel)
     panel_coordinate_transformations[panel] = transformation;
     
     // Create transformed points.
-    vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > single_panel_transformed_points;
+    vector_aligned<Eigen::Vector3d> single_panel_transformed_points;
     single_panel_transformed_points.reserve(single_panel_nodes.size());
     for (int j = 0; j < (int) single_panel_nodes.size(); j++)
         single_panel_transformed_points.push_back(transformation * nodes[single_panel_nodes[j]]);

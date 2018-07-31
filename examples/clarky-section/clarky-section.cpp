@@ -22,11 +22,11 @@ using namespace Vortexje;
 static const double pi = 3.141592653589793238462643383279502884;
 
 // Load airfoil data from file:
-static vector<Vector3d, Eigen::aligned_allocator<Vector3d> >
+static vector_aligned<Vector3d>
 read_airfoil(const std::string &filename, int &trailing_edge_point_id)
 {
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > upper_points;
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > lower_points;
+    vector_aligned<Vector3d> upper_points;
+    vector_aligned<Vector3d> lower_points;
     
     // Parse file:
     ifstream f;
@@ -67,7 +67,7 @@ read_airfoil(const std::string &filename, int &trailing_edge_point_id)
     f.close();
     
     // Assemble entire airfoil:
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > points;
+    vector_aligned<Vector3d> points;
     
     for (int i = 0; i < (int) upper_points.size() - 1; i++)
         points.push_back(upper_points[i]);
@@ -93,7 +93,7 @@ main(int argc, char **argv)
     
     // Load airfoil data:
     int trailing_edge_point_id;
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > clarky_airfoil = read_airfoil("clarky.dat", trailing_edge_point_id);
+    vector_aligned<Vector3d> clarky_airfoil = read_airfoil("clarky.dat", trailing_edge_point_id);
     
     // Create lifting surface object:
     shared_ptr<LiftingSurface> wing(new LiftingSurface("main"));
@@ -112,7 +112,7 @@ main(int argc, char **argv)
     vector<vector<int> > panel_strips;
     
     for (int i = 0; i < n_airfoils; i++) {
-        vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points;
+        vector_aligned<Vector3d> airfoil_points;
         for (int j = 0; j < (int) clarky_airfoil.size(); j++)
             airfoil_points.push_back(Vector3d(chord * clarky_airfoil[j](0), chord * clarky_airfoil[j](1), i * span / (double) (n_airfoils - 1)));
              

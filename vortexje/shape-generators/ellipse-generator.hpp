@@ -10,7 +10,8 @@
 #define __ELLIPSE_GENERATOR_HPP__
 
 #include <Eigen/Core>
-#include <Eigen/StdVector>
+
+#include <vortexje/vector-aligned.hpp>
 
 namespace Vortexje
 {
@@ -23,7 +24,7 @@ namespace Vortexje
 class EllipseGenerator
 {
 public:
-    static std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > generate(double a, double b, int n_points);
+    static vector_aligned<Eigen::Vector3d> generate(double a, double b, int n_points);
 };
 
 };

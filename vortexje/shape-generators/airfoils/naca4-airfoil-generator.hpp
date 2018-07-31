@@ -10,7 +10,8 @@
 #define __NACA4_AIRFOIL_GENERATOR_HPP__
 
 #include <Eigen/Core>
-#include <Eigen/StdVector>
+
+#include <vortexje/vector-aligned.hpp>
 
 namespace Vortexje
 {
@@ -23,7 +24,7 @@ namespace Vortexje
 class NACA4AirfoilGenerator
 {
 public:
-    static std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > generate(double max_camber, double max_camber_dist, double max_thickness, bool finite_te_thickness, double chord, int n_points, int &trailing_edge_point_id);
+    static vector_aligned<Eigen::Vector3d> generate(double max_camber, double max_camber_dist, double max_thickness, bool finite_te_thickness, double chord, int n_points, int &trailing_edge_point_id);
 };
 
 };

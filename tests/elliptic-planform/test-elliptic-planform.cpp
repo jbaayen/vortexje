@@ -70,7 +70,7 @@ run_test(double alpha)
         double chord_y  = chord * sqrt(1.0 - pow(2.0 * y / span, 2));
         double offset_x = (chord - chord_y) / 2.0;
         
-        vector<Vector3d, Eigen::aligned_allocator<Vector3d> > airfoil_points;
+        vector_aligned<Vector3d> airfoil_points;
         if (i == 0 || i == n_airfoils - 1) {
             Vector3d tip_point(0.0, 0.0, 0.0);
             for (int j = 0; j < n_points_per_airfoil; j++)
