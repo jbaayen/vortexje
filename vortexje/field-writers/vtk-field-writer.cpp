@@ -11,6 +11,7 @@
 #include <fstream>
 
 #include <vortexje/field-writers/vtk-field-writer.hpp>
+#include <vortexje/numeric-stream.hpp>
 
 using namespace std;
 using namespace Eigen;
@@ -25,6 +26,17 @@ const char *
 VTKFieldWriter::file_extension() const
 {
     return ".vtk";
+}
+
+const char *
+VTKFieldWriter::float_str() const
+{
+    switch(float_type) {
+    case nstream::FLOAT:
+      return "FLOAT";
+    default:
+      return "DOUBLE";
+    }
 }
 
 /**
@@ -81,17 +93,18 @@ VTKFieldWriter::write_velocity_field(const Solver &solver, const std::string &fi
     cout << "VTKFieldWriter: Saving velocity vector field to " << filename << "." << endl;
     
     ofstream f;
-    f.open(filename.c_str());
+    f.open(filename.c_str(), ios::binary);
+    nstream::onstream nf(f, mode, float_type, nstream::BIGENDIAN);
     
-    write_preamble(f, x_min, y_min, z_min, dx, dy, dz, nx, ny, nz);
+    write_preamble(f, nf, x_min, y_min, z_min, dx, dy, dz, nx, ny, nz);
     
     // Velocity vector field;    
-    f << "VECTORS Velocity double" << endl;
+    f << "VECTORS Velocity " << float_str() << endl;
     
     vector<Vector3d, Eigen::aligned_allocator<Vector3d> >::const_iterator it;
     for (it = velocities.begin(); it != velocities.end(); it++) {
         Vector3d v = *it;
-        f << v(0) << " " << v(1) << " " << v(2) << endl;
+        nf << v(0) << " " << v(1) << " " << v(2) << endl;
     }
     
     // Close file:
@@ -155,9 +168,10 @@ VTKFieldWriter::write_velocity_potential_field(const Solver &solver, const std::
     cout << "VTKFieldWriter: Saving velocity potential field to " << filename << "." << endl;
     
     ofstream f;
-    f.open(filename.c_str());
+    f.open(filename.c_str(), ios::binary);
+    nstream::onstream nf(f, mode, float_type, nstream::BIGENDIAN);
     
-    write_preamble(f, x_min, y_min, z_min, dx, dy, dz, nx, ny, nz);
+    write_preamble(f, nf, x_min, y_min, z_min, dx, dy, dz, nx, ny, nz);
     
     // Velocity potential field:    
     f << "SCALARS VelocityPotential double 1" << endl;
@@ -166,8 +180,7 @@ VTKFieldWriter::write_velocity_potential_field(const Solver &solver, const std::
     vector<double>::const_iterator it;
     for (it = velocity_potentials.begin(); it != velocity_potentials.end(); it++) {
         double p = *it;
-        
-        f << p << endl;
+        nf << p << endl;
     }
     
     // Close file:
@@ -181,35 +194,35 @@ VTKFieldWriter::write_velocity_potential_field(const Solver &solver, const std::
    Write preamble for VTK output file.
 */
 void
-VTKFieldWriter::write_preamble(ofstream &f,
+VTKFieldWriter::write_preamble(ofstream &f, nstream::onstream &nf,
                                double x_min, double y_min, double z_min,
                                double dx, double dy, double dz,
                                int nx, int ny, int nz) const
 {
     f << "# vtk DataFile Version 2.0" << endl;
     f << "FieldData" << endl;
-    f << "ASCII" << endl;
+    f << (mode==nstream::BINARY? "BINARY" : "ASCII") << endl;
     f << "DATASET RECTILINEAR_GRID" << endl;
     f << "DIMENSIONS " << nx << " " << ny << " " << nz << endl;
-    f << "X_COORDINATES " << nx << " double" << endl;
+    f << "X_COORDINATES " << nx << " " << float_str() << endl;
     for (int i = 0; i < nx; i++) {
         if (i > 0)
-            f << ' ';
-        f << x_min + i * dx;
+            nf << ' ';
+        nf << x_min + i * dx;
     }
     f << endl;
-    f << "Y_COORDINATES " << ny << " double" << endl;
+    f << "Y_COORDINATES " << ny << " " << float_str() << endl;
     for (int i = 0; i < ny; i++) {
         if (i > 0)
-            f << ' ';
-        f << y_min + i * dy;
+            nf << ' ';
+        nf << y_min + i * dy;
     }
     f << endl;
-    f << "Z_COORDINATES " << nz << " double" << endl;
+    f << "Z_COORDINATES " << nz << " " << float_str() << endl;
     for (int i = 0; i < nz; i++) {
         if (i > 0)
-            f << ' ';
-        f << z_min + i * dz;
+            nf << ' ';
+        nf << z_min + i * dz;
     }
     f << endl;
     
