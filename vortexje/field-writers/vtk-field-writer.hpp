@@ -13,6 +13,7 @@
 #include <fstream>
 
 #include <vortexje/field-writer.hpp>
+#include <vortexje/numeric-stream.hpp>
 
 namespace Vortexje
 {
@@ -24,7 +25,12 @@ namespace Vortexje
 */
 class VTKFieldWriter : public FieldWriter
 {
+    nstream::serial_mode_e mode;
+    nstream::float_type_e float_type;
 public:
+    VTKFieldWriter(nstream::serial_mode_e m = nstream::ASCII,
+                   nstream::float_type_e ft = nstream::DOUBLE)
+      : mode(m), float_type(ft) {}
     const char *file_extension() const;
     
     bool write_velocity_field(const Solver &solver,
@@ -42,10 +48,12 @@ public:
                                         double dx, double dy, double dz);
                                         
 private:
-    void write_preamble(std::ofstream &f,
+    void write_preamble(std::ofstream &f, nstream::onstream &nf,
                         double x_min, double y_min, double z_min,
                         double dx, double dy, double dz,
                         int nx, int ny, int nz) const;
+
+    const char *float_str() const;
 };
 
 };
